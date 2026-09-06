@@ -21,6 +21,10 @@ namespace AshenSol.Player
 
         // current joint state
         float torsoA, headA, armBackA, armFrontA, bladeA, legBackA, legFrontA, bobY, torsoY;
+
+        /// <summary>Resting blade angle. The sprite points up at 0, so this aims the tip a little under
+        /// the horizon and forward — carried at a low guard rather than hanging off the wrist.</summary>
+        const float BladeCarry = -112f;
         Vector2 scale = Vector2.one, scaleVel;
         float runPhase, climbPhase;
         int facing = 1;
@@ -119,7 +123,7 @@ namespace AshenSol.Player
         // ---------------- public controls ----------------
         public void ResetPose()
         {
-            torsoA = headA = armBackA = legBackA = legFrontA = 0f; armFrontA = 20f; bladeA = -160f; bobY = torsoY = 0f;
+            torsoA = headA = armBackA = legBackA = legFrontA = 0f; armFrontA = 20f; bladeA = BladeCarry; bobY = torsoY = 0f;
             scale = Vector2.one; scaleVel = Vector2.zero;
             attackActive = false; forced = Pose.None; forcedTimer = 0f; flashT = 0f;
             lightPulse = 0f;
@@ -208,7 +212,7 @@ namespace AshenSol.Player
             else pose = Pose.Idle;
 
             float t = Time.time;
-            float tTorso = 0f, tHead = 0f, tArmB = -8f, tArmF = 20f, tBlade = -160f, tLegB = 0f, tLegF = 0f, tBob = 0f, tTorsoY = 0f;
+            float tTorso = 0f, tHead = 0f, tArmB = -8f, tArmF = 20f, tBlade = BladeCarry, tLegB = 0f, tLegF = 0f, tBob = 0f, tTorsoY = 0f;
             Vector2 tScale = Vector2.one;
             float rate = 18f;
 
@@ -218,6 +222,7 @@ namespace AshenSol.Player
                     tBob = Mathf.Sin(t * 1.2f * Mathf.PI * 2f) * 0.025f;
                     tArmF = 20f + Mathf.Sin(t * 1.2f * Mathf.PI * 2f) * 4f;
                     tArmB = -8f - Mathf.Sin(t * 1.2f * Mathf.PI * 2f) * 3f;
+                    tBlade = BladeCarry - Mathf.Sin(t * 1.2f * Mathf.PI * 2f) * 3f;   // the tip breathes with him
                     tHead = Mathf.Sin(t * 0.7f) * 2f;
                     break;
                 case Pose.Run:
@@ -232,10 +237,10 @@ namespace AshenSol.Player
                     rate = 30f;
                     break;
                 case Pose.Jump:
-                    tLegF = -30f; tLegB = 22f; tArmF = 55f; tArmB = -55f; tTorso = -6f; tBlade = -150f;
+                    tLegF = -30f; tLegB = 22f; tArmF = 55f; tArmB = -55f; tTorso = -6f; tBlade = -104f;
                     break;
                 case Pose.Fall:
-                    tLegF = 28f; tLegB = -22f; tArmF = 75f; tArmB = -65f; tTorso = 5f; tBlade = -140f;
+                    tLegF = 28f; tLegB = -22f; tArmF = 75f; tArmB = -65f; tTorso = 5f; tBlade = -98f;
                     break;
                 case Pose.Dash:
                     tTorso = -28f; tLegF = 42f; tLegB = -42f; tArmF = 95f; tArmB = -40f; tBlade = -90f; tHead = 6f;
