@@ -182,6 +182,8 @@ namespace AshenSol.Intro
             {
                 Torso = "player_torso", Head = "player_head", Arm = "player_arm_front",
                 Weapon = "player_sword", Leg = "player_leg_front",
+                TwoSegment = true, UpperArm = "player_arm_front_upper", LowerArm = "player_arm_front_lower", UpperLeg = "player_leg_front_upper", LowerLeg = "player_leg_front_lower",
+                UpperArmH = 0.26f, LowerArmH = 0.24f, UpperLegH = 0.30f, LowerLegH = 0.28f, UpperArmLen = 0.22f, LowerArmLen = 0.20f, UpperLegLen = 0.26f, LowerLegLen = 0.28f,
                 HipY = 0.62f, LegOffset = 0.07f, TorsoH = 0.62f, HeadY = 0.60f,
                 Shoulder = new Vector2(0.09f, 0.54f), ArmLen = 0.42f, ArmSpriteH = 0.46f,
                 LegSpriteH = 0.54f, HeadSpriteH = 0.46f,
@@ -197,6 +199,8 @@ namespace AshenSol.Intro
             {
                 Torso = "spear_torso", Head = "spear_head", Arm = "spear_arm",
                 Weapon = "spear_spear", Leg = "spear_leg",
+                TwoSegment = true, UpperArm = "spear_arm_upper", LowerArm = "spear_arm_lower", UpperLeg = "spear_leg_upper", LowerLeg = "spear_leg_lower",
+                UpperArmH = 0.24f, LowerArmH = 0.22f, UpperLegH = 0.27f, LowerLegH = 0.25f, UpperArmLen = 0.20f, LowerArmLen = 0.20f, UpperLegLen = 0.23f, LowerLegLen = 0.25f,
                 HipY = 0.48f, TorsoH = 0.66f, HeadY = 0.64f,
                 Shoulder = new Vector2(0.09f, 0.55f), ArmLen = 0.40f, ArmSpriteH = 0.42f,
                 LegSpriteH = 0.48f, HeadSpriteH = 0.42f,
@@ -212,6 +216,8 @@ namespace AshenSol.Intro
             {
                 Torso = "grunt_torso", Head = "grunt_head", Arm = "grunt_arm",
                 Weapon = "grunt_blade", Leg = "grunt_leg",
+                TwoSegment = true, UpperArm = "grunt_arm_upper", LowerArm = "grunt_arm_lower", UpperLeg = "grunt_leg_upper", LowerLeg = "grunt_leg_lower",
+                UpperArmH = 0.24f, LowerArmH = 0.22f, UpperLegH = 0.26f, LowerLegH = 0.24f, UpperArmLen = 0.20f, LowerArmLen = 0.20f, UpperLegLen = 0.22f, LowerLegLen = 0.24f,
                 HipY = 0.46f, TorsoH = 0.62f, HeadY = 0.60f,
                 Shoulder = new Vector2(0.09f, 0.52f), ArmLen = 0.40f, ArmSpriteH = 0.42f,
                 LegSpriteH = 0.46f, HeadSpriteH = 0.38f,
@@ -227,6 +233,8 @@ namespace AshenSol.Intro
             {
                 Torso = "boss_torso", Head = "boss_head", Arm = "boss_arm",
                 Weapon = "boss_glaive", Leg = "boss_leg",
+                TwoSegment = true, UpperArm = "boss_arm_upper", LowerArm = "boss_arm_lower", UpperLeg = "boss_leg_upper", LowerLeg = "boss_leg_lower",
+                UpperArmH = 0.48f, LowerArmH = 0.44f, UpperLegH = 0.62f, LowerLegH = 0.56f, UpperArmLen = 0.42f, LowerArmLen = 0.40f, UpperLegLen = 0.54f, LowerLegLen = 0.56f,
                 HipY = 1.1f, LegOffset = 0.18f, TorsoH = 1.5f, HeadY = 1.42f,
                 Shoulder = new Vector2(0.22f, 1.22f), ArmLen = 0.82f, ArmSpriteH = 0.92f,
                 LegSpriteH = 1.1f, HeadSpriteH = 0.82f,

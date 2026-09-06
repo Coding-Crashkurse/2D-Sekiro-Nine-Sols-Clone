@@ -42,6 +42,8 @@ namespace AshenSol.Enemies
             var cfg = new EnemyRig.Config
             {
                 Prefix = "spear", Torso = "spear_torso", Head = "spear_head", Arm = "spear_arm", Weapon = "spear_spear", Leg = "spear_leg",
+                TwoSegment = true, UpperArm = "spear_arm_upper", LowerArm = "spear_arm_lower", UpperLeg = "spear_leg_upper", LowerLeg = "spear_leg_lower",
+                UpperArmH = 0.24f, LowerArmH = 0.22f, UpperLegH = 0.27f, LowerLegH = 0.25f, UpperArmLen = 0.20f, LowerArmLen = 0.20f, UpperLegLen = 0.23f, LowerLegLen = 0.25f,
                 HipY = 0.48f, TorsoH = 0.66f, HeadY = 0.64f, Shoulder = new Vector2(0.09f, 0.55f), ArmLen = 0.40f, ArmSpriteH = 0.42f,
                 LegSpriteH = 0.48f, HeadSpriteH = 0.42f, WeaponOffset = new Vector2(0f, 0.25f), WeaponVerticalIdle = true, ArmIdle = 12f,
                 SortBase = SortOrder.Enemy, LightColor = Palette.TealDeep, LightIntensity = 0.35f, LightRadius = 1.5f, WeaponTipDistance = 1.0f

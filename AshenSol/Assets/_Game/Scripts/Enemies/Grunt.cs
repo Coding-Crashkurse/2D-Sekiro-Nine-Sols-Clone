@@ -39,6 +39,8 @@ namespace AshenSol.Enemies
             var cfg = new EnemyRig.Config
             {
                 Prefix = "grunt", Torso = "grunt_torso", Head = "grunt_head", Arm = "grunt_arm", Weapon = "grunt_blade", Leg = "grunt_leg",
+                TwoSegment = true, UpperArm = "grunt_arm_upper", LowerArm = "grunt_arm_lower", UpperLeg = "grunt_leg_upper", LowerLeg = "grunt_leg_lower",
+                UpperArmH = 0.24f, LowerArmH = 0.22f, UpperLegH = 0.26f, LowerLegH = 0.24f, UpperArmLen = 0.20f, LowerArmLen = 0.20f, UpperLegLen = 0.22f, LowerLegLen = 0.24f,
                 HipY = 0.46f, TorsoH = 0.62f, HeadY = 0.60f, Shoulder = new Vector2(0.09f, 0.52f), ArmLen = 0.40f, ArmSpriteH = 0.42f,
                 LegSpriteH = 0.46f, HeadSpriteH = 0.38f, WeaponOffset = new Vector2(0f, 0.26f), WeaponIdleLocal = 200f, ArmIdle = 18f,
                 SortBase = SortOrder.Enemy, LightColor = Palette.RedDeep, LightIntensity = 0.35f, LightRadius = 1.4f, WeaponTipDistance = 0.62f

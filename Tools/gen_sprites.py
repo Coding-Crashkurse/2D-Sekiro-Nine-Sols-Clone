@@ -256,6 +256,33 @@ def player_head():
         return img
     return body(w, h, shape, mix(ROBE_T, (34, 44, 66), 0.4), ROBE_B, BONE, 150, detail_fn=details)
 
+def segment(w, h, name, c_top, c_bot, accent=None, hand=False, rim_c=BONE, wrap=None, joint_bottom=True):
+    """One segment of a two-jointed limb: pivot at the TOP CENTER (the joint), tapering downward. The top
+    is a rounded joint ball; joint_bottom rounds the far end too so the next segment overlaps it cleanly,
+    hand adds the hand/foot blob at the bottom instead."""
+    def shape(m):
+        poly(m, [(w * 0.16, h * 0.08), (w * 0.84, h * 0.08), (w * 0.92, h * 0.40), (w * 0.80, h * 0.82),
+                 (w * 0.80, h - 1), (w * 0.20, h - 1), (w * 0.20, h * 0.82), (w * 0.08, h * 0.40)])
+        ell(m, (w * 0.08, 0, w * 0.92, h * 0.28))
+        if hand:
+            ell(m, (w * 0.12, h * 0.78, w * 0.88, h))
+        elif joint_bottom:
+            ell(m, (w * 0.16, h * 0.74, w * 0.84, h))
+    def details(img, m):
+        if wrap:
+            for y in wrap:
+                img = polyfill(img, [(w * 0.14, y), (w * 0.86, y - 1), (w * 0.86, y + 2.5), (w * 0.14, y + 3.5)], accent or REDD, 220)
+        img = stroke(img, [(w * 0.72, h * 0.2), (w * 0.80, h * 0.5), (w * 0.72, h * 0.85)], mix(c_top, BONE, 0.35), 1.0, 130)
+        return img
+    return body(w, h, shape, c_top, c_bot, rim_c, 150, detail_fn=details)
+
+def limb_pair(w, hu, hl, name, c_top, c_bot, accent=None, hand=True, rim_c=BONE, wrap_lower=None):
+    """Upper and lower segment of one limb, saved as name_upper and name_lower. The lower segment is a
+    little narrower so it reads as the forearm / shin."""
+    save(segment(w, hu, name + "_upper", c_top, c_bot, accent, False, rim_c), w, hu, name + "_upper")
+    wl = max(8, w - 2)
+    save(segment(wl, hl, name + "_lower", c_top, c_bot, accent, hand, rim_c, wrap=wrap_lower), wl, hl, name + "_lower")
+
 def limb(w, h, name, c_top, c_bot, accent=None, hand=True, rim_c=BONE, wrap=None):
     """Generic arm/leg: pivot at the TOP CENTER, tapering downward."""
     def shape(m):
@@ -1455,6 +1482,11 @@ def main():
     save(limb(16, 46, "player_arm_front", ROBE_T, ROBE_B, REDD, True, BONE, wrap=[26]), 16, 46, "player_arm_front")
     save(limb(20, 54, "player_leg_back", shade(ROBE_T, 0.75), shade(ROBE_B, 0.8), None, True, BONE, wrap=[38]), 20, 54, "player_leg_back")
     save(limb(20, 54, "player_leg_front", ROBE_T, ROBE_B, None, True, BONE, wrap=[38]), 20, 54, "player_leg_front")
+    # two-segment limbs (knee / elbow): the rigs use these, the single-piece limbs above stay for reference
+    limb_pair(16, 26, 24, "player_arm_back", shade(ROBE_T, 0.75), shade(ROBE_B, 0.8), REDD, True, BONE, wrap_lower=[6])
+    limb_pair(16, 26, 24, "player_arm_front", ROBE_T, ROBE_B, REDD, True, BONE, wrap_lower=[6])
+    limb_pair(20, 30, 28, "player_leg_back", shade(ROBE_T, 0.75), shade(ROBE_B, 0.8), None, True, BONE, wrap_lower=[12])
+    limb_pair(20, 30, 28, "player_leg_front", ROBE_T, ROBE_B, None, True, BONE, wrap_lower=[12])
     save(player_sword(), 14, 96, "player_sword")
     save(player_sash_seg(), 12, 12, "player_sash_seg")
 
@@ -1462,18 +1494,24 @@ def main():
     save(grunt_head(), 38, 38, "grunt_head")
     save(limb(14, 42, "grunt_arm", HUSK_T, HUSK_B, None, True, mix(BONE, STONE, 0.5)), 14, 42, "grunt_arm")
     save(limb(16, 46, "grunt_leg", HUSK_T, HUSK_B, None, False, mix(BONE, STONE, 0.5)), 16, 46, "grunt_leg")
+    limb_pair(14, 24, 22, "grunt_arm", HUSK_T, HUSK_B, None, True, mix(BONE, STONE, 0.5))
+    limb_pair(16, 26, 24, "grunt_leg", HUSK_T, HUSK_B, None, False, mix(BONE, STONE, 0.5))
     save(grunt_blade(), 12, 72, "grunt_blade")
 
     save(spear_torso(), 50, 66, "spear_torso")
     save(spear_head(), 36, 42, "spear_head")
     save(limb(14, 42, "spear_arm", SENT_T, SENT_B, None, True, mix(BONE, TEAL, 0.2)), 14, 42, "spear_arm")
     save(limb(16, 48, "spear_leg", SENT_T, SENT_B, None, False, mix(BONE, TEAL, 0.2)), 16, 48, "spear_leg")
+    limb_pair(14, 24, 22, "spear_arm", SENT_T, SENT_B, None, True, mix(BONE, TEAL, 0.2))
+    limb_pair(16, 27, 25, "spear_leg", SENT_T, SENT_B, None, False, mix(BONE, TEAL, 0.2))
     save(spear_spear(), 10, 160, "spear_spear")
 
     save(brute_torso(), 68, 84, "brute_torso")
     save(brute_head(), 46, 48, "brute_head")
     save(limb(18, 54, "brute_arm", BRUTE_T, BRUTE_B, AMBER, True, mix(BONE, AMBER, 0.25), wrap=[30]), 18, 54, "brute_arm")
     save(limb(22, 58, "brute_leg", BRUTE_T, BRUTE_B, None, False, mix(BONE, AMBER, 0.25)), 22, 58, "brute_leg")
+    limb_pair(18, 29, 27, "brute_arm", BRUTE_T, BRUTE_B, AMBER, True, mix(BONE, AMBER, 0.25), wrap_lower=[8])
+    limb_pair(22, 32, 30, "brute_leg", BRUTE_T, BRUTE_B, None, False, mix(BONE, AMBER, 0.25))
     save(brute_hammer(), 40, 140, "brute_hammer")
 
     save(drone_body(), 58, 42, "drone_body")
@@ -1485,6 +1523,8 @@ def main():
     save(boss_head(), 72, 82, "boss_head")
     save(limb(28, 92, "boss_arm", BOSS_T, BOSS_B, None, True, mix(BONE, STONE, 0.5)), 28, 92, "boss_arm")
     save(limb(36, 110, "boss_leg", BOSS_T, BOSS_B, None, False, mix(BONE, STONE, 0.5)), 36, 110, "boss_leg")
+    limb_pair(28, 48, 44, "boss_arm", BOSS_T, BOSS_B, None, True, mix(BONE, STONE, 0.5))
+    limb_pair(36, 62, 56, "boss_leg", BOSS_T, BOSS_B, None, False, mix(BONE, STONE, 0.5))
     save(boss_glaive(), 26, 270, "boss_glaive")
     save(boss_cape_seg(), 24, 24, "boss_cape_seg")
     save(boss_core(), 34, 34, "boss_core")

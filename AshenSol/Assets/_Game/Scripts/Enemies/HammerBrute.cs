@@ -49,6 +49,8 @@ namespace AshenSol.Enemies
             var cfg = new EnemyRig.Config
             {
                 Prefix = "brute", Scale = 1.12f, Torso = "brute_torso", Head = "brute_head", Arm = "brute_arm", Weapon = "brute_hammer", Leg = "brute_leg",
+                TwoSegment = true, UpperArm = "brute_arm_upper", LowerArm = "brute_arm_lower", UpperLeg = "brute_leg_upper", LowerLeg = "brute_leg_lower",
+                UpperArmH = 0.29f, LowerArmH = 0.27f, UpperLegH = 0.32f, LowerLegH = 0.30f, UpperArmLen = 0.25f, LowerArmLen = 0.25f, UpperLegLen = 0.28f, LowerLegLen = 0.30f,
                 HipY = 0.58f, LegOffset = 0.10f, TorsoH = 0.84f, HeadY = 0.80f, Shoulder = new Vector2(0.14f, 0.70f), ArmLen = 0.50f, ArmSpriteH = 0.54f,
                 LegSpriteH = 0.58f, HeadSpriteH = 0.48f, WeaponOffset = new Vector2(0f, 0.45f), WeaponIdleLocal = -30f, ArmIdle = 30f,
                 SortBase = SortOrder.Enemy, LightColor = Palette.Amber, LightIntensity = 0.5f, LightRadius = 1.8f, WeaponTipDistance = 1.15f

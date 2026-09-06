@@ -4,18 +4,19 @@ using AshenSol.Core;
 
 namespace AshenSol.Player
 {
-    /// <summary>Procedural puppet: joint pivots + sprites, posed every frame from the controller state.
-    /// Locomotion and stances are pose targets the joints ease toward; attacks are keyframed clips
-    /// (anticipation, contact, follow-through, settle) that start from whatever the body is doing.</summary>
+    /// <summary>Procedural puppet with knees and elbows: joint pivots + sprites, posed every frame from the
+    /// controller state. Locomotion and stances are pose targets the joints ease toward; attacks are keyframed
+    /// clips (anticipation, contact, follow-through, settle) that start from whatever the body is doing.
+    /// Knees only bend backwards (negative), elbows only forwards (positive).</summary>
     public class PlayerRig
     {
         enum Pose { None, Idle, Run, Jump, Fall, Dash, Parry, Guard, ParrySuccess, Hurt, HurtBack, Heal, QiBlast, Climb, Charge }
 
         /// <summary>Joint targets for one moment. Angles in degrees, Bob/TorsoY in units.
-        /// NaN on a leg means "leave the legs to locomotion" (air attacks).</summary>
+        /// NaN on a leg or knee means "leave the legs to locomotion" (air attacks).</summary>
         struct JointPose
         {
-            public float Torso, Head, ArmBack, ArmFront, Blade, LegBack, LegFront, Bob, TorsoY;
+            public float Torso, Head, ArmBack, ArmFront, ElbowBack, ElbowFront, Blade, LegBack, LegFront, KneeBack, KneeFront, Bob, TorsoY;
 
             /// <summary>Arm and blade lerp linearly so a clip can spin the sword all the way round.</summary>
             public static JointPose Lerp(in JointPose a, in JointPose b, float t)
@@ -25,9 +26,13 @@ namespace AshenSol.Player
                 r.Head = Mathf.LerpAngle(a.Head, b.Head, t);
                 r.ArmBack = Mathf.LerpAngle(a.ArmBack, b.ArmBack, t);
                 r.ArmFront = Mathf.Lerp(a.ArmFront, b.ArmFront, t);
+                r.ElbowBack = Mathf.LerpAngle(a.ElbowBack, b.ElbowBack, t);
+                r.ElbowFront = Mathf.LerpAngle(a.ElbowFront, b.ElbowFront, t);
                 r.Blade = Mathf.Lerp(a.Blade, b.Blade, t);
                 r.LegBack = LerpLeg(a.LegBack, b.LegBack, t);
                 r.LegFront = LerpLeg(a.LegFront, b.LegFront, t);
+                r.KneeBack = LerpLeg(a.KneeBack, b.KneeBack, t);
+                r.KneeFront = LerpLeg(a.KneeFront, b.KneeFront, t);
                 r.Bob = Mathf.Lerp(a.Bob, b.Bob, t);
                 r.TorsoY = Mathf.Lerp(a.TorsoY, b.TorsoY, t);
                 return r;
@@ -54,7 +59,7 @@ namespace AshenSol.Player
         public SpriteRenderer[] Renderers { get; private set; }
         public Transform Root { get; private set; }
 
-        Transform torso, head, armBack, armFront, sword, legBack, legFront;
+        Transform torso, head, armBack, armFront, elbowBack, elbowFront, sword, legBack, legFront, kneeBack, kneeFront;
         SpriteRenderer[] overlays;
         SpriteRenderer glyph;
         Light2D swordLight;
@@ -63,13 +68,17 @@ namespace AshenSol.Player
         Transform sashAnchor;
 
         // current joint state
-        float torsoA, headA, armBackA, armFrontA, bladeA, legBackA, legFrontA, bobY, torsoY;
+        float torsoA, headA, armBackA, armFrontA, elbowBackA, elbowFrontA, bladeA, legBackA, legFrontA, kneeBackA, kneeFrontA, bobY, torsoY, plant;
 
         /// <summary>Resting blade angle. The sprite points up at 0, so this aims the tip a little under
         /// the horizon and forward: carried at a low guard rather than hanging off the wrist.</summary>
         const float BladeCarry = -112f;
         const float Stride = 4.6f;            // ground covered per run cycle (stylised: slides a little)
         const float TurnSeconds = 0.08f;      // the mirror blends through thin instead of snapping
+        const float LowerZ = -0.002f;         // lower segments sit a hair closer to the camera: they win sorting ties at the joint
+        // limb geometry (units): joint distances, and the sprite heights that overlap the joints a little
+        const float UpperLegLen = 0.26f, LowerLegLen = 0.28f, UpperArmLen = 0.22f, LowerArmLen = 0.20f;
+        const float UpperLegH = 0.30f, LowerLegH = 0.28f, UpperArmH = 0.26f, LowerArmH = 0.24f;
         Vector2 scale = Vector2.one, scaleVel;
         float runPhase, climbPhase;
         int facing = 1; float facingBlend = 1f; bool everAnimated;
@@ -92,23 +101,31 @@ namespace AshenSol.Player
             root.SetParent(c.transform, false);
             rig.Root = root;
 
-            var renderers = new SpriteRenderer[7];
-            var overlays = new SpriteRenderer[7];
+            var renderers = new SpriteRenderer[11];
+            var overlays = new SpriteRenderer[11];
             int n = 0;
 
             rig.legBack = Pivot(root, "legBack", new Vector2(-0.07f, 0.62f));
-            renderers[n] = Part(rig.legBack, "player_leg_back", new Vector2(0f, -0.27f), SortOrder.PlayerBack, out overlays[n]); n++;
+            renderers[n] = Part(rig.legBack, "player_leg_back_upper", new Vector2(0f, -UpperLegH * 0.5f), SortOrder.PlayerBack, out overlays[n]); n++;
+            rig.kneeBack = Pivot(rig.legBack, "knee", new Vector2(0f, -UpperLegLen));
+            renderers[n] = Part(rig.kneeBack, "player_leg_back_lower", new Vector2(0f, -LowerLegH * 0.5f), SortOrder.PlayerBack, out overlays[n], LowerZ); n++;
             rig.legFront = Pivot(root, "legFront", new Vector2(0.07f, 0.62f));
-            renderers[n] = Part(rig.legFront, "player_leg_front", new Vector2(0f, -0.27f), SortOrder.Player + 2, out overlays[n]); n++;
+            renderers[n] = Part(rig.legFront, "player_leg_front_upper", new Vector2(0f, -UpperLegH * 0.5f), SortOrder.Player + 2, out overlays[n]); n++;
+            rig.kneeFront = Pivot(rig.legFront, "knee", new Vector2(0f, -UpperLegLen));
+            renderers[n] = Part(rig.kneeFront, "player_leg_front_lower", new Vector2(0f, -LowerLegH * 0.5f), SortOrder.Player + 2, out overlays[n], LowerZ); n++;
             rig.torso = Pivot(root, "torso", new Vector2(0f, 0.60f));
             renderers[n] = Part(rig.torso, "player_torso", new Vector2(0f, 0.31f), SortOrder.Player, out overlays[n]); n++;
             rig.head = Pivot(rig.torso, "head", new Vector2(0.02f, 0.60f));
             renderers[n] = Part(rig.head, "player_head", new Vector2(0f, 0.20f), SortOrder.Player + 1, out overlays[n]); n++;
             rig.armBack = Pivot(rig.torso, "armBack", new Vector2(-0.08f, 0.54f));
-            renderers[n] = Part(rig.armBack, "player_arm_back", new Vector2(0f, -0.22f), SortOrder.PlayerBack + 2, out overlays[n]); n++;
+            renderers[n] = Part(rig.armBack, "player_arm_back_upper", new Vector2(0f, -UpperArmH * 0.5f), SortOrder.PlayerBack + 2, out overlays[n]); n++;
+            rig.elbowBack = Pivot(rig.armBack, "elbow", new Vector2(0f, -UpperArmLen));
+            renderers[n] = Part(rig.elbowBack, "player_arm_back_lower", new Vector2(0f, -LowerArmH * 0.5f), SortOrder.PlayerBack + 2, out overlays[n], LowerZ); n++;
             rig.armFront = Pivot(rig.torso, "armFront", new Vector2(0.09f, 0.54f));
-            renderers[n] = Part(rig.armFront, "player_arm_front", new Vector2(0f, -0.22f), SortOrder.PlayerFront, out overlays[n]); n++;
-            rig.sword = Pivot(rig.armFront, "sword", new Vector2(0f, -0.42f));
+            renderers[n] = Part(rig.armFront, "player_arm_front_upper", new Vector2(0f, -UpperArmH * 0.5f), SortOrder.PlayerFront, out overlays[n]); n++;
+            rig.elbowFront = Pivot(rig.armFront, "elbow", new Vector2(0f, -UpperArmLen));
+            renderers[n] = Part(rig.elbowFront, "player_arm_front_lower", new Vector2(0f, -LowerArmH * 0.5f), SortOrder.PlayerFront, out overlays[n], LowerZ); n++;
+            rig.sword = Pivot(rig.elbowFront, "sword", new Vector2(0f, -LowerArmLen));
             renderers[n] = Part(rig.sword, "player_sword", new Vector2(0f, 0.30f), SortOrder.PlayerFront + 1, out overlays[n]); n++;
 
             var lightGo = new GameObject("SwordLight");
@@ -169,11 +186,11 @@ namespace AshenSol.Player
             return t;
         }
 
-        static SpriteRenderer Part(Transform pivot, string sprite, Vector2 offset, int sort, out SpriteRenderer overlay)
+        static SpriteRenderer Part(Transform pivot, string sprite, Vector2 offset, int sort, out SpriteRenderer overlay, float z = 0f)
         {
             var go = new GameObject(sprite);
             go.transform.SetParent(pivot, false);
-            go.transform.localPosition = offset;
+            go.transform.localPosition = new Vector3(offset.x, offset.y, z);
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = Res.Sprite(sprite);
             sr.sortingOrder = sort;
@@ -192,6 +209,8 @@ namespace AshenSol.Player
         public void ResetPose()
         {
             torsoA = headA = armBackA = legBackA = legFrontA = 0f; armFrontA = 20f; bladeA = BladeCarry; bobY = torsoY = 0f;
+            kneeBackA = kneeFrontA = -3f; elbowFrontA = 16f; elbowBackA = 10f;
+            plant = PlantDrop(legFrontA, kneeFrontA, legBackA, kneeBackA);
             scale = Vector2.one; scaleVel = Vector2.zero;
             clipActive = false; forced = Pose.None; forcedTimer = 0f; flashT = 0f;
             lightPulse = 0f;
@@ -238,7 +257,8 @@ namespace AshenSol.Player
 
         /// <summary>Keyframed swing. idx 0-2 = the combo, 3 = the charged overhead. The clip starts from the
         /// current pose: anticipation over the first part of the startup, the sweep arriving in the target
-        /// once the hitbox is open, follow-through and settle across the recovery.</summary>
+        /// once the hitbox is open, follow-through and settle across the recovery. The elbow folds in the
+        /// wind-up and snaps straight through the contact, which is what makes a cut read as a cut.</summary>
         public void PlayAttack(int idx, float startup, float active, float recovery, bool grounded)
         {
             forced = Pose.None;
@@ -254,6 +274,7 @@ namespace AshenSol.Player
             float dir = to >= from ? 1f : -1f;
             bool heavy = idx == 3, big = idx >= 2;
             float legF = grounded ? 20f : float.NaN, legB = grounded ? -16f : float.NaN;
+            float kneeF = grounded ? -18f : float.NaN, kneeB = grounded ? -6f : float.NaN;
             // the heavy is hit-stopped long and hard, so its blade must already be deep in the target on
             // the first active frame; the light hits cross it during the window
             float tWind = startup * 0.45f;
@@ -261,10 +282,11 @@ namespace AshenSol.Player
             float tFollow = startup + active + recovery * 0.4f;
             float tSettle = startup + active + recovery;
             float wArm = from - dir * 12f, fArm = to + dir * 14f, sArm = to - dir * 25f;
-            clip[0] = new ClipKey(tWind, new JointPose { Torso = heavy ? 14f : 8f, Head = -4f, ArmBack = heavy ? 190f : -30f, ArmFront = wArm, Blade = wArm + 180f, LegBack = legB, LegFront = legF, Bob = 0f, TorsoY = heavy ? -0.05f : 0f }, EaseOutQuad);
-            clip[1] = new ClipKey(tContact, new JointPose { Torso = big ? -22f : -16f, Head = 4f, ArmBack = heavy ? 60f : -30f, ArmFront = to, Blade = to + 180f, LegBack = legB, LegFront = legF, Bob = 0f, TorsoY = heavy ? -0.08f : -0.02f }, heavy ? EaseOutCubic : EaseOutQuad);
-            clip[2] = new ClipKey(tFollow, new JointPose { Torso = big ? -26f : -20f, Head = 6f, ArmBack = heavy ? 50f : -34f, ArmFront = fArm, Blade = fArm + 180f, LegBack = legB, LegFront = legF, Bob = 0f, TorsoY = heavy ? -0.06f : -0.03f }, EaseOutCubic);
-            clip[3] = new ClipKey(tSettle, new JointPose { Torso = -8f, Head = 2f, ArmBack = -14f, ArmFront = sArm, Blade = sArm + 180f, LegBack = legB, LegFront = legF, Bob = 0f, TorsoY = 0f }, EaseInOutSine);
+            float wElbow = heavy ? 80f : 70f, cElbow = heavy ? 4f : 8f;
+            clip[0] = new ClipKey(tWind, new JointPose { Torso = heavy ? 14f : 8f, Head = -4f, ArmBack = heavy ? 190f : -30f, ElbowBack = heavy ? 25f : 20f, ArmFront = wArm, ElbowFront = wElbow, Blade = wArm + wElbow + 180f, LegBack = legB, LegFront = legF, KneeBack = kneeB, KneeFront = kneeF, Bob = 0f, TorsoY = heavy ? -0.05f : 0f }, EaseOutQuad);
+            clip[1] = new ClipKey(tContact, new JointPose { Torso = big ? -22f : -16f, Head = 4f, ArmBack = heavy ? 60f : -30f, ElbowBack = heavy ? 10f : 20f, ArmFront = to, ElbowFront = cElbow, Blade = to + cElbow + 180f, LegBack = legB, LegFront = legF, KneeBack = kneeB, KneeFront = kneeF, Bob = 0f, TorsoY = heavy ? -0.08f : -0.02f }, heavy ? EaseOutCubic : EaseOutQuad);
+            clip[2] = new ClipKey(tFollow, new JointPose { Torso = big ? -26f : -20f, Head = 6f, ArmBack = heavy ? 50f : -34f, ElbowBack = 22f, ArmFront = fArm, ElbowFront = 24f, Blade = fArm + 24f + 180f, LegBack = legB, LegFront = legF, KneeBack = kneeB, KneeFront = kneeF, Bob = 0f, TorsoY = heavy ? -0.06f : -0.03f }, EaseOutCubic);
+            clip[3] = new ClipKey(tSettle, new JointPose { Torso = -8f, Head = 2f, ArmBack = -14f, ElbowBack = 12f, ArmFront = sArm, ElbowFront = 18f, Blade = sArm + 18f + 180f, LegBack = legB, LegFront = legF, KneeBack = kneeB, KneeFront = kneeF, Bob = 0f, TorsoY = 0f }, EaseInOutSine);
             clipCount = 4;
             clipStart = CurrentPose();
             // take the shortest way into the anticipation from wherever the arm happens to be
@@ -348,6 +370,7 @@ namespace AshenSol.Player
 
             float t = Time.time;
             float tTorso = 0f, tHead = 0f, tArmB = -8f, tArmF = 20f, tBlade = BladeCarry, tLegB = 0f, tLegF = 0f, tBob = 0f, tTorsoY = 0f;
+            float tKneeB = -3f, tKneeF = -3f, tElbowB = 10f, tElbowF = 16f;
             float rate = 18f;
             bool snapLegs = false;
 
@@ -356,96 +379,113 @@ namespace AshenSol.Player
                 case Pose.Idle:
                     tBob = Mathf.Sin(t * 1.2f * Mathf.PI * 2f) * 0.025f;
                     tArmF = 20f + Mathf.Sin(t * 1.2f * Mathf.PI * 2f) * 4f;
+                    tElbowF = 16f + Mathf.Sin(t * 1.2f * Mathf.PI * 2f) * 3f;
                     tArmB = -8f - Mathf.Sin(t * 1.2f * Mathf.PI * 2f) * 3f;
                     tBlade = BladeCarry - Mathf.Sin(t * 1.2f * Mathf.PI * 2f) * 3f;   // the tip breathes with him
                     tHead = Mathf.Sin(t * 0.7f) * 2f;
                     break;
                 case Pose.Run:
+                {
                     // the cycle advances with the ground covered, not with time: no sliding while he accelerates or brakes
                     runPhase += Mathf.Abs(v.x) * dt * (Mathf.PI * 2f / Stride);
-                    tLegF = Mathf.Sin(runPhase) * 38f;
+                    float s = Mathf.Sin(runPhase), cs = Mathf.Cos(runPhase);
+                    tLegF = s * 38f;
                     tLegB = -tLegF;
-                    tArmF = -Mathf.Sin(runPhase) * 22f + 18f;
-                    tArmB = Mathf.Sin(runPhase) * 26f - 6f;
+                    // the swinging leg folds at the knee to clear the ground, the planted leg drives straight
+                    tKneeF = -72f * Mathf.Max(0f, cs);
+                    tKneeB = -72f * Mathf.Max(0f, -cs);
+                    tArmF = -s * 22f + 18f;
+                    tArmB = s * 26f - 6f;
+                    tElbowF = 55f + 15f * s;
+                    tElbowB = 55f - 15f * s;
                     tTorso = -8f;                    // the bob comes from the planted feet below
                     tHead = 3f;
                     rate = 30f;
                     snapLegs = true;
                     break;
+                }
                 case Pose.Jump:
-                    tLegF = -30f; tLegB = 22f; tArmF = 55f; tArmB = -55f; tTorso = -6f; tBlade = -104f;
+                    tLegF = -30f; tLegB = 22f; tKneeF = -35f; tKneeB = -60f; tArmF = 55f; tArmB = -55f; tElbowF = 40f; tElbowB = 50f; tTorso = -6f; tBlade = -104f;
                     break;
                 case Pose.Fall:
-                    tLegF = 28f; tLegB = -22f; tArmF = 75f; tArmB = -65f; tTorso = 5f; tBlade = -98f;
+                    tLegF = 28f; tLegB = -22f; tKneeF = -25f; tKneeB = -15f; tArmF = 75f; tArmB = -65f; tElbowF = 30f; tElbowB = 35f; tTorso = 5f; tBlade = -98f;
                     break;
                 case Pose.Dash:
-                    tTorso = -28f; tLegF = 42f; tLegB = -42f; tArmF = 95f; tArmB = -40f; tBlade = -90f; tHead = 6f;
+                    tTorso = -28f; tLegF = 42f; tLegB = -42f; tKneeF = -30f; tKneeB = -8f; tArmF = 95f; tArmB = -40f; tElbowF = 20f; tElbowB = 40f; tBlade = -90f; tHead = 6f;
                     rate = 40f;
                     break;
                 case Pose.Parry:
-                    // the perfect window: blade high and vertical, weight forward
-                    tTorso = 6f; tArmF = 100f; tBlade = -8f; tArmB = -30f; tLegF = 14f; tLegB = -10f; tTorsoY = -0.02f; tHead = -4f;
+                    // the perfect window: a high guard, forearm up in front of the face, blade vertical and bright
+                    tTorso = 6f; tArmF = 80f; tElbowF = 70f; tBlade = -8f; tArmB = -30f; tElbowB = 30f; tLegF = 14f; tLegB = -10f; tKneeF = -12f; tKneeB = -8f; tTorsoY = -0.02f; tHead = -4f;
                     rate = 40f;
                     break;
                 case Pose.Guard:
                     // the block window: the guard has sunk and the blade leans; still covered, no longer sharp
-                    tTorso = 10f; tArmF = 80f; tBlade = 18f; tArmB = -34f; tLegF = 18f; tLegB = -14f; tTorsoY = -0.07f; tHead = -2f;
+                    tTorso = 10f; tArmF = 60f; tElbowF = 60f; tBlade = 18f; tArmB = -34f; tElbowB = 30f; tLegF = 18f; tLegB = -14f; tKneeF = -22f; tKneeB = -14f; tTorsoY = -0.07f; tHead = -2f;
                     rate = 22f;
                     break;
                 case Pose.ParrySuccess:
-                    tTorso = 10f; tArmF = 60f; tBlade = 30f; tArmB = -40f; tLegF = 18f; tLegB = -14f;
+                    tTorso = 10f; tArmF = 60f; tElbowF = 30f; tBlade = 30f; tArmB = -40f; tElbowB = 30f; tLegF = 18f; tLegB = -14f; tKneeF = -20f; tKneeB = -10f;
                     rate = 40f;
                     break;
                 case Pose.Hurt:
-                    tTorso = 16f; tArmF = -45f; tArmB = 55f; tLegF = -10f; tLegB = 15f; tHead = 12f; tBlade = -200f;
+                    tTorso = 16f; tArmF = -45f; tElbowF = 30f; tArmB = 55f; tElbowB = 20f; tLegF = -10f; tLegB = 15f; tKneeF = -20f; tKneeB = -30f; tHead = 12f; tBlade = -200f;
                     rate = 30f;
                     break;
                 case Pose.HurtBack:
                     // hit from behind: thrown forward, head down, arms flung out ahead
-                    tTorso = -20f; tArmF = 70f; tArmB = 50f; tLegF = 24f; tLegB = -18f; tHead = -12f; tBlade = -60f;
+                    tTorso = -20f; tArmF = 70f; tElbowF = 20f; tArmB = 50f; tElbowB = 20f; tLegF = 24f; tLegB = -18f; tKneeF = -30f; tKneeB = -10f; tHead = -12f; tBlade = -60f;
                     rate = 30f;
                     break;
                 case Pose.Heal:
-                    tTorso = -12f; tLegF = 62f; tLegB = -74f; tTorsoY = -0.08f; tArmF = 42f; tArmB = 30f; tBlade = -175f; tHead = 10f;   // the kneel itself comes from the planted feet
+                    // a real kneel: the front foot tucked under, the back knee on the ground with the shin folded
+                    // back; the hips come down through the planted contacts below
+                    tTorso = -12f; tLegF = 60f; tKneeF = -130f; tLegB = -30f; tKneeB = -60f; tTorsoY = -0.06f;
+                    tArmF = 42f; tElbowF = 60f; tArmB = 30f; tElbowB = 60f; tBlade = -175f; tHead = 10f;
                     rate = 14f;
                     break;
                 case Pose.Climb:
-                    // hand over hand. Arms reach well above the head and alternate; the legs push off
-                    // opposite rungs; the sword hangs from the raised hand instead of being brandished.
+                {
+                    // hand over hand up the rungs. One arm reaches high and straight while the other, bent,
+                    // pulls at chest height; the leg opposite the reaching arm lifts with the knee folded and
+                    // plants, the other pushes down almost straight. The root mirrors the angles, so positive
+                    // is toward the wall.
                     climbPhase += dt * 6.5f * Mathf.Clamp(Mathf.Abs(v.y) / 3.5f, 0f, 1.4f);
-                    float swing = Mathf.Sin(climbPhase);
-                    tArmF = 198f + swing * 26f;
-                    tArmB = 198f - swing * 26f;
-                    tLegF = -42f + swing * 26f;          // knee up onto a rung
-                    tLegB = -4f - swing * 26f;           // the other leg pushing down
-                    tTorso = -5f;                        // lean into the wall
-                    tBlade = 186f;                       // slung, hanging past the hip
+                    float s = Mathf.Sin(climbPhase), s2 = -s;
+                    tArmF = 150f + 40f * s; tElbowF = 45f - 35f * s;
+                    tArmB = 150f + 40f * s2; tElbowB = 45f - 35f * s2;
+                    tLegF = 35f + 35f * s2; tKneeF = -30f - 60f * Mathf.Max(0f, s2);
+                    tLegB = 35f + 35f * s; tKneeB = -30f - 60f * Mathf.Max(0f, s);
+                    tTorso = -6f;                        // leaning into the wall
+                    tBlade = 186f;                       // slung from the hand, hanging past the hip
                     tHead = -14f;                        // looking up the shaft
-                    tBob = Mathf.Abs(swing) * 0.05f;
-                    tTorsoY = -0.04f;
-                    rate = 22f;
+                    tBob = Mathf.Abs(s) * 0.03f;
+                    tTorsoY = -0.02f;
+                    rate = 20f;
                     break;
+                }
                 case Pose.Charge:
                     // coiled: both hands take the hilt back over the shoulder, tip up and behind, ready to come over.
                     // This is the pose the heavy clip starts from, so its wind-up key sits right next to it.
                     tTorso = 14f; tHead = -6f;
-                    tArmF = 200f; tArmB = 196f;
+                    tArmF = 200f; tArmB = 196f; tElbowF = 20f; tElbowB = 25f;
                     tBlade = 40f;
-                    tLegF = -16f; tLegB = 14f;
+                    tLegF = -16f; tLegB = 14f; tKneeF = -10f; tKneeB = -8f;
                     tTorsoY = -0.05f;
                     tBob = Mathf.Sin(t * 38f) * 0.012f;  // the strain of holding it
                     rate = 16f;
                     break;
                 case Pose.QiBlast:
-                    tTorso = -12f; tArmF = 88f; tArmB = 82f; tBlade = -95f; tLegF = 24f; tLegB = -18f; tHead = -6f;
+                    tTorso = -12f; tArmF = 88f; tArmB = 82f; tElbowF = 5f; tElbowB = 5f; tBlade = -95f; tLegF = 24f; tLegB = -18f; tKneeF = -20f; tKneeB = -8f; tHead = -6f;
                     rate = 40f;
                     break;
             }
 
-            // The legs rotate at the hip, so a spread or bent stance would lift the feet off the floor. Drop the
-            // hips by what the lower leg loses in height: the feet stay planted in every pose, and the run bob
-            // falls out of it for free (lowest when the legs are spread).
-            tBob -= 0.54f * (1f - Mathf.Cos(Mathf.Min(Mathf.Abs(tLegF), Mathf.Abs(tLegB)) * Mathf.Deg2Rad));
+            // The legs rotate at the hip and the knee, so any bend would lift the feet off the floor. The hips
+            // drop by what the legs lose in height, but that is done below from the angles actually applied.
+            // Taking it from these targets missed two cases: the limbs ease into a new pose over several
+            // frames and the drop would run ahead of them, and an attack clip overwrites the bob outright
+            // (every ClipKey authors Bob = 0), which dropped the planting for the whole swing.
 
             float k = 1f - Mathf.Exp(-rate * dt);
             if (clipActive)
@@ -453,9 +493,12 @@ namespace AshenSol.Player
                 clipT += dt;
                 var jp = EvaluateClip(clipT);
                 torsoA = jp.Torso; headA = jp.Head; armBackA = jp.ArmBack; armFrontA = jp.ArmFront; bladeA = jp.Blade;
+                elbowBackA = jp.ElbowBack; elbowFrontA = jp.ElbowFront;
                 bobY = jp.Bob; torsoY = jp.TorsoY;
                 legBackA = float.IsNaN(jp.LegBack) ? Mathf.LerpAngle(legBackA, tLegB, snapLegs ? 1f : k) : jp.LegBack;
                 legFrontA = float.IsNaN(jp.LegFront) ? Mathf.LerpAngle(legFrontA, tLegF, snapLegs ? 1f : k) : jp.LegFront;
+                kneeBackA = float.IsNaN(jp.KneeBack) ? Mathf.LerpAngle(kneeBackA, tKneeB, snapLegs ? 1f : k) : jp.KneeBack;
+                kneeFrontA = float.IsNaN(jp.KneeFront) ? Mathf.LerpAngle(kneeFrontA, tKneeF, snapLegs ? 1f : k) : jp.KneeFront;
                 if (trail != null) trail.emitting = visible && clipT >= clipTrailFrom && clipT <= clipTrailUntil;
                 if (clipT > clip[clipCount - 1].Time + 0.5f) EndAttack();
             }
@@ -465,12 +508,18 @@ namespace AshenSol.Player
                 headA = Mathf.LerpAngle(headA, tHead, k);
                 armBackA = Mathf.LerpAngle(armBackA, tArmB, k);
                 armFrontA = Mathf.LerpAngle(armFrontA, tArmF, k);
+                elbowBackA = Mathf.LerpAngle(elbowBackA, tElbowB, k);
+                elbowFrontA = Mathf.LerpAngle(elbowFrontA, tElbowF, k);
                 bladeA = Mathf.LerpAngle(bladeA, tBlade, k);
                 legBackA = Mathf.LerpAngle(legBackA, tLegB, snapLegs ? 1f : k);
                 legFrontA = Mathf.LerpAngle(legFrontA, tLegF, snapLegs ? 1f : k);
+                kneeBackA = Mathf.LerpAngle(kneeBackA, tKneeB, snapLegs ? 1f : k);
+                kneeFrontA = Mathf.LerpAngle(kneeFrontA, tKneeF, snapLegs ? 1f : k);
                 bobY = Mathf.Lerp(bobY, tBob, k);
                 torsoY = Mathf.Lerp(torsoY, tTorsoY, k);
             }
+            // taken from the applied angles, so the lowest foot sits on the floor in every frame, clip or not
+            plant = grounded && pose != Pose.Climb ? PlantDrop(legFrontA, kneeFrontA, legBackA, kneeBackA) : 0f;
             scale = Vector2.SmoothDamp(scale, Vector2.one, ref scaleVel, 0.08f, 100f, dt);
 
             // flash overlay
@@ -506,9 +555,28 @@ namespace AshenSol.Player
             if (sash != null) sash.Tick(dt, facing, v);
         }
 
+        /// <summary>How far the hips must drop so the lowest contact point (a foot, or a knee when the shin is
+        /// folded back) sits on the floor.</summary>
+        static float PlantDrop(float thighF, float kneeF, float thighB, float kneeB)
+        {
+            float lowest = Mathf.Max(LegExtent(thighF, kneeF), LegExtent(thighB, kneeB));
+            return Mathf.Max(0f, UpperLegLen + LowerLegLen - lowest);
+        }
+
+        static float LegExtent(float thigh, float knee)
+        {
+            float kneeY = UpperLegLen * Mathf.Cos(thigh * Mathf.Deg2Rad);
+            float footY = kneeY + LowerLegLen * Mathf.Cos((thigh + knee) * Mathf.Deg2Rad);
+            return Mathf.Max(kneeY, footY);
+        }
+
         JointPose CurrentPose()
         {
-            return new JointPose { Torso = torsoA, Head = headA, ArmBack = armBackA, ArmFront = armFrontA, Blade = bladeA, LegBack = legBackA, LegFront = legFrontA, Bob = bobY, TorsoY = torsoY };
+            return new JointPose
+            {
+                Torso = torsoA, Head = headA, ArmBack = armBackA, ArmFront = armFrontA, ElbowBack = elbowBackA, ElbowFront = elbowFrontA, Blade = bladeA,
+                LegBack = legBackA, LegFront = legFrontA, KneeBack = kneeBackA, KneeFront = kneeFrontA, Bob = bobY, TorsoY = torsoY
+            };
         }
 
         JointPose EvaluateClip(float time)
@@ -548,15 +616,20 @@ namespace AshenSol.Player
         void Apply()
         {
             Root.localScale = new Vector3(FacingScale() * scale.x, scale.y, 1f);
-            Root.localPosition = new Vector3(0f, bobY, 0f);
+            Root.localPosition = new Vector3(0f, bobY - plant, 0f);
             torso.localPosition = new Vector3(0f, 0.60f + torsoY, 0f);
             torso.localRotation = Quaternion.Euler(0f, 0f, torsoA);
             head.localRotation = Quaternion.Euler(0f, 0f, headA);
             armBack.localRotation = Quaternion.Euler(0f, 0f, armBackA);
+            elbowBack.localRotation = Quaternion.Euler(0f, 0f, elbowBackA);
             armFront.localRotation = Quaternion.Euler(0f, 0f, armFrontA);
-            sword.localRotation = Quaternion.Euler(0f, 0f, bladeA - armFrontA);
+            elbowFront.localRotation = Quaternion.Euler(0f, 0f, elbowFrontA);
+            // the blade angle is absolute in torso space, so undo the shoulder and the elbow above it
+            sword.localRotation = Quaternion.Euler(0f, 0f, bladeA - armFrontA - elbowFrontA);
             legBack.localRotation = Quaternion.Euler(0f, 0f, legBackA);
+            kneeBack.localRotation = Quaternion.Euler(0f, 0f, kneeBackA);
             legFront.localRotation = Quaternion.Euler(0f, 0f, legFrontA);
+            kneeFront.localRotation = Quaternion.Euler(0f, 0f, kneeFrontA);
         }
     }
 }

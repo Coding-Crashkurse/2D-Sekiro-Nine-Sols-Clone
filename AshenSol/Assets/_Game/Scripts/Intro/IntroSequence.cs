@@ -226,7 +226,7 @@ namespace AshenSol.Intro
             {
                 var rig = IntroStage.Figure(t, IntroStage.HuskConfig(), new Vector2(xs[i], -4.2f), i % 2 == 0 ? 1 : -1,
                     new Color(0.17f, 0.16f, 0.21f), 0.95f + (i % 3) * 0.06f);
-                rig.SetPose(true, 20f, 200f, 62f, 30f, -30f);        // slumped over, feet on the ground
+                rig.SetPose(true, 20f, 200f, 62f, 30f, 30f, -30f, -30f, 40f);        // slumped over on bent knees, feet on the ground
                 husks.Add(rig);
             }
             IntroStage.Ash(t, new Rect(-16f, -5f, 32f, 16f), 90f);
