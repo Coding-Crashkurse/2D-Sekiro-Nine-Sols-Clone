@@ -553,16 +553,20 @@ namespace AshenSol.Boss
         /// <summary>The second form, played as a kill that does not take: the bar empties and hides, the
         /// Warden goes down, and then the ash inside him takes the body back under a new name with a
         /// fresh bar. Unscaled time throughout so the slow-motion does not stretch the beats.</summary>
-        bool cineSkipped;
+        bool cineSkipped; float cineArm;
 
-        /// <summary>Cutscene wait that any key can cut short.</summary>
+        /// <summary>
+        /// Cutscene wait. Skipping takes a deliberate press of E: the transition starts mid-fight with
+        /// the player's hands on attack, parry and jump, and anything looser than this skips the whole
+        /// scene on the first stray key before a word of it is heard.
+        /// </summary>
         IEnumerator Cine(float seconds)
         {
             float t = 0f;
             while (t < seconds)
             {
                 var inp = Services.Input;
-                if (!cineSkipped && inp != null && (inp.AnyPressed || inp.ConfirmPressed || inp.PausePressed))
+                if (!cineSkipped && inp != null && Time.unscaledTime > cineArm && inp.InteractPressed)
                 {
                     cineSkipped = true;
                     Services.Audio.StopVoice();
@@ -578,6 +582,7 @@ namespace AshenSol.Boss
         {
             phasePending = false;
             cineSkipped = false;
+            cineArm = Time.unscaledTime + 1.5f;   // the opening beat is never skippable
             // flip the phase immediately: posture regen keeps firing OnHealthChanged during the
             // transition, which would re-arm phasePending and run the whole thing a second time
             Phase = 2;

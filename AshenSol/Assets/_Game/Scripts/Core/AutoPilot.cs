@@ -33,6 +33,7 @@ namespace AshenSol.Core
         float statusTimer; string brainState = "-";
         int climbShots; float climbShotTimer;   // -climbShots N captures the climb cycle frame by frame
         float introSeenUntil;   // watch a slice of the intro, then skip so runs stay short
+        float killAt = -1f;   // -killPlayerAt <sec>: die once on purpose to test the ash drop
         float creditsTime, victoryHold;   // how much of the end roll to sit through before skipping
         float jumpHold;   // the bot must HOLD jump — tapping triggers the variable-height jump cut
 
@@ -48,6 +49,7 @@ namespace AshenSol.Core
             quitAfter = CmdArgs.GetFloat("-quitAfter", 240f);
             introSeenUntil = CmdArgs.GetFloat("-introSeconds", 12f);
             victoryHold = CmdArgs.GetFloat("-victoryHold", 6f);
+            killAt = CmdArgs.GetFloat("-killPlayerAt", -1f);
             input = new ScriptedInput();
             if (InputRouter.Instance != null) InputRouter.Instance.SetProvider(input);
 
@@ -144,6 +146,20 @@ namespace AshenSol.Core
             elapsed += dt; shotTimer += dt;
             attackCd -= dt; parryCd -= dt; dashCd -= dt; qiCd -= dt; healCd -= dt; confirmCd -= dt; interactCd -= dt;
 
+            if (killAt >= 0f && elapsed >= killAt)
+            {
+                killAt = -1f;
+                var victim = PlayerController.Instance;
+                if (victim != null && victim.IsAlive)
+                {
+                    Log("scripted death at " + victim.Position.x.ToString("F1") + " carrying " + Progression.Ash + " ash");
+                    victim.ReceiveAttack(new AttackInfo
+                    {
+                        Damage = 9999, Kind = AttackKind.Unblockable, Team = Team.Enemy,
+                        Tag = "test_kill", Origin = victim.Center + new Vector2(2f, 0f)
+                    });
+                }
+            }
             if (pendingShotAt >= 0f && elapsed >= pendingShotAt) { Shot(pendingLabel); pendingShotAt = -1f; }
             else if (shotTimer >= 6f) Shot("t" + Mathf.RoundToInt(elapsed));
 

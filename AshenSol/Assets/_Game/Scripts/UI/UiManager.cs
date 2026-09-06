@@ -244,7 +244,7 @@ namespace AshenSol.UI
 
             var sk = UiKit.Anchored(rootRt, "SkipHint", new Vector2(1f, 0f), new Vector2(-40f, 56f), new Vector2(600f, 30f));
             skipGroup = UiKit.Group(sk);
-            UiKit.Text(sk, "text", UiKit.Spaced("PRESS ANY KEY TO SKIP"), 15, Palette.Bone.WithAlpha(0.45f),
+            UiKit.Text(sk, "text", UiKit.Spaced("PRESS  E  TO SKIP"), 15, Palette.Bone.WithAlpha(0.45f),
                 new Vector2(1f, 0.5f), Vector2.zero, new Vector2(600f, 30f), TextAnchor.MiddleRight);
             skipGroup.alpha = 0f;
         }

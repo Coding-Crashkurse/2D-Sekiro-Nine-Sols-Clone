@@ -364,8 +364,14 @@ namespace AshenSol.Level
     // ------------------------------------------------------------------ Tutorial sign
     public class TutorialSign : MonoBehaviour
     {
+        static readonly List<TutorialSign> signs = new List<TutorialSign>();
+        static TutorialSign focused;
+        static int focusFrame = -1;
         public string Text;
         TextMesh mesh; MeshRenderer mr; Color baseColor;
+
+        void OnEnable() { signs.Add(this); focusFrame = -1; }
+        void OnDisable() { signs.Remove(this); focusFrame = -1; }
 
         public static TutorialSign Create(Vector2 groundPos, string text, Transform parent)
         {
@@ -377,16 +383,18 @@ namespace AshenSol.Level
             LevelDecor.Sprite(go.transform, "prop_sign", new Vector2(0f, 0.32f), SortOrder.Props - 1, Color.white);
             var tgo = new GameObject("text");
             tgo.transform.SetParent(go.transform, false);
-            tgo.transform.localPosition = new Vector3(0f, 1.55f, 0f);
+            tgo.transform.localPosition = new Vector3(0f, 2.15f, 0f);
             s.mesh = tgo.AddComponent<TextMesh>();
             s.mesh.font = UiFont.Get();
             s.mesh.text = text;
             s.mesh.fontSize = 56;
-            s.mesh.characterSize = 0.055f;
+            s.mesh.characterSize = 0.045f;
+            s.mesh.lineSpacing = 1.2f;
             s.mesh.anchor = TextAnchor.MiddleCenter;
             s.mesh.alignment = TextAlignment.Center;
             s.mesh.color = Palette.Bone;
             s.mr = tgo.GetComponent<MeshRenderer>();
+            s.mr.enabled = false;
             s.mr.sortingOrder = SortOrder.Props + 2;
             if (s.mesh.font != null) s.mr.material = s.mesh.font.material;
             s.baseColor = Palette.Bone;
@@ -395,14 +403,25 @@ namespace AshenSol.Level
 
         void Update()
         {
-            var p = PlayerController.Instance;
-            float a = 0.15f;
-            if (p != null)
+            // Only one nearby sign owns the reading space. Faint neighbouring paragraphs
+            // still overlap at common camera widths, so hide them completely.
+            if (focusFrame != Time.frameCount)
             {
-                float d = Vector2.Distance(p.Center, (Vector2)transform.position + new Vector2(0f, 1f));
-                a = Mathf.Lerp(1f, 0.15f, Mathf.Clamp01((d - 4f) / 2.5f));
+                focusFrame = Time.frameCount;
+                focused = null;
+                var player = PlayerController.Instance;
+                if (player != null && player.IsAlive && player.gameObject.activeInHierarchy)
+                {
+                    float best = 5.25f * 5.25f;
+                    foreach (var sign in signs)
+                    {
+                        float distance = (player.Center - ((Vector2)sign.transform.position + Vector2.up)).sqrMagnitude;
+                        if (distance < best) { best = distance; focused = sign; }
+                    }
+                }
             }
-            mesh.color = baseColor.WithAlpha(a);
+            mr.enabled = focused == this;
+            mesh.color = baseColor;
         }
     }
 

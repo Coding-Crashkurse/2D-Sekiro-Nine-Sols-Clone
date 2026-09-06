@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using AshenSol.Core;
 using AshenSol.Enemies;
@@ -35,6 +36,12 @@ namespace AshenSol.Intro
         readonly List<Panel> panels = new List<Panel>();
         bool skipped;
         Transform root;
+        VolumeProfile introLook;
+
+        void OnDestroy()
+        {
+            if (introLook != null) Destroy(introLook);
+        }
 
         public static IntroSequence Create()
         {
@@ -49,6 +56,7 @@ namespace AshenSol.Intro
             skipped = false;
             root = new GameObject("IntroStage").transform;
             root.position = Stage;
+            introLook = IntroStage.CreateReadableLook(root);
 
             BuildPanels();
 
@@ -127,7 +135,7 @@ namespace AshenSol.Intro
         {
             if (skipped) return true;
             var inp = Services.Input;
-            if (inp != null && (inp.AnyPressed || inp.ConfirmPressed || inp.PausePressed || inp.QuitPressed))
+            if (inp != null && (inp.AnyPressed || inp.ConfirmPressed || inp.PausePressed || inp.QuitPressed || inp.InteractPressed))
             {
                 skipped = true;
                 Services.Audio.StopVoice();

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using AshenSol.Core;
 using AshenSol.Enemies;
@@ -11,6 +12,31 @@ namespace AshenSol.Intro
     /// like the same world.</summary>
     public static class IntroStage
     {
+        // The art already contains dark shadows. Heavy multiplicative tints were erasing
+        // its detail; preserve the palette while bringing those multipliers toward neutral.
+        static Color ReadableTint(Color tint, float lift)
+        {
+            Color color = Color.Lerp(tint, Color.white, lift);
+            color.a = tint.a;
+            return color;
+        }
+
+        public static VolumeProfile CreateReadableLook(Transform parent)
+        {
+            var go = new GameObject("Intro exposure");
+            go.transform.SetParent(parent, false);
+            var volume = go.AddComponent<Volume>();
+            volume.isGlobal = true;
+            volume.priority = 20f;
+            var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            var color = profile.Add<ColorAdjustments>(true);
+            color.postExposure.Override(0.5f);
+            color.contrast.Override(-5f);
+            var vignette = profile.Add<Vignette>(true);
+            vignette.intensity.Override(0.16f);
+            volume.sharedProfile = profile;
+            return profile;
+        }
         /// <summary>A full-width backdrop layer scaled to a given world width.</summary>
         public static SpriteRenderer Layer(Transform parent, string sprite, Vector2 localPos, float worldWidth,
                                            int sort, Color tint, bool additive = false)
@@ -22,7 +48,7 @@ namespace AshenSol.Intro
             var sp = Res.Sprite(sprite);
             sr.sprite = sp;
             sr.sortingOrder = sort;
-            sr.color = tint;
+            sr.color = additive ? tint : ReadableTint(tint, 0.55f);
             sr.material = additive ? VfxManager.AdditiveFor(sp) : MaterialLibrary.SpriteUnlit;
             float w = sp.bounds.size.x;
             float s = w > 0.001f ? worldWidth / w : 1f;
@@ -43,7 +69,7 @@ namespace AshenSol.Intro
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = sp;
             sr.sortingOrder = sort;
-            sr.color = tint;
+            sr.color = additive ? tint : ReadableTint(tint, 0.6f);
             sr.material = additive ? VfxManager.AdditiveFor(sp) : MaterialLibrary.SpriteUnlit;
             return sr;
         }
@@ -60,7 +86,8 @@ namespace AshenSol.Intro
             sr.tileMode = SpriteTileMode.Continuous;
             sr.size = new Vector2(width, 6f);
             sr.sortingOrder = SortOrder.Ground;
-            sr.color = new Color(0.16f, 0.16f, 0.21f);   // the floor must stay a silhouette, not a slab
+            sr.material = MaterialLibrary.SpriteUnlit;
+            sr.color = new Color(0.48f, 0.49f, 0.58f);
 
             var top = new GameObject("moss");
             top.transform.SetParent(parent, false);
@@ -71,7 +98,8 @@ namespace AshenSol.Intro
             tr.tileMode = SpriteTileMode.Continuous;
             tr.size = new Vector2(width, 0.24f);
             tr.sortingOrder = SortOrder.GroundDecor;
-            tr.color = new Color(0.26f, 0.3f, 0.34f);
+            tr.material = MaterialLibrary.SpriteUnlit;
+            tr.color = new Color(0.65f, 0.72f, 0.78f);
         }
 
         public static void Mist(Transform parent, Rect area, Color tint, int count)
@@ -137,7 +165,7 @@ namespace AshenSol.Intro
             foreach (var r in rig.Renderers)
             {
                 if (r == null) continue;
-                r.color = silhouette;
+                r.color = ReadableTint(silhouette, 0.75f);
                 r.material = MaterialLibrary.SpriteUnlit;   // unaffected by 2D lights: a clean silhouette
             }
             rig.Animate(0f, 0.016f);
