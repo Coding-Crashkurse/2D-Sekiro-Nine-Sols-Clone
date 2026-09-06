@@ -1,260 +1,269 @@
 <p align="center">
-  <img src="docs/img/01_title.jpg" width="820" alt="Ashen Sol – Titelbildschirm">
+  <img src="docs/img/01_title.jpg" width="820" alt="Ashen Sol – title screen">
 </p>
 
 <h1 align="center">ASHEN SOL</h1>
 <p align="center"><em>The Sealed Gate</em></p>
 
 <p align="center">
-  <strong>Ein parry-lastiges 2D-Action-Spiel im Stil von <em>Nine Sols</em></strong><br>
-  Taopunk — Taoisten-Tempelruinen treffen Cyberpunk.<br>
-  Vier Abschnitte, zwei Bosse, ein Abspann. Alles zur Laufzeit aus Code gebaut.
+  <strong>A parry-driven 2D action game in the vein of <em>Nine Sols</em></strong><br>
+  Taopunk — Taoist temple ruins meet cyberpunk.<br>
+  Four chapters, two bosses, a closing credits roll. All of it built from code at runtime.
 </p>
 
 <p align="center">
   <img alt="Unity 6000.4.6f1" src="https://img.shields.io/badge/Unity-6000.4.6f1-000?style=flat-square&logo=unity">
   <img alt="URP 2D" src="https://img.shields.io/badge/Render-URP%202D-1b8?style=flat-square">
-  <img alt="Plattform Windows" src="https://img.shields.io/badge/Build-Windows-0078d4?style=flat-square">
-  <img alt="Keine Prefabs" src="https://img.shields.io/badge/Prefabs-0-c33?style=flat-square">
+  <img alt="Windows build" src="https://img.shields.io/badge/Build-Windows-0078d4?style=flat-square">
+  <img alt="No prefabs" src="https://img.shields.io/badge/Prefabs-0-c33?style=flat-square">
 </p>
 
 ---
 
-## Inhalt
+## Contents
 
-* [Der Lauf](#der-lauf) · [Spielen](#spielen) · [Steuerung](#steuerung)
-* [Die Kampfregel](#die-kampfregel) · [Asche, Tod und Leveln](#seelen-asche-tod-und-leveln)
-* [Der Endboss](#der-endboss-die-zweite-form) · [Schwierigkeitsgrade](#schwierigkeitsgrade)
-* [Projektaufbau](#projektaufbau) · [Werkzeuge](#werkzeuge) · [Umgebung](#bekannte-eigenheiten-der-umgebung)
+* [The run](#the-run) · [Playing](#playing) · [Controls](#controls)
+* [The rule of the fight](#the-rule-of-the-fight) · [Ash, death and levelling](#ash-death-and-levelling)
+* [The final boss](#the-final-boss-the-second-form) · [Difficulty](#difficulty)
+* [Project layout](#project-layout) · [Tools](#tools) · [Environment](#known-quirks-of-this-environment)
 
 ---
 
-## Der Lauf
+## The run
 
 <p align="center">
-  <img src="docs/img/02_prolog.jpg" width="820" alt="Prolog unter der roten Sonne">
+  <img src="docs/img/02_prolog.jpg" width="820" alt="Prologue under the red sun">
 </p>
 
-> *„Ein Tor ist nur ein Versprechen, vor das sich jemand gestellt hat.
-> Er hielt seines hundert Jahre lang, und niemand kam je, um ihn abzulösen."*
+> *"A gate is only a promise that someone agreed to stand in front of.
+> He kept his for a hundred years, and no one ever came to relieve him."*
 
-| # | Level | Inhalt |
+| # | Level | What's in it |
 |---|---|---|
-| I | **THE OUTER SANCTUM** | Korridor mit Gegnern, Plattforming, versiegeltes Tor |
-| II | **THE SUNKEN WORKS** | Qi-Fontänen, Fahrstuhl-Plattformen, Leitern, dann **THE SEVENTH ARTISAN** |
-| III | **THE PILGRIM STAIR** | Pflicht-Zwischenlevel: Treppe, Sprungpassage, Gauntlet, Schrein — und der **Foundry Brute** mit dem Hammer |
-| IV | **THE SEALED GATE** | **THE FORSAKEN WARDEN** — mit cineastischem Übergang in **ASH UNBOUND** |
+| I | **THE OUTER SANCTUM** | A corridor of enemies, platforming, a sealed gate |
+| II | **THE SUNKEN WORKS** | Qi fountains, lift platforms, ladders, then **THE SEVENTH ARTISAN** |
+| III | **THE PILGRIM STAIR** | Mandatory interlude: a stairway, a jumping passage, a gauntlet, a shrine — and the **Foundry Brute** with his hammer |
+| IV | **THE SEALED GATE** | **THE FORSAKEN WARDEN** — with a cinematic turn into **ASH UNBOUND** |
 
-Danach läuft ein Abspann mit eigener Musik.
+Credits roll afterwards, with music of their own.
 
 <p align="center">
-  <img src="docs/img/03_intro.jpg" width="760" alt="Intro-Sequenz: der Meister und die Schülerin">
+  <img src="docs/img/03_intro.jpg" width="760" alt="Intro sequence: the master and his student">
 </p>
-<p align="center"><sub>Das gesprochene Intro — vertont, überspringbar mit <code>E</code>.</sub></p>
+<p align="center"><sub>The spoken intro — fully voiced, skippable with <code>E</code>.</sub></p>
+
+<p align="center">
+  <img src="docs/img/04_warden_gate.jpg" width="760" alt="The Warden standing watch before the sealed gate">
+</p>
+<p align="center"><sub>A hundred years at his post. The intro tells you who he was before you have to kill him.</sub></p>
 
 ---
 
-## Spielen
+## Playing
 
-Fertiger Build: **`Builds/Windows/AshenSol.exe`** — einfach doppelklicken.
+Finished build: **`Builds/Windows/AshenSol.exe`** — just double-click it.
 
-### Steuerung
+### Controls
 
-| Aktion | Tastatur | Gamepad (Xbox) | PlayStation |
+| Action | Keyboard | Gamepad (Xbox) | PlayStation |
 |---|---|---|---|
-| Bewegen | A / D | Linker Stick, D-Pad ←→ | Linker Stick, D-Pad ←→ |
-| Springen | Leertaste / W | **A** | Kreuz |
-| Angreifen | J / Linksklick | **R1** | R1 |
-| **Aufgeladene Attacke** | U | **R2** | R2 |
-| **Parieren** | K / Rechtsklick | **LB** | L1 |
-| Dash | L / Shift | **X** | Quadrat |
-| Qi-Blast / **Hinrichtung** | I | **LT** | L2 |
-| Heilen | H | **D-Pad ↑** | D-Pad ↑ |
-| **Am Schrein rasten** / Zwischensequenz überspringen | E / F | **Y** | Dreieck |
+| Move | A / D | Left stick, D-pad ←→ | Left stick, D-pad ←→ |
+| Jump | Space / W | **A** | Cross |
+| Attack | J / Left click | **R1** | R1 |
+| **Charged attack** | U | **R2** | R2 |
+| **Parry** | K / Right click | **LB** | L1 |
+| Dash | L / Shift | **X** | Square |
+| Qi Blast / **Execution** | I | **LT** | L2 |
+| Heal | H | **D-pad ↑** | D-pad ↑ |
+| **Rest at a shrine** / skip a cutscene | E / F | **Y** | Triangle |
 | Pause | Esc | Start | Options |
-| Bestätigen (Menüs) | Enter / Leertaste | **A** | Kreuz |
-| Lauf aufgeben (in Pause) | Q | **X** | Quadrat |
+| Confirm (menus) | Enter / Space | **A** | Cross |
+| Abandon the run (while paused) | Q | **X** | Square |
 
-Klettern und die Menü-Auswahl oben/unten laufen über den **linken Stick** — das D-Pad hoch ist mit
-Heilen belegt, sonst würde eine Leiter dauernd Heiltränke auslösen.
+Climbing and moving up and down in menus run off the **left stick** — D-pad up is bound to healing,
+otherwise a ladder would keep firing off heals.
 
 ---
 
-## Die Kampfregel
+## The rule of the fight
 
 <table>
 <tr>
-<td width="50%"><img src="docs/img/05_parry.jpg" alt="Perfekte Parade am Foundry Brute"></td>
-<td width="50%"><img src="docs/img/06_unblockable.jpg" alt="Roter, unblockbarer Angriff"></td>
+<td width="50%"><img src="docs/img/06_parry.jpg" alt="A perfect parry against the Foundry Brute"></td>
+<td width="50%"><img src="docs/img/07_unblockable.jpg" alt="A red, unblockable attack"></td>
 </tr>
 <tr>
-<td><sub><strong>Weiß</strong> = parierbar. Der Brute braucht zwei perfekte Paraden — nach der ersten steht „ONE MORE" über ihm.</sub></td>
-<td><sub><strong>Rot</strong> = unblockbar. Parieren hilft nicht: wegdashen oder drüberspringen.</sub></td>
+<td><sub><strong>White</strong> means parryable. The Brute takes two perfect parries — after the first, "ONE MORE" hangs over him.</sub></td>
+<td><sub><strong>Red</strong> means unblockable. Parrying will not save you: dash out or jump it.</sub></td>
 </tr>
 </table>
 
-* **Weißes Aufblitzen** = parierbarer Angriff → im richtigen Moment **K** drücken.
-  Perfekte Parade: kein Schaden, +1 Qi, und viel **Haltungsschaden** auf der gelben Leiste.
-  Etwas zu spät: Block mit 30 % Restschaden (füllt die gelbe Leiste nur ein Viertel so schnell).
-* **Rotes Aufblitzen** = unblockbar → Parieren hilft nicht, **wegdashen oder springen**.
-* Jeder Gegner hat **zwei Leisten**: rot = Leben, gelb = **Haltung**.
-  Ist die gelbe Leiste voll, **bricht die Deckung**: der Gegner ist **3 Sekunden wehrlos**,
-  nimmt doppelten Schaden, und über ihm erscheint ein pulsierendes **I**.
-* **Hinrichtung: `I`** neben einem gebrochenen Gegner → kostet 1 Qi, richtet massiven Schaden an
-  (Grunt 60, Sentinel 85, Drohne 45, Brute 95, Boss 130). Danach ist die Haltungsleiste wieder leer.
-* **Normale Gegner brechen bei einer einzigen perfekten Parade.** Der **Foundry Brute** (Hammer, ab
-  Level III) **braucht zwei** — nach der ersten steht „ONE MORE" über ihm. Der **Boss braucht drei** —
-  seine Dreierschlag-Kombo ist genau dafür gemacht.
-* Die Haltung regeneriert nach 1,6 s Ruhe wieder. Wer nicht nachsetzt, verliert den Fortschritt.
-* Ohne Ziel in Reichweite bleibt `I` der **Qi Blast**: 12 Schaden im Umkreis plus kräftiger
-  Haltungsschaden — gut, um eine Gruppe gleichzeitig aufzubrechen.
-* Gegnerprojektile lassen sich mit einer perfekten Parade **zurückschleudern** (30 Schaden).
-* **Aufgeladene Attacke (`U` / R2):** 0,46 s Ausholen, dann ein einzelner Überkopfschlag mit
-  **34 Schaden** (statt 10/10/18), breiterem Trefferfeld, kräftigem Rückstoß und **22 % Haltungsschaden
-  auf einen Schlag** — dreimal so viel wie ein normaler Treffer. Sie lässt sich nicht in die Combo
-  einbauen und du bist während des Ausholens festgelegt: wer dich dabei trifft, unterbricht sie.
+* **A white flash** = a parryable attack → press **K** on the beat.
+  A perfect parry: no damage, +1 Qi, and a lot of **posture damage** on the yellow bar.
+  A little late: a block, with 30 % of the damage getting through (and it fills the yellow bar only a quarter as fast).
+* **A red flash** = unblockable → parrying does nothing, **dash away or jump**.
+* Every enemy carries **two bars**: red is health, yellow is **posture**.
+  Fill the yellow one and their **guard breaks**: they are **defenceless for 3 seconds**,
+  take double damage, and a pulsing **I** appears above them.
+* **Execution: `I`** next to a broken enemy → costs 1 Qi and does massive damage
+  (Grunt 60, Sentinel 85, Drone 45, Brute 95, Boss 130). Their posture bar empties afterwards.
+* **Ordinary enemies break on a single perfect parry.** The **Foundry Brute** (hammer, from
+  Level III onwards) **takes two** — after the first, "ONE MORE" appears above him. The **boss takes three** —
+  his three-hit combo exists for exactly that.
+* Posture regenerates after 1.6 s of calm. Stop pressing and you lose the progress.
+* With no target in range, `I` stays the **Qi Blast**: 12 damage in a radius plus heavy
+  posture damage — good for cracking a whole group open at once.
+* Enemy projectiles can be **knocked back** with a perfect parry (30 damage).
+* **Charged attack (`U` / R2):** a 0.46 s wind-up, then a single overhead blow for
+  **34 damage** (instead of 10/10/18), with a wider hitbox, heavy knockback and **22 % posture damage
+  in one hit** — three times what a normal strike does. It cannot be folded into the combo, and you are
+  committed during the wind-up: anyone who hits you there interrupts it.
 
-**Qi** (max. 3, goldene Sechsecke): +1 pro perfekter Parade und pro Kill. Ausgeben kannst du es für
-die **Hinrichtung (I)**, den **Qi Blast (I ohne Ziel)** oder **Heilen (H)**.
+**Qi** (max 3, the golden hexagons): +1 per perfect parry and per kill. Spend it on the
+**Execution (I)**, the **Qi Blast (I with no target)** or **healing (H)**.
 
 <p align="center">
-  <img src="docs/img/10_guardbreak.jpg" width="760" alt="GUARD BROKEN – der Boss ist drei Sekunden wehrlos">
+  <img src="docs/img/11_guardbreak.jpg" width="760" alt="GUARD BROKEN – the boss is defenceless for three seconds">
 </p>
-<p align="center"><sub>Gelbe Leiste voll → <strong>GUARD BROKEN</strong>. Drei Sekunden Fenster, doppelter Schaden, dann <code>I</code>.</sub></p>
+<p align="center"><sub>Yellow bar full → <strong>GUARD BROKEN</strong>. A three-second window, double damage, then <code>I</code>.</sub></p>
 
 ---
 
-## Seelen: Asche, Tod und Leveln
+## Ash, death and levelling
 
 <p align="center">
-  <img src="docs/img/04_shrine.jpg" width="820" alt="Schrein: rasten, leveln, Asche">
+  <img src="docs/img/05_shrine.jpg" width="820" alt="A shrine: rest, level up, carry your ash">
 </p>
 
-Das Spiel ist soulslike aufgebaut:
+The game is built like a soulslike:
 
-* Jeder Kill gibt **ASCHE** (Grunt 22, Sentinel 34, Drohne 16, Brute 55, Artisan 190, Warden 260).
-  Asche wird **getragen, nicht gesichert** — sie steht oben links unter der Qi-Leiste.
-* **Beim Tod fällt die gesamte Asche dort liegen, wo du gestorben bist.** Am Fundort glimmt ein
-  Haufen; lauf hin und du bekommst alles zurück. **Stirbst du vorher noch einmal, ist sie weg** —
-  der neue Haufen ersetzt den alten.
-* **Schreine sind Checkpoints und Levelaufstieg zugleich.** Stell dich an einen Schrein und drücke
-  **E** — die Musik senkt sich, die Kamera fährt heran, die Klangschale klingt an, dann öffnet sich
-  das Menü. Von allein geht es nie auf.
-* Ein Level kostet `60 + (Level−1) × 55` Asche und temperiert **eine** Eigenschaft:
+* Every kill pays out **ASH** (Grunt 22, Sentinel 34, Drone 16, Brute 55, Artisan 190, Warden 260).
+  Ash is **carried, not banked** — it sits top left under the Qi bar.
+* **Die and all of it drops where you fell.** A pile smoulders on the spot; walk back and
+  you get everything. **Die again before you reach it and it is gone** — the new pile replaces the old one.
+* **Shrines are checkpoints and levelling in one.** Stand at a shrine and press
+  **E** — the music ducks, the camera moves in, the singing bowl rings, and then the menu opens.
+  It never opens on its own.
+* A level costs `60 + (level−1) × 55` ash and tempers **one** attribute:
 
-  | | Wirkung |
+  | | Effect |
   |---|---|
-  | **VIGOR** | +10 maximale Leben (heilt sofort mit) |
-  | **EDGE** | +6 % Schwertschaden |
-  | **FOCUS** | +1 maximales Qi (höchstens +2) |
+  | **VIGOR** | +10 max health (heals you on the spot) |
+  | **EDGE** | +6 % sword damage |
+  | **FOCUS** | +1 max Qi (up to +2) |
 
 ---
 
-## Der Endboss: die zweite Form
+## The final boss: the second form
 
 <table>
 <tr>
-<td width="50%"><img src="docs/img/07_warden.jpg" alt="THE FORSAKEN WARDEN – Keeper of the Sealed Gate"></td>
-<td width="50%"><img src="docs/img/08_transform.jpg" alt="Zwischensequenz bei 55 % Leben"></td>
+<td width="50%"><img src="docs/img/08_warden.jpg" alt="THE FORSAKEN WARDEN – Keeper of the Sealed Gate"></td>
+<td width="50%"><img src="docs/img/09_transform.jpg" alt="The cutscene at 55 % health"></td>
 </tr>
 <tr>
-<td><sub><strong>Phase 1</strong> — der Wärter vor dem Tor, das er hundert Jahre gehalten hat.</sub></td>
-<td><sub><em>„You still hold the blade… the way I taught you."</em> — bei 55 % Leben kippt der Kampf.</sub></td>
+<td><sub><strong>Phase 1</strong> — the warden in front of the gate he has held for a century.</sub></td>
+<td><sub><em>"Now hold it… against what the sun left in me."</em> — at 55 % health the fight turns over.</sub></td>
 </tr>
 </table>
 
-Bei 55 % Leben spielt eine **rund 20-sekündige Zwischensequenz** (mit jeder Taste überspringbar):
-der Warden geht zu Boden, die Leiste leert sich, die Musik verstummt — und die Asche in ihm nimmt
-den Körper zurück. Hinter der Maske entzündet sich die Krone der neunten Sonne, er steht als **ASH UNBOUND**
-wieder auf, glimmt fortan in Glut und Nachbildern, und bekommt zwei neue Angriffe:
+At 55 % health a **roughly 20-second cutscene** plays (skippable with any key):
+the Warden goes down, the bar empties, the music stops — and the ash inside him takes the body
+back. Behind the mask the crown of the ninth sun catches fire, he stands up again as **ASH UNBOUND**,
+glowing in embers and afterimages from then on, and gains two new attacks:
 
-* **GORE CHARGE** — Sturmangriff mit gesenktem Kopf, endet in einer Bodenwelle.
-* **SOLAR COLLAPSE** — er rammt die Glefe in den Boden und zieht eine kleine Sonne aus der Krone.
-  Der Angriff eröffnet die zweite Form und kommt danach alle 17 Sekunden wieder.
-  **Weglaufen geht nicht — die Explosion füllt die ganze Arena.**
-  Perfekt pariert kostet sie nichts; zu spät geblockt trotzdem noch 60 %;
-  gar nicht pariert **drei Viertel deiner gesamten Lebensleiste**. Der Moment zum Parieren ist,
-  wenn die Sonne in sich zusammenfällt.
+* **GORE CHARGE** — a head-down charge that ends in a ground wave.
+* **SOLAR COLLAPSE** — he drives the glaive into the floor and pulls a small sun out of the crown.
+  It opens the second form and comes back every 17 seconds after that.
+  **Running is not an option — the blast fills the entire arena.**
+  Parried perfectly it costs nothing; blocked late it still takes 60 %;
+  not parried at all, **three quarters of your whole health bar**. The moment to parry is
+  when the sun collapses in on itself.
 
 <p align="center">
-  <img src="docs/img/09_solar.jpg" width="820" alt="SOLAR COLLAPSE – die Explosion füllt die ganze Arena">
+  <img src="docs/img/10_solar.jpg" width="820" alt="SOLAR COLLAPSE – the blast fills the whole arena">
 </p>
-<p align="center"><sub><strong>SOLAR COLLAPSE.</strong> Es gibt kein Weglaufen — nur den einen Moment, in dem die Sonne kollabiert.</sub></p>
+<p align="center"><sub><strong>SOLAR COLLAPSE.</strong> There is nowhere to run — only the one moment when the sun caves in.</sub></p>
 
 ---
 
-## Schwierigkeitsgrade
+## Difficulty
 
-Im Titelmenü umschaltbar (wird gespeichert):
+Switchable from the title menu (and remembered):
 
 | | DISCIPLE | SOL SLAYER |
 |---|---|---|
-| Perfektes Parry-Fenster | 0,22 s | 0,14 s |
-| Erlittener Schaden | ×0,8 | ×1,3 |
-| Gegner-Telegraphen | ×1,12 (länger) | ×0,9 (schneller) |
-| Heilung | 40 HP | 30 HP |
+| Perfect parry window | 0.22 s | 0.14 s |
+| Damage taken | ×0.8 | ×1.3 |
+| Enemy telegraphs | ×1.12 (longer) | ×0.9 (faster) |
+| Healing | 40 HP | 30 HP |
 
-Außerdem im Menü: Musik- und Soundlautstärke, Screen-Shake an/aus.
+The menu also holds music and sound volume, and a screen-shake toggle.
 
 <p align="center">
-  <img src="docs/img/11_victory.jpg" width="820" alt="SOL VANQUISHED – Auswertung des Laufs">
+  <img src="docs/img/12_victory.jpg" width="820" alt="SOL VANQUISHED – the run summary">
 </p>
-<p align="center"><sub>Der Lauf wird ausgewertet: Zeit, Paraden, Tode, erlittener Schaden.</sub></p>
+<p align="center"><sub>The run gets scored: time, parries, deaths, damage taken.</sub></p>
 
 ---
 
-## Projektaufbau
+## Project layout
 
 ```
 nine_sols/
-├─ AshenSol/            Unity-Projekt (Unity 6000.4.6f1, URP 2D, Input System, uGUI)
+├─ AshenSol/            Unity project (Unity 6000.4.6f1, URP 2D, Input System, uGUI)
 │  └─ Assets/_Game/
 │     ├─ Scripts/       Core, Player, Enemies, Boss, Level, UI, VFX, Audio
 │     ├─ Shaders/       Silhouette + SpriteAdditive (URP)
 │     ├─ Resources/     Sprites, Audio/SFX, Audio/Music, Fonts
-│     ├─ Scenes/Main.unity   die einzige Szene: ein GameBootstrap-Objekt
-│     └─ Editor/        Bootstrap, Build-Skript, Import-Postprozessoren
-├─ Tools/               SPEC.md + alle Skripte (siehe unten)
-├─ AudioRaw/            unbearbeitete ElevenLabs-Ausgaben + sfx_map.txt
-├─ Screenshots/         Autopilot-Aufnahmen
-├─ docs/img/            die Bilder in dieser README
-└─ Builds/Windows/      der gebaute Player
+│     ├─ Scenes/Main.unity   the only scene: one GameBootstrap object
+│     └─ Editor/        Bootstrap, build script, import post-processors
+├─ Tools/               SPEC.md and every script (see below)
+├─ AudioRaw/            raw ElevenLabs output + sfx_map.txt (kept out of git)
+├─ Screenshots/         autopilot captures (kept out of git)
+├─ docs/img/            the screenshots used in this README
+└─ Builds/Windows/      the built player
 ```
 
-**Alles wird zur Laufzeit aus Code gebaut** — keine Prefabs, keine handgebaute Szene. Level,
-Spieler, Gegner, Boss, UI und Effekte entstehen in `LevelBuilder`, `PlayerController.Create` usw.
-Die Figuren sind prozedurale Puppen (Gelenk-Hierarchien aus Einzelsprites) mit Verlet-Stoff für
-Schärpe und Umhang.
+**Everything is built from code at runtime** — no prefabs, no hand-authored scene. Levels,
+player, enemies, boss, UI and effects all come into being in `LevelBuilder`,
+`PlayerController.Create` and friends.
 
-## Werkzeuge
+The characters are procedural puppets: joint hierarchies of individual sprites, with a knee and an
+elbow in every limb, and Verlet cloth for sash and cape. The hips drop by whatever height the legs
+lose to their own bend, so the lowest foot stays planted on the floor in every pose — including
+mid-transition and through an authored attack clip.
 
-| Skript | Zweck |
+## Tools
+
+| Script | Purpose |
 |---|---|
-| `Tools/compile.sh` | Kompilieren + Projekt-Bootstrap (Layer, Shader, Player-Settings, Szene) |
-| `Tools/build.sh` | Windows-Player nach `Builds/Windows/AshenSol.exe` bauen |
-| `Tools/autopilot.sh [sek]` | Build mit Bot durchspielen lassen, Screenshots + Log nach `Screenshots/` |
-| `Tools/gen_sprites.py` | alle prozeduralen Sprites neu generieren (Pillow) + `Tools/contact_sheet.png` |
-| `Tools/import_audio.py` | ElevenLabs-Rohdateien trimmen, normalisieren und ins Projekt kopieren |
-| `Tools/fix_packages.sh` | umgeht einen Unity-6000.4.6f1-Bug im ShaderGraph-Paket (läuft automatisch) |
+| `Tools/compile.sh` | Compile check + project bootstrap (layers, shaders, player settings, scene) |
+| `Tools/build.sh` | Build the Windows player into `Builds/Windows/AshenSol.exe` |
+| `Tools/autopilot.sh [sec]` | Play the build with a bot; screenshots + log land in `Screenshots/` |
+| `Tools/gen_sprites.py` | Regenerate every procedural sprite (Pillow) + `Tools/contact_sheet.png` |
+| `Tools/import_audio.py` | Trim, normalise and copy the raw ElevenLabs files into the project |
+| `Tools/fix_packages.sh` | Works around a Unity 6000.4.6f1 bug in the ShaderGraph package (runs automatically) |
 
-Der Autopilot (`-autopilot`) ersetzt die Eingabe durch einen Bot, der pariert, dashed, das Level
-durchquert, am Schrein levelt und den Boss besiegt. Am Ende schreibt er eine Zeile
-`AUTOPILOT RESULT: reachedGate=… bossDefeated=… exceptions=…` — der schnellste Regressionstest.
-**Sämtliche Bilder in dieser README stammen aus solchen Autopilot-Läufen.**
+The autopilot (`-autopilot`) swaps input for a bot that parries, dashes, crosses the level,
+levels up at the shrine and beats the boss. It ends by writing a line
+`AUTOPILOT RESULT: reachedGate=… bossDefeated=… exceptions=…` — the fastest regression test there is.
+**Every screenshot in this README comes from an autopilot run.**
 
-Nützliche Flags:
+Useful flags:
 
-| Flag | Wirkung |
+| Flag | Effect |
 |---|---|
-| `-skipTitle -startLevel works\|stair\|boss` | direkt in einen Abschnitt springen |
-| `-bossPhase 2` | den Warden-Kampf sofort mit der Verwandlung beginnen (`Builds/AnimReview/AshUnbound.bat`) |
-| `-victoryHold <sek>` | wie lange der Bot nach dem Sieg noch mitläuft (für den Abspann) |
-| `-mute` | Ton aus (bei automatischen Läufen immer gesetzt) |
+| `-skipTitle -startLevel works\|stair\|boss` | Jump straight into a chapter |
+| `-introSeconds <sec>` | How long the bot watches the intro before skipping it (default 12) |
+| `-bossPhase 2` | Open the Warden fight with the transformation (`Builds/AnimReview/AshUnbound.bat`) |
+| `-victoryHold <sec>` | How long the bot keeps playing after the win (for the credits) |
+| `-mute` | Sound off (always set for automated runs) |
 
-## Bekannte Eigenheiten der Umgebung
+## Known quirks of this environment
 
-* Unity 6000.4.6f1 schreibt beim ersten fehlgeschlagenen Compile Dateien im ShaderGraph-Paket
-  kaputt. `Tools/fix_packages.sh` stellt sie her und ergänzt das fehlende `using` — läuft vor jedem
-  Build automatisch.
-* Die Paketextraktion schlägt gelegentlich mit `EPERM` fehl; die Skripte wiederholen es automatisch.
-* `GUI/Text Shader` darf **nie** in „Always Included Shaders" — das bricht den Player-Build.
+* On the first failed compile, Unity 6000.4.6f1 corrupts files inside the ShaderGraph package.
+  `Tools/fix_packages.sh` restores them and adds the missing `using` — it runs before every
+  build automatically.
+* Package extraction occasionally fails with `EPERM`; the scripts retry on their own.
+* `GUI/Text Shader` must **never** end up in "Always Included Shaders" — it breaks the player build.
