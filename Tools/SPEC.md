@@ -475,3 +475,32 @@ after it actually moves (otherwise a resting cursor silently steals the selectio
 
 `GameFlow` now boots into the title unless `-skipTitle` is passed, so `-autopilot` runs exercise the
 menu too.
+
+---
+
+## 15. Posture system (replaces "internal damage")
+
+Every enemy carries a second resource next to HP: **posture** (`EnemyBase.Posture` / `MaxPosture`,
+yellow bar). It replaces the old internal-damage mechanic entirely.
+
+| source | posture gained |
+|---|---|
+| perfect parry | `PostureOnParry` — a full bar for mooks, 105 of 300 for the boss |
+| late block | 25 % of max |
+| player sword hit | 7 % of max |
+| Qi Blast | 45 % of max |
+
+Posture drains at `PostureRegen`/s after `PostureRegenDelay` (1.6 s) without new posture damage.
+
+**Break** (`EnemyBase.BreakPosture`): the enemy is staggered for `PostureBreakSeconds` (3 s), takes
+`BrokenDamageMul` (2×) damage, its bar flashes white, "GUARD BROKEN" floats up and a pulsing `I`
+prompt appears over its head. The boss additionally drops to one knee and gets a shockwave + screen
+flash.
+
+**Execution** (`PlayerCombat.ExecuteRoutine`): pressing the Qi key (`I` / gamepad North) while a
+broken enemy is within `ExecuteRangeX/Y` spends 1 Qi and deals that enemy's `ExecuteDamage`
+(60 / 85 / 45 / 130) as an `AttackKind.Unblockable` hit tagged `"execute"`. The break is consumed
+(`RecoverPosture`). Away from a broken enemy the same key is the ordinary Qi Blast.
+
+Boss bar UI carries both: red HP on top, yellow posture underneath
+(`IUiService.UpdateBossBar(hp01, posture01, broken)`).

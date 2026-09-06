@@ -24,14 +24,23 @@ Fertiger Build: **`Builds/Windows/AshenSol.exe`** — einfach doppelklicken.
 ### Die Kampfregel
 
 * **Weißes Aufblitzen** = parierbarer Angriff → im richtigen Moment **K** drücken.
-  Perfekte Parade: kein Schaden, +1 Qi, der Gegner sammelt *inneren Schaden* (roter Balkenanteil).
-  Etwas zu spät: Block mit 30 % Restschaden.
+  Perfekte Parade: kein Schaden, +1 Qi, und viel **Haltungsschaden** auf der gelben Leiste.
+  Etwas zu spät: Block mit 30 % Restschaden (füllt die gelbe Leiste nur ein Viertel so schnell).
 * **Rotes Aufblitzen** = unblockbar → Parieren hilft nicht, **wegdashen oder springen**.
-* **Qi-Blast (I)** zündet den angesammelten inneren Schaden auf einen Schlag — die Belohnung fürs
-  Parieren. **Heilen (H)** kostet ebenfalls 1 Qi. Qi bekommst du durch Paraden und Kills.
+* Jeder Gegner hat **zwei Leisten**: rot = Leben, gelb = **Haltung**.
+  Ist die gelbe Leiste voll, **bricht die Deckung**: der Gegner ist **3 Sekunden wehrlos**,
+  nimmt doppelten Schaden, und über ihm erscheint ein pulsierendes **I**.
+* **Hinrichtung: `I`** neben einem gebrochenen Gegner → kostet 1 Qi, richtet massiven Schaden an
+  (Grunt 60, Sentinel 85, Drohne 45, Boss 130). Danach ist die Haltungsleiste wieder leer.
+* **Normale Gegner brechen bei einer einzigen perfekten Parade.** Der **Boss braucht drei** —
+  seine Dreierschlag-Kombo ist genau dafür gemacht.
+* Die Haltung regeneriert nach 1,6 s Ruhe wieder. Wer nicht nachsetzt, verliert den Fortschritt.
+* Ohne Ziel in Reichweite bleibt `I` der **Qi Blast**: 12 Schaden im Umkreis plus kräftiger
+  Haltungsschaden — gut, um eine Gruppe gleichzeitig aufzubrechen.
 * Gegnerprojektile lassen sich mit einer perfekten Parade **zurückschleudern** (30 Schaden).
-* Beim Boss: drei Schläge der Dreierkombo hintereinander perfekt parieren → **Stagger**
-  (1,4 s wehrlos, 1,5× Schaden). Ab 55 % Leben geht er in Phase 2.
+
+**Qi** (max. 3, goldene Sechsecke): +1 pro perfekter Parade und pro Kill. Ausgeben kannst du es für
+die **Hinrichtung (I)**, den **Qi Blast (I ohne Ziel)** oder **Heilen (H)**.
 
 ### Schwierigkeitsgrade
 

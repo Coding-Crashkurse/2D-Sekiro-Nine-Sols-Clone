@@ -15,7 +15,7 @@ namespace AshenSol.UI
         // HUD
         CanvasGroup hudGroup; Image hpFill, hpTrail, hpFlash; Image[] pips; float hp01 = 1f, trail01 = 1f, trailDelay; int qi; float[] pipPop; float hpFlashT;
         // boss
-        CanvasGroup bossGroup; RectTransform bossRt; Image bossFill, bossInternal; Text bossName, bossSub; float bossShown01, bossHp01 = 1f, bossInt01; float bossTargetY; bool bossVisible;
+        CanvasGroup bossGroup; RectTransform bossRt; Image bossFill, bossPosture, bossPostureBack; Text bossName, bossSub; float bossShown01, bossHp01 = 1f, bossPosture01; bool bossBroken; float bossTargetY; bool bossVisible;
         // name card / prompt
         CanvasGroup cardGroup; Text cardTitle, cardSub; Image cardSprite, cardLineL, cardLineR; Coroutine cardCo;
         CanvasGroup promptGroup; Text promptText; float promptTimer, promptFade;
@@ -106,8 +106,9 @@ namespace AshenSol.UI
             UiKit.Image(bossRt, "back", null, Palette.Ink.WithAlpha(0.8f), new Vector2(0.5f, 0f), new Vector2(0f, 0f), new Vector2(900f, 18f));
             bossFill = UiKit.Image(bossRt, "fill", null, Palette.Red, new Vector2(0f, 0f), new Vector2(3f, 3f), new Vector2(894f, 12f));
             bossFill.rectTransform.pivot = new Vector2(0f, 0f);
-            bossInternal = UiKit.Image(bossRt, "internal", null, Palette.InternalDamage, new Vector2(0f, 0f), new Vector2(3f, 3f), new Vector2(0f, 12f));
-            bossInternal.rectTransform.pivot = new Vector2(0f, 0f);
+            bossPostureBack = UiKit.Image(bossRt, "postureBack", null, Palette.Ink.WithAlpha(0.75f), new Vector2(0.5f, 0f), new Vector2(0f, -14f), new Vector2(900f, 10f));
+            bossPosture = UiKit.Image(bossRt, "posture", null, Palette.Posture, new Vector2(0f, 0f), new Vector2(3f, -12f), new Vector2(0f, 6f));
+            bossPosture.rectTransform.pivot = new Vector2(0f, 0f);
             UiKit.Image(bossRt, "frame", Res.Sprite("ui_bar_frame"), Palette.Bone.WithAlpha(0.7f), new Vector2(0.5f, 0f), new Vector2(0f, 0f), new Vector2(900f, 18f), false);
             bossGroup.alpha = 0f;
         }
@@ -152,7 +153,7 @@ namespace AshenSol.UI
                 Palette.Bone.WithAlpha(0.42f), c, new Vector2(0f, -330f), new Vector2(1200f, 30f));
             UiKit.Text(rt, "controls",
                 "A / D  move     SPACE  jump     J  attack     K  parry     L  dash     I  Qi Blast     H  heal\n" +
-                "<color=#ffffff>WHITE</color> flash: parry it.     <color=#ff3a3a>RED</color> flash: dash away.     Parries fill your Qi.",
+                "<color=#ffffff>WHITE</color> flash: parry it.     <color=#ff3a3a>RED</color> flash: dash away.     Break the <color=#ffcc55>guard bar</color>, then  I  to execute.",
                 18, Palette.Bone.WithAlpha(0.62f), c, new Vector2(0f, -392f), new Vector2(1500f, 70f));
             UiKit.Text(rt, "credit", "Ashen Sol  —  a Nine Sols-inspired prototype", 15, Palette.Bone.WithAlpha(0.35f), new Vector2(1f, 0f), new Vector2(-24f, 18f), new Vector2(700f, 24f), TextAnchor.MiddleRight);
             titleGroup.alpha = 0f;
@@ -197,7 +198,9 @@ namespace AshenSol.UI
             UiKit.Text(rt, "controls",
                 "A / D  move          SPACE  jump          J  attack          K  parry\n" +
                 "L / SHIFT  dash          I  Qi Blast          H  heal\n\n" +
-                "Gamepad:  A jump   X attack   B parry   RB dash   Y Qi Blast   LB heal",
+                "Parry to fill the <color=#ffcc55>guard bar</color>. When it breaks the enemy is helpless for 3 s —\n" +
+                "stand next to it and press  I  to spend 1 Qi on an execution.\n\n" +
+                "Gamepad:  A jump   X attack   B parry   RB dash   Y Qi / execute   LB heal",
                 20, Palette.Bone.WithAlpha(0.75f), c, new Vector2(0f, -20f), new Vector2(1400f, 140f));
             pauseDifficulty = UiKit.Text(rt, "diff", "", 18, Palette.Gold.WithAlpha(0.85f), c, new Vector2(0f, -120f), new Vector2(900f, 30f));
             UiKit.Text(rt, "resume", UiKit.Spaced("ESC / START  —  RESUME"), 20, Palette.Teal, c, new Vector2(0f, -172f), new Vector2(900f, 40f));
@@ -221,7 +224,7 @@ namespace AshenSol.UI
             qi = q;
         }
 
-        void OnBossHealth(float h, float i) { bossHp01 = h; bossInt01 = i; }
+        void OnBossHealth(float h, float p, bool broken) { bossHp01 = h; bossPosture01 = p; bossBroken = broken; }
         void OnBossPhase(int p) { if (bossName != null) StartCoroutine(PhaseColor()); }
 
         IEnumerator PhaseColor()
@@ -260,10 +263,9 @@ namespace AshenSol.UI
             float bw = 894f;
             float shownHp = Mathf.Lerp(bossFill.rectTransform.sizeDelta.x / bw, bossHp01, 1f - Mathf.Exp(-14f * dt));
             bossFill.rectTransform.sizeDelta = new Vector2(bw * shownHp, 12f);
-            float iw = bw * Mathf.Min(bossInt01, shownHp);
-            bossInternal.rectTransform.sizeDelta = new Vector2(iw, 12f);
-            bossInternal.rectTransform.anchoredPosition = new Vector2(3f + bw * shownHp - iw, 3f);
-            bossInternal.color = Palette.InternalDamage.WithAlpha(0.8f + 0.2f * Mathf.Sin(Time.unscaledTime * 8f));
+            bossPosture.rectTransform.sizeDelta = new Vector2(bw * bossPosture01, 6f);
+            float hot = (bossBroken || bossPosture01 > 0.995f) ? 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 12f) : 0f;
+            bossPosture.color = Color.Lerp(Palette.Posture, Color.white, hot);
             // prompt
             if (promptTimer > 0f) { promptTimer -= dt; promptGroup.alpha = Mathf.MoveTowards(promptGroup.alpha, 1f, dt * 5f); }
             else promptGroup.alpha = Mathf.MoveTowards(promptGroup.alpha, 0f, dt * 2.5f);
@@ -327,13 +329,13 @@ namespace AshenSol.UI
         {
             bossName.text = UiKit.Spaced(name);
             bossSub.text = subtitle;
-            bossHp01 = 1f; bossInt01 = 0f;
+            bossHp01 = 1f; bossPosture01 = 0f; bossBroken = false;
             bossFill.rectTransform.sizeDelta = new Vector2(894f, 12f);
             bossVisible = true;
         }
 
         public void HideBossBar() { bossVisible = false; }
-        public void UpdateBossBar(float h, float i) { bossHp01 = h; bossInt01 = i; }
+        public void UpdateBossBar(float h, float p, bool broken) { bossHp01 = h; bossPosture01 = p; bossBroken = broken; }
 
         public void ShowNameCard(string title, string subtitle, float seconds)
         {

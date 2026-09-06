@@ -128,6 +128,13 @@ namespace AshenSol.Player
             GameEvents.RaisePlayerQiChanged(Qi, MaxQi);
         }
 
+        /// <summary>Turn to face a world x position (used by the execution).</summary>
+        public void FaceTowards(float worldX)
+        {
+            Facing = worldX >= Center.x ? 1 : -1;
+            if (Rig != null) Rig.SetFacing(Facing);
+        }
+
         public void TeleportSafe()
         {
             transform.position = LastSafeGroundPosition;

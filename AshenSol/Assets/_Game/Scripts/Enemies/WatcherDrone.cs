@@ -8,7 +8,9 @@ namespace AshenSol.Enemies
     public class WatcherDrone : EnemyBase
     {
         protected override float CenterHeight { get { return 0f; } }
-        protected override float StaggerOnParry { get { return 0f; } }
+        protected override float PostureOnParry { get { return EnemyTuning.DronePostureOnParry; } }
+        protected override float PostureRegen { get { return EnemyTuning.DronePostureRegen; } }
+        public override int ExecuteDamage { get { return EnemyTuning.DroneExecuteDamage; } }
         protected override float KnockbackResist { get { return 1f; } }
         protected override string DeathSfx { get { return "drone_death"; } }
         public override string DisplayName { get { return "Watcher Drone"; } }
@@ -20,6 +22,7 @@ namespace AshenSol.Enemies
         {
             Type = EnemyType.WatcherDrone;
             MaxHp = EnemyTuning.DroneHp;
+            MaxPosture = EnemyTuning.DroneMaxPosture;
             var rb = gameObject.AddComponent<Rigidbody2D>();
             rb.bodyType = RigidbodyType2D.Kinematic;
             rb.useFullKinematicContacts = true;

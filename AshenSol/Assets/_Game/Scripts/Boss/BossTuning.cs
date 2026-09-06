@@ -6,10 +6,11 @@ namespace AshenSol.Boss
         public const float Phase2Threshold = 0.55f;
         public const float Phase2TelegraphMul = 0.8f;
         public const float WalkSpeed = 3.5f;
-        public const float StaggerSeconds = 1.4f;
-        public const float StaggerDamageMul = 1.5f;
-        public const int InternalStaggerThreshold = 110;
-        public const float InternalStaggerCooldown = 8f;
+        // Posture: the boss needs three perfect parries to break (its triple slash is exactly three).
+        public const float MaxPosture = 300f;
+        public const float PostureOnParry = 105f;
+        public const float PostureRegen = 26f;
+        public const int ExecuteDamage = 130;
 
         // TripleSlash
         public const float SlashTelegraph = 0.38f, SlashActive = 0.10f, SlashGap = 0.25f, SlashRecovery = 0.5f;

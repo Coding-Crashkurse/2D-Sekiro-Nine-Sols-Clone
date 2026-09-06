@@ -123,7 +123,7 @@ namespace AshenSol.Core
     {
         void ShowBossBar(string name, string subtitle);
         void HideBossBar();
-        void UpdateBossBar(float hp01, float internal01);
+        void UpdateBossBar(float hp01, float posture01, bool postureBroken);
         /// <summary>Big centered name card (boss intro / level title). Auto hides after seconds.</summary>
         void ShowNameCard(string title, string subtitle, float seconds);
         /// <summary>Small hint text near the top center (tutorial, "Gate sealed").</summary>
@@ -166,7 +166,7 @@ namespace AshenSol.Core
         public static event Action<string> CheckpointActivated;           // checkpoint id
         public static event Action<string, string> BossFightStarted;      // name, subtitle
         public static event Action<int> BossPhaseChanged;                 // 1-based phase
-        public static event Action<float, float> BossHealthChanged;       // hp01, internal01
+        public static event Action<float, float, bool> BossHealthChanged;  // hp01, posture01, guard broken
         public static event Action BossDefeated;
         public static event Action<LevelId> LevelBuilt;
         public static event Action<GameState> StateChanged;
@@ -184,7 +184,7 @@ namespace AshenSol.Core
         public static void RaiseCheckpointActivated(string id) { CheckpointActivated?.Invoke(id); }
         public static void RaiseBossFightStarted(string name, string subtitle) { BossFightStarted?.Invoke(name, subtitle); }
         public static void RaiseBossPhaseChanged(int phase) { BossPhaseChanged?.Invoke(phase); }
-        public static void RaiseBossHealthChanged(float hp01, float internal01) { BossHealthChanged?.Invoke(hp01, internal01); }
+        public static void RaiseBossHealthChanged(float hp01, float posture01, bool broken) { BossHealthChanged?.Invoke(hp01, posture01, broken); }
         public static void RaiseBossDefeated() { BossDefeated?.Invoke(); }
         public static void RaiseLevelBuilt(LevelId id) { LevelBuilt?.Invoke(id); }
         public static void RaiseStateChanged(GameState s) { StateChanged?.Invoke(s); }
@@ -268,7 +268,7 @@ namespace AshenSol.Core
         public static readonly Color PlayerSlash = Hex("#9ffff2");
         public static readonly Color EnemySlash = Hex("#ffb37a");
         public static readonly Color BossSlash = Hex("#ff5a5a");
-        public static readonly Color InternalDamage = Hex("#ff4d4d");
+        public static readonly Color Posture = Hex("#ffcc55");   // yellow guard bar
 
         public static Color Hex(string hex)
         {

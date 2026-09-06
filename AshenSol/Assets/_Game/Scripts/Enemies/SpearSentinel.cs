@@ -8,7 +8,9 @@ namespace AshenSol.Enemies
     public class SpearSentinel : EnemyBase
     {
         protected override float CenterHeight { get { return 0.85f; } }
-        protected override float StaggerOnParry { get { return EnemyTuning.SpearStaggerOnParry; } }
+        protected override float PostureOnParry { get { return EnemyTuning.SpearPostureOnParry; } }
+        protected override float PostureRegen { get { return EnemyTuning.SpearPostureRegen; } }
+        public override int ExecuteDamage { get { return EnemyTuning.SpearExecuteDamage; } }
         protected override float KnockbackResist { get { return 0.3f; } }
         public override string DisplayName { get { return "Spear Sentinel"; } }
 
@@ -19,6 +21,7 @@ namespace AshenSol.Enemies
         {
             Type = EnemyType.SpearSentinel;
             MaxHp = EnemyTuning.SpearHp;
+            MaxPosture = EnemyTuning.SpearMaxPosture;
             var rb = gameObject.AddComponent<Rigidbody2D>();
             rb.bodyType = RigidbodyType2D.Dynamic;
             rb.freezeRotation = true;

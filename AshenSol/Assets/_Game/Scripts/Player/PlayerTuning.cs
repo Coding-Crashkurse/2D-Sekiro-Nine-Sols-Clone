@@ -40,6 +40,11 @@ namespace AshenSol.Player
         public const float ComboLinkWindow = 0.35f;
         public const float AttackLunge = 1.6f;
 
+        // Qi execution on a broken guard
+        public const float ExecuteRangeX = 2.6f;
+        public const float ExecuteRangeY = 2.2f;
+        public const float ExecuteDuration = 0.55f;
+
         public const float QiBlastDuration = 0.35f;
         public const float QiBlastRadius = 3.2f;
         public const int QiBlastDamage = 12;

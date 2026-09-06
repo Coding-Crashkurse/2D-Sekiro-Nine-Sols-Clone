@@ -57,9 +57,9 @@ namespace AshenSol.Level
 
             // ---------- signs ----------
             TutorialSign.Create(new Vector2(6.5f, 0f), "A / D  move        SPACE  jump", root);
-            TutorialSign.Create(new Vector2(11f, 0f), "J  attack", root);
+            TutorialSign.Create(new Vector2(11f, 0f), "J  attack        H  heal  (1 Qi)", root);
             TutorialSign.Create(new Vector2(25.5f, 0f), "K  parry the WHITE flash\nL / SHIFT  dash away from the RED flash", root);
-            TutorialSign.Create(new Vector2(46.5f, 0f), "I  Qi Blast: detonate red damage\nH  heal  (costs 1 Qi)", root);
+            TutorialSign.Create(new Vector2(46.5f, 0f), "Parries fill the yellow GUARD bar.\nWhen it breaks:  I  executes  (1 Qi)", root);
 
             // ---------- encounters ----------
             var z1 = EncounterZone.Create("Z1", new Rect(8f, 0f, 12f, 6f), root);

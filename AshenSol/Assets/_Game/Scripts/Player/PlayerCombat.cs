@@ -218,9 +218,36 @@ namespace AshenSol.Player
         }
 
         // ---------------- qi blast ----------------
+        /// <summary>Nearest enemy whose guard is broken and that is close enough to finish.</summary>
+        AshenSol.Enemies.EnemyBase FindExecuteTarget()
+        {
+            AshenSol.Enemies.EnemyBase best = null;
+            float bestDist = float.MaxValue;
+            var all = AshenSol.Enemies.EnemyBase.All;
+            for (int i = 0; i < all.Count; i++)
+            {
+                var e = all[i];
+                if (e == null || !e.CanBeExecuted || !e.gameObject.activeInHierarchy) continue;
+                Vector2 d = e.Center - c.Center;
+                if (Mathf.Abs(d.x) > PlayerTuning.ExecuteRangeX || Mathf.Abs(d.y) > PlayerTuning.ExecuteRangeY) continue;
+                if (Mathf.Abs(d.x) < bestDist) { bestDist = Mathf.Abs(d.x); best = e; }
+            }
+            return best;
+        }
+
         void TryQiBlast()
         {
             if (IsParrying || IsHealing || IsQiBlasting || c.IsDashing) return;
+
+            // I is contextual: next to a broken guard it becomes the execution
+            var victim = FindExecuteTarget();
+            if (victim != null && c.Qi >= 1)
+            {
+                CancelAttack();
+                c.SpendQi(1);
+                qiCo = c.StartCoroutine(ExecuteRoutine(victim));
+                return;
+            }
             if (c.Qi < 1)
             {
                 Services.Audio.PlaySfx("ui_move", 0.6f);
@@ -230,6 +257,49 @@ namespace AshenSol.Player
             CancelAttack();
             c.SpendQi(1);
             qiCo = c.StartCoroutine(QiBlastRoutine());
+        }
+
+        /// <summary>The payoff for breaking a guard: a single devastating Qi-charged strike.</summary>
+        IEnumerator ExecuteRoutine(AshenSol.Enemies.EnemyBase victim)
+        {
+            IsQiBlasting = true;
+            c.FaceTowards(victim.Center.x);
+            c.Rig.PlayAttack(2, 0.22f);
+            c.Rig.PulseSwordLight(5f, 0.5f);
+            Services.Audio.PlaySfx("sword_swing_3", 1f, 0.03f);
+            Services.Vfx.ChromaticPulse(0.5f, 0.4f);
+            TimeController.Instance.SlowMo(0.35f, 0.35f);
+
+            float t = 0f;
+            while (t < 0.22f) { t += Time.unscaledDeltaTime; yield return null; }
+
+            if (victim != null && victim.IsAlive)
+            {
+                Vector2 at = victim.Center;
+                Services.Vfx.SlashArc(at, 0f, c.Facing < 0, Palette.Gold, 2.6f);
+                Services.Vfx.FlashLight(at, Palette.Gold, 5f, 7f, 0.35f);
+                Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.3f), 0.14f);
+                Services.Vfx.Shockwave(at, 3f, Palette.Gold);
+                Services.Vfx.Embers(at, 34, Palette.Gold);
+                Services.Vfx.FloatingText(at + new Vector2(0f, 1.4f), "EXECUTE", Palette.Gold, 1.7f);
+                Services.Cam.Shake(0.8f);
+                Services.Cam.Kick(new Vector2(c.Facing, 0f), 0.35f);
+                HitStop.Request(0.14f);
+                Services.Audio.PlaySfx("execute");
+                var info = new AttackInfo
+                {
+                    Source = c.gameObject, Team = Team.Player, Damage = victim.ExecuteDamage, Origin = c.Center,
+                    HitPoint = at, Kind = AttackKind.Unblockable, Knockback = 4f, Tag = "execute"
+                };
+                victim.ReceiveAttack(info);
+                GameEvents.RaiseLog("execution on " + victim.DisplayName + " for " + victim.ExecuteDamage);
+            }
+
+            while (t < PlayerTuning.ExecuteDuration) { t += Time.unscaledDeltaTime; yield return null; }
+            c.Rig.EndAttack();
+            c.Rig.EndQiBlast();
+            IsQiBlasting = false;
+            qiCo = null;
         }
 
         IEnumerator QiBlastRoutine()

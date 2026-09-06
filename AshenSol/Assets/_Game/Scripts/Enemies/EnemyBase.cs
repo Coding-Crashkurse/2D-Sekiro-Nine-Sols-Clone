@@ -35,7 +35,14 @@ namespace AshenSol.Enemies
         public string ZoneId { get; set; }
         public int Hp { get; protected set; }
         public int MaxHp { get; protected set; }
-        public int InternalDamage { get; protected set; }
+        // ---- posture (yellow bar) ----
+        public float MaxPosture { get; protected set; }
+        public float Posture { get; protected set; }
+        public bool PostureBroken { get; private set; }
+        public float PostureBreakRemaining { get; private set; }
+        public float Posture01 { get { return MaxPosture > 0f ? Mathf.Clamp01(Posture / MaxPosture) : 0f; } }
+        /// <summary>True while the guard is broken — the window for the Qi execution.</summary>
+        public bool CanBeExecuted { get { return IsAlive && PostureBroken; } }
         public bool IsAlive { get; protected set; }
         public bool IsStaggered { get { return staggerTimer > 0f; } }
         public bool IsTelegraphing { get; private set; }
@@ -56,7 +63,11 @@ namespace AshenSol.Enemies
         public event Action<EnemyBase> Died;
 
         protected virtual float CenterHeight { get { return 0.8f; } }
-        protected virtual float StaggerOnParry { get { return 0.5f; } }
+        /// <summary>Posture added by one perfect parry. Defaults to a full bar: one parry breaks a mook.</summary>
+        protected virtual float PostureOnParry { get { return MaxPosture; } }
+        protected virtual float PostureRegen { get { return 30f; } }
+        /// <summary>Damage of the Qi execution performed on a broken guard.</summary>
+        public virtual int ExecuteDamage { get { return 60; } }
         protected virtual float KnockbackResist { get { return 0f; } }
         protected virtual float DamageTakenMultiplier { get { return 1f; } }
         protected virtual string DeathSfx { get { return "enemy_death"; } }
@@ -64,6 +75,7 @@ namespace AshenSol.Enemies
         protected bool PlayerAlive { get { var p = Player; return p != null && p.IsAlive && p.gameObject.activeInHierarchy; } }
 
         protected float staggerTimer, telegraphTimer;
+        float postureRegenDelay;
         protected EnemyHealthBar healthBar;
         protected Coroutine behaviour;
         protected bool aggro;
@@ -90,7 +102,8 @@ namespace AshenSol.Enemies
             if (behaviour != null) { StopCoroutine(behaviour); behaviour = null; }
             StopAllCoroutines();
             IsAlive = true;
-            Hp = MaxHp; InternalDamage = 0;
+            Hp = MaxHp;
+            Posture = 0f; PostureBroken = false; PostureBreakRemaining = 0f; postureRegenDelay = 0f;
             staggerTimer = 0f; aggro = false;
             IsTelegraphing = false; TimeUntilStrike = -1f;
             transform.position = SpawnPos;
@@ -119,6 +132,20 @@ namespace AshenSol.Enemies
             {
                 staggerTimer -= dt;
                 if (staggerTimer <= 0f && behaviour == null) behaviour = StartCoroutine(Behaviour());
+            }
+            if (PostureBroken)
+            {
+                PostureBreakRemaining -= dt;
+                if (PostureBreakRemaining <= 0f) RecoverPosture();
+            }
+            else if (Posture > 0f)
+            {
+                postureRegenDelay -= dt;
+                if (postureRegenDelay <= 0f)
+                {
+                    Posture = Mathf.Max(0f, Posture - PostureRegen * dt);
+                    OnHealthChanged();
+                }
             }
             if (Rig != null) { Rig.SetFacing(Facing); Rig.Animate(this, dt); }
             if (healthBar != null) healthBar.Tick(dt);
@@ -164,13 +191,13 @@ namespace AshenSol.Enemies
         {
             if (outcome == HitOutcome.Parried)
             {
-                AddInternalDamage(info.Damage);
-                if (StaggerOnParry > 0f) Stagger(StaggerOnParry);
-                else if (Rig != null) Rig.Flash(Color.white, 0.1f);
                 healthBar.Show();
+                AddPosture(PostureOnParry);
+                if (!PostureBroken && Rig != null) { Rig.Flash(Color.white, 0.12f); Rig.Punch(0.93f, 1.07f); }
             }
             else if (outcome == HitOutcome.Blocked)
             {
+                AddPosture(MaxPosture * EnemyTuning.PostureFromBlock);
                 if (Rig != null) Rig.Flash(Palette.Amber, 0.08f);
             }
         }
@@ -188,41 +215,53 @@ namespace AshenSol.Enemies
         }
 
         // ---------------- damage ----------------
-        public void AddInternalDamage(int amount)
+        public void AddPosture(float amount)
         {
-            if (!IsAlive || amount <= 0) return;
-            InternalDamage = Mathf.Min(InternalDamage + amount, Hp);
+            if (!IsAlive || PostureBroken || amount <= 0f) return;
+            Posture = Mathf.Min(MaxPosture, Posture + amount);
+            postureRegenDelay = EnemyTuning.PostureRegenDelay;
             OnHealthChanged();
+            if (Posture >= MaxPosture) BreakPosture();
         }
 
-        public int DetonateInternal()
+        /// <summary>Guard broken: helpless, double damage, open to the Qi execution.</summary>
+        protected virtual void BreakPosture()
         {
-            int d = InternalDamage;
-            InternalDamage = 0;
-            return d;
+            if (!IsAlive || PostureBroken) return;
+            PostureBroken = true;
+            PostureBreakRemaining = EnemyTuning.PostureBreakSeconds;
+            Posture = MaxPosture;
+            Stagger(EnemyTuning.PostureBreakSeconds);
+            healthBar.Show();
+            HitStop.Request(0.09f);
+            Services.Cam.Shake(0.4f);
+            Services.Vfx.FloatingText(Center + new Vector2(0f, CenterHeight + 0.9f), "GUARD BROKEN", Palette.Gold, 1.3f);
+            Services.Vfx.FlashLight(Center, Palette.Gold, 3f, 5f, 0.4f);
+            Services.Vfx.HitSpark(Center, Vector2.up, Palette.Gold, 1.6f);
+            Services.Vfx.Embers(Center, 20, Palette.Gold);
+            Services.Audio.PlaySfxAt("posture_break", Center, 1f);
+            OnHealthChanged();
+            GameEvents.RaiseLog("guard broken: " + DisplayName);
+        }
+
+        /// <summary>Break window is over (or was spent by an execution).</summary>
+        protected virtual void RecoverPosture()
+        {
+            PostureBroken = false;
+            PostureBreakRemaining = 0f;
+            Posture = 0f;
+            postureRegenDelay = 0f;
+            OnHealthChanged();
         }
 
         public virtual HitOutcome ReceiveAttack(in AttackInfo info)
         {
             if (!IsAlive) return HitOutcome.Ignored;
-            int dmg;
-            bool detonation = info.Tag == "qi_blast";
-            if (detonation)
-            {
-                int det = DetonateInternal();
-                dmg = det + info.Damage;
-                if (det > 0) Services.Vfx.FloatingText(Center + new Vector2(0f, CenterHeight + 0.6f), "-" + det, Palette.InternalDamage, 1.5f);
-            }
-            else
-            {
-                int bleed = InternalDamage / 4;
-                if (InternalDamage > 0 && bleed < 1) bleed = 1;
-                InternalDamage -= bleed;
-                dmg = info.Damage + bleed;
-            }
+            bool execute = info.Tag == "execute";
+            int dmg = execute ? ExecuteDamage : info.Damage;
+            if (!execute && PostureBroken) dmg = Mathf.RoundToInt(dmg * EnemyTuning.BrokenDamageMul);
             dmg = Mathf.Max(1, Mathf.RoundToInt(dmg * DamageTakenMultiplier));
             Hp -= dmg;
-            if (Hp > 0) InternalDamage = Mathf.Min(InternalDamage, Hp);
             GameEvents.RaiseEnemyDamaged(this, dmg);
 
             Vector2 dir = Center - info.Origin;
@@ -231,9 +270,10 @@ namespace AshenSol.Enemies
             Vector2 hp = info.HitPoint == Vector2.zero ? Center : info.HitPoint;
 
             if (Rig != null) Rig.Flash(Color.white, 0.08f);
-            Services.Vfx.InkSplatter(hp, dir, Palette.Ink, detonation ? 16 : 10);
-            Services.Vfx.HitSpark(hp, dir, detonation ? Palette.Teal : Palette.Bone, detonation ? 1.4f : 1f);
-            if (!detonation) Services.Vfx.FloatingText(Center + new Vector2(UnityEngine.Random.Range(-0.2f, 0.2f), CenterHeight + 0.3f), dmg.ToString(), Palette.Bone, 1f);
+            Services.Vfx.InkSplatter(hp, dir, Palette.Ink, execute ? 22 : 10);
+            Services.Vfx.HitSpark(hp, dir, execute ? Palette.Gold : Palette.Bone, execute ? 2f : 1f);
+            Services.Vfx.FloatingText(Center + new Vector2(UnityEngine.Random.Range(-0.2f, 0.2f), CenterHeight + 0.3f), dmg.ToString(),
+                execute ? Palette.Gold : (PostureBroken ? Color.white : Palette.Bone), execute ? 1.8f : (PostureBroken ? 1.3f : 1f));
             HitStop.Request(0.03f);
             if (Time.unscaledTime - lastHitSfx > 0.05f) { Services.Audio.PlaySfxAt("enemy_hit", Center, 0.9f, 0.1f); lastHitSfx = Time.unscaledTime; }
             healthBar.Show();
@@ -245,7 +285,11 @@ namespace AshenSol.Enemies
             }
             OnHurt(info, dmg);
             OnHealthChanged();
-            if (Hp <= 0) Die();
+            if (Hp <= 0) { Die(); return HitOutcome.Hit; }
+
+            if (execute) RecoverPosture();                       // the break is consumed by the finisher
+            else if (info.Tag == "qi_blast") AddPosture(MaxPosture * EnemyTuning.PostureFromQiBlast);
+            else if (info.Team == Team.Player) AddPosture(MaxPosture * EnemyTuning.PostureFromHit);
             return HitOutcome.Hit;
         }
 

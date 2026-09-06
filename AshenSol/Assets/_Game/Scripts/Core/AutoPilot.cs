@@ -79,7 +79,11 @@ namespace AshenSol.Core
             try { if (log != null) log.WriteLine(line); } catch { }
         }
 
-        void OnGameLog(string s) { Log(s); }
+        void OnGameLog(string s)
+        {
+            Log(s);
+            if (s.StartsWith("guard broken")) ScheduleShot("guard_break", 0.25f);
+        }
         void OnParried(Vector2 p, bool perf)
         {
             parries++; if (perf) perfect++;
@@ -223,7 +227,10 @@ namespace AshenSol.Core
                     if (dashCd <= 0f) { input.Dash(); dashCd = 0.6f; }
                     return;
                 }
-                if (p.Qi > 0 && target.InternalDamage >= 20 && dist < 2.6f && qiCd <= 0f) { brainState = "qi-blast"; input.QiBlast(); qiCd = 1.2f; return; }
+                if (target.CanBeExecuted && p.Qi > 0 && dist < PlayerTuning.ExecuteRangeX && qiCd <= 0f)
+                { brainState = "execute"; input.QiBlast(); qiCd = 0.9f; return; }
+                if (target.CanBeExecuted) { brainState = "close-for-execute"; input.Horizontal = dirTo; return; }
+                if (p.Qi > 2 && target.Posture01 > 0.5f && dist < 2.6f && qiCd <= 0f) { brainState = "qi-blast"; input.QiBlast(); qiCd = 1.2f; return; }
                 if (p.Hp < 40 && p.Qi > 0 && dist > 3.2f && healCd <= 0f) { brainState = "heal"; input.Heal(); healCd = 2.5f; return; }
 
                 if (target.Type == EnemyType.WatcherDrone && target.Center.y > p.Center.y + 1.2f)

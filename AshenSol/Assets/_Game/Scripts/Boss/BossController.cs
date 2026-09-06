@@ -31,9 +31,10 @@ namespace AshenSol.Boss
         public event Action Defeated;
 
         protected override float CenterHeight { get { return 1.6f; } }
-        protected override float StaggerOnParry { get { return 0f; } }
+        protected override float PostureOnParry { get { return BossTuning.PostureOnParry; } }
+        protected override float PostureRegen { get { return BossTuning.PostureRegen; } }
+        public override int ExecuteDamage { get { return BossTuning.ExecuteDamage; } }
         protected override float KnockbackResist { get { return 1f; } }
-        protected override float DamageTakenMultiplier { get { return IsStaggered ? BossTuning.StaggerDamageMul : 1f; } }
         protected override string DeathSfx { get { return "boss_death"; } }
         public override string DisplayName { get { return BossName; } }
 
@@ -41,8 +42,6 @@ namespace AshenSol.Boss
         /// <summary>Phase-2 speed-up combined with the difficulty setting.</summary>
         float Tele { get { return teleMul * Settings.TelegraphMul; } }
         bool invulnerable, phasePending, dying;
-        int comboParryCount;
-        float lastInternalStagger = -99f;
         string lastAttack = "";
         SashChain cape;
         SpriteRenderer core; Light2D coreLight;
@@ -53,6 +52,7 @@ namespace AshenSol.Boss
         {
             Type = EnemyType.Boss;
             MaxHp = BossTuning.MaxHp;
+            MaxPosture = BossTuning.MaxPosture;
             var rb = gameObject.AddComponent<Rigidbody2D>();
             rb.bodyType = RigidbodyType2D.Dynamic;
             rb.freezeRotation = true;
@@ -106,12 +106,12 @@ namespace AshenSol.Boss
         {
             Phase = 1; teleMul = 1f;
             IsFightActive = false; CurrentAttack = ""; invulnerable = false; phasePending = false; dying = false;
-            comboParryCount = 0; lastInternalStagger = -99f; lastAttack = "";
+            lastAttack = "";
             if (cape != null) { cape.Reset(); cape.SetVisible(true); }
             if (core != null) { core.enabled = true; coreLight.enabled = true; }
             if (Rig != null) Rig.SetPose(true, 25f, 180f, -14f); // kneeling guardian before the fight
             GroundShockwave.ClearAll();
-            GameEvents.RaiseBossHealthChanged(1f, 0f);
+            GameEvents.RaiseBossHealthChanged(1f, 0f, false);
         }
 
         public void ResetFight() { ResetToSpawn(); }
@@ -174,13 +174,8 @@ namespace AshenSol.Boss
 
         protected override void OnHealthChanged()
         {
-            GameEvents.RaiseBossHealthChanged(Mathf.Clamp01((float)Hp / MaxHp), Mathf.Clamp01((float)InternalDamage / MaxHp));
+            GameEvents.RaiseBossHealthChanged(Mathf.Clamp01((float)Hp / MaxHp), Posture01, PostureBroken);
             if (Phase == 1 && Hp > 0 && Hp <= MaxHp * BossTuning.Phase2Threshold) phasePending = true;
-            if (InternalDamage >= BossTuning.InternalStaggerThreshold && Time.time - lastInternalStagger > BossTuning.InternalStaggerCooldown && !IsStaggered && IsFightActive)
-            {
-                lastInternalStagger = Time.time;
-                DoStagger("OVERWHELMED");
-            }
         }
 
         protected override void OnHurt(in AttackInfo info, int dmg)
@@ -193,28 +188,36 @@ namespace AshenSol.Boss
         {
             if (outcome == HitOutcome.Parried)
             {
-                AddInternalDamage(info.Damage);
-                comboParryCount++;
-                Rig.Flash(Color.white, 0.12f);
-                Rig.Punch(0.92f, 1.08f);
                 healthBar.Show();
-                if (CurrentAttack == "TripleSlash" && comboParryCount >= 3) DoStagger("STAGGERED");
+                AddPosture(PostureOnParry);
+                if (!PostureBroken) { Rig.Flash(Color.white, 0.12f); Rig.Punch(0.92f, 1.08f); }
             }
-            else if (outcome == HitOutcome.Blocked) Rig.Flash(Palette.Amber, 0.1f);
+            else if (outcome == HitOutcome.Blocked)
+            {
+                AddPosture(MaxPosture * AshenSol.Enemies.EnemyTuning.PostureFromBlock);
+                Rig.Flash(Palette.Amber, 0.1f);
+            }
         }
 
-        void DoStagger(string text)
+        protected override void BreakPosture()
         {
-            if (!IsAlive || !IsFightActive) return;
-            Stagger(BossTuning.StaggerSeconds);
+            if (!IsAlive || PostureBroken) return;
             CurrentAttack = "";
             Body.linearVelocity = Vector2.zero;
             Body.gravityScale = 1f;
+            base.BreakPosture();
             Services.Audio.PlaySfxAt("boss_stagger", Center, 1f);
-            Services.Vfx.FloatingText(Center + new Vector2(0f, 2.2f), text, Palette.Gold, 1.6f);
-            Services.Vfx.FlashLight(Center, Palette.Gold, 2.5f, 6f, 0.4f);
-            Services.Cam.Shake(0.4f);
-            GameEvents.RaiseLog("boss " + text.ToLower());
+            Services.Vfx.Shockwave(transform.position, 5f, Palette.Gold);
+            Services.Vfx.ScreenFlash(Palette.Gold.WithAlpha(0.18f), 0.2f);
+            Services.Cam.Shake(0.5f);
+            Rig.SetPose(true, 40f, 180f, -22f);   // dropped to one knee
+        }
+
+        protected override void RecoverPosture()
+        {
+            bool was = PostureBroken;
+            base.RecoverPosture();
+            if (was && IsAlive) Rig.SetPose(false);
         }
 
         protected override void Stagger(float seconds)
@@ -244,7 +247,7 @@ namespace AshenSol.Boss
             Body.simulated = false;
             GroundShockwave.ClearAll();
             healthBar.Hide();
-            GameEvents.RaiseBossHealthChanged(0f, 0f);
+            GameEvents.RaiseBossHealthChanged(0f, 0f, false);
             GameEvents.RaiseEnemyKilled(this);
             GameEvents.RaiseLog("boss killed");
             StartCoroutine(DeathSequence());
@@ -347,6 +350,9 @@ namespace AshenSol.Boss
         IEnumerator PhaseTransition()
         {
             phasePending = false;
+            // flip the phase immediately: posture regen keeps firing OnHealthChanged during the
+            // transition, which would re-arm phasePending and run the whole thing a second time
+            Phase = 2;
             CurrentAttack = "Phase";
             invulnerable = true;
             Move(0f);
@@ -361,19 +367,16 @@ namespace AshenSol.Boss
             Services.Vfx.ChromaticPulse(0.8f, 0.6f);
             float t = 0f;
             while (t < 2f) { t += Time.deltaTime; if (Mathf.Repeat(t, 0.4f) < Time.deltaTime) Rig.Flash(Palette.Red, 0.3f); yield return null; }
-            Phase = 2;
             teleMul = BossTuning.Phase2TelegraphMul;
             invulnerable = false;
             Rig.SetPose(false);
             GameEvents.RaiseBossPhaseChanged(2);
-            GameEvents.RaiseLog("boss phase 2");
             CurrentAttack = "";
         }
 
         IEnumerator TripleSlash()
         {
             CurrentAttack = "TripleSlash";
-            comboParryCount = 0;
             for (int i = 0; i < 3; i++)
             {
                 FacePlayer();

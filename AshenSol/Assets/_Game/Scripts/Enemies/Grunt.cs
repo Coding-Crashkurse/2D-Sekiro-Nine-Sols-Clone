@@ -8,7 +8,9 @@ namespace AshenSol.Enemies
     public class Grunt : EnemyBase
     {
         protected override float CenterHeight { get { return 0.8f; } }
-        protected override float StaggerOnParry { get { return EnemyTuning.GruntStaggerOnParry; } }
+        protected override float PostureOnParry { get { return EnemyTuning.GruntPostureOnParry; } }
+        protected override float PostureRegen { get { return EnemyTuning.GruntPostureRegen; } }
+        public override int ExecuteDamage { get { return EnemyTuning.GruntExecuteDamage; } }
         public override string DisplayName { get { return "Husk Grunt"; } }
 
         int patrolDir = 1;
@@ -17,6 +19,7 @@ namespace AshenSol.Enemies
         {
             Type = EnemyType.Grunt;
             MaxHp = EnemyTuning.GruntHp;
+            MaxPosture = EnemyTuning.GruntMaxPosture;
             var rb = gameObject.AddComponent<Rigidbody2D>();
             rb.bodyType = RigidbodyType2D.Dynamic;
             rb.freezeRotation = true;
