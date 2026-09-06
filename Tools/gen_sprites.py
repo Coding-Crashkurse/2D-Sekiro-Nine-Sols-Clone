@@ -1267,8 +1267,9 @@ def text_sprite(w, h, text, size, color, glow_color, spacing_px, name, sub=None,
     d = ImageDraw.Draw(m)
     widths = []
     for ch in text:
-        bb = d.textbbox((0, 0), ch, font=font)
-        widths.append(bb[2] - bb[0] if ch != " " else size * SS * 0.35)
+        # advance width, not the ink bounding box: glyphs with tails (Q) would otherwise
+        # push the following letter away and open a gap in the middle of a word
+        widths.append(font.getlength(ch) if ch != " " else size * SS * 0.35)
     total = sum(widths) + spacing_px * SS * (len(text) - 1)
     x = (w * SS - total) / 2
     y = h * SS * (0.5 if not sub else 0.38)
@@ -1281,8 +1282,7 @@ def text_sprite(w, h, text, size, color, glow_color, spacing_px, name, sub=None,
         sd = ImageDraw.Draw(sm)
         swidths = []
         for ch in sub:
-            bb = sd.textbbox((0, 0), ch, font=sfont)
-            swidths.append(bb[2] - bb[0] if ch != " " else sub_size * SS * 0.35)
+            swidths.append(sfont.getlength(ch) if ch != " " else sub_size * SS * 0.35)
         stotal = sum(swidths) + 4 * SS * (len(sub) - 1)
         sx = (w * SS - stotal) / 2
         sy = h * SS * 0.78
@@ -1414,10 +1414,10 @@ def main():
     save(ui_bar_frame(), 420, 26, "ui_bar_frame")
     save(ui_pip(False), 30, 30, "ui_pip")
     save(ui_pip(True), 30, 30, "ui_pip_full")
-    save(text_sprite(900, 260, "ASHEN SOL", 96, BONE, TEAL, 16, "ui_title", sub="THE SEALED GATE", sub_size=26, sub_color=mix(TEAL, BONE, 0.4), glow_r=18, glow_s=0.6), 900, 260, "ui_title")
-    save(text_sprite(800, 120, "YOU HAVE FALLEN", 54, mix(BONE, RED, 0.35), RED, 12, "ui_text_fallen", glow_r=16, glow_s=0.55), 800, 120, "ui_text_fallen")
-    save(text_sprite(900, 120, "SOL VANQUISHED", 56, GOLD, GOLD, 12, "ui_text_vanquished", glow_r=18, glow_s=0.6), 900, 120, "ui_text_vanquished")
-    save(text_sprite(1000, 140, "THE FORSAKEN WARDEN", 46, mix(BONE, RED, 0.2), RED, 8, "ui_bossname", sub="KEEPER OF THE SEALED GATE", sub_size=18, sub_color=mix(BONE, RED, 0.3), glow_r=14, glow_s=0.5), 1000, 140, "ui_bossname")
+    save(text_sprite(900, 260, "ASHEN SOL", 96, BONE, TEAL, 12, "ui_title", sub="THE SEALED GATE", sub_size=26, sub_color=mix(TEAL, BONE, 0.4), glow_r=18, glow_s=0.6), 900, 260, "ui_title")
+    save(text_sprite(800, 120, "YOU HAVE FALLEN", 54, mix(BONE, RED, 0.35), RED, 9, "ui_text_fallen", glow_r=16, glow_s=0.55), 800, 120, "ui_text_fallen")
+    save(text_sprite(900, 120, "SOL VANQUISHED", 56, GOLD, GOLD, 9, "ui_text_vanquished", glow_r=18, glow_s=0.6), 900, 120, "ui_text_vanquished")
+    save(text_sprite(1000, 140, "THE FORSAKEN WARDEN", 46, mix(BONE, RED, 0.2), RED, 6, "ui_bossname", sub="KEEPER OF THE SEALED GATE", sub_size=18, sub_color=mix(BONE, RED, 0.3), glow_r=14, glow_s=0.5), 1000, 140, "ui_bossname")
 
     contact_sheet()
     print("[gen] done:", len(SAVED), "sprites ->", OUT)

@@ -39,6 +39,9 @@ namespace AshenSol.Core
             Ignore(Layers.Trigger, Layers.Ground);
             Ignore(Layers.Hazard, Layers.Ground);
 
+            // -mute silences the whole game (used by automated autopilot runs)
+            if (CmdArgs.Has("-mute")) AudioListener.volume = 0f;
+
             Application.logMessageReceived += OnLog;
         }
 

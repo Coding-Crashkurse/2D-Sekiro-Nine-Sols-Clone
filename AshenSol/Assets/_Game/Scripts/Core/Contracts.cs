@@ -60,6 +60,7 @@ namespace AshenSol.Core
         bool HealPressed { get; }
         bool PausePressed { get; }
         bool ConfirmPressed { get; }  // Enter / gamepad South — menus
+        bool QuitPressed { get; }     // Q / gamepad North while paused — abandon the run
         bool AnyPressed { get; }
         /// <summary>Called once per frame by InputRouter (execution order -1000) before gameplay reads input.</summary>
         void Tick();

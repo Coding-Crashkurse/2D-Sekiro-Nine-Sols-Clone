@@ -201,6 +201,7 @@ namespace AshenSol.UI
                 20, Palette.Bone.WithAlpha(0.75f), c, new Vector2(0f, -20f), new Vector2(1400f, 140f));
             pauseDifficulty = UiKit.Text(rt, "diff", "", 18, Palette.Gold.WithAlpha(0.85f), c, new Vector2(0f, -120f), new Vector2(900f, 30f));
             UiKit.Text(rt, "resume", UiKit.Spaced("ESC / START  —  RESUME"), 20, Palette.Teal, c, new Vector2(0f, -172f), new Vector2(900f, 40f));
+            UiKit.Text(rt, "quit", UiKit.Spaced("Q  —  ABANDON RUN (back to title)"), 18, Palette.Bone.WithAlpha(0.55f), c, new Vector2(0f, -212f), new Vector2(900f, 36f));
             pauseGroup.alpha = 0f;
             rt.gameObject.SetActive(false);
         }

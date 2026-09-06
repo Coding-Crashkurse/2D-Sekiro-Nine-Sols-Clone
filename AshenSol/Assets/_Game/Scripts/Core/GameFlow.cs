@@ -76,7 +76,9 @@ namespace AshenSol.Core
         {
             if (busy || !InLevel) return;
             if (!IsPaused && !deathScreenShowing && !victoryPending) Stats.PlayTime += Time.unscaledDeltaTime;
-            if (Services.Input != null && Services.Input.PausePressed && !deathScreenShowing && !victoryPending) TogglePause();
+            if (Services.Input == null) return;
+            if (Services.Input.PausePressed && !deathScreenShowing && !victoryPending) TogglePause();
+            else if (IsPaused && Services.Input.QuitPressed) { Unpause(); GoToTitle(); }
         }
 
         void TogglePause()

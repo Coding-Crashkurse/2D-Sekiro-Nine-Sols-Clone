@@ -44,6 +44,7 @@ namespace AshenSol.Core
         public bool HealPressed { get; private set; }
         public bool PausePressed { get; private set; }
         public bool ConfirmPressed { get; private set; }
+        public bool QuitPressed { get; private set; }
         public bool AnyPressed { get; private set; }
 
         static bool Down(ButtonControl b) { return b != null && b.wasPressedThisFrame; }
@@ -85,6 +86,7 @@ namespace AshenSol.Core
             HealPressed = Down(k?.hKey) || Down(g?.leftShoulder);
             PausePressed = Down(k?.escapeKey) || Down(g?.startButton);
             ConfirmPressed = Down(k?.enterKey) || Down(k?.numpadEnterKey) || Down(k?.spaceKey) || Down(g?.buttonSouth) || Down(g?.startButton);
+            QuitPressed = Down(k?.qKey) || Down(g?.buttonNorth);
             AnyPressed = (k != null && k.anyKey.wasPressedThisFrame)
                          || (m != null && (m.leftButton.wasPressedThisFrame || m.rightButton.wasPressedThisFrame))
                          || (g != null && (g.buttonSouth.wasPressedThisFrame || g.buttonEast.wasPressedThisFrame || g.buttonWest.wasPressedThisFrame || g.buttonNorth.wasPressedThisFrame || g.startButton.wasPressedThisFrame));
@@ -107,6 +109,7 @@ namespace AshenSol.Core
         public bool HealPressed { get; private set; }
         public bool PausePressed { get; private set; }
         public bool ConfirmPressed { get; private set; }
+        public bool QuitPressed { get { return false; } }
         public bool AnyPressed { get; private set; }
 
         bool qJump, qAttack, qParry, qDash, qQi, qHeal, qPause, qConfirm;

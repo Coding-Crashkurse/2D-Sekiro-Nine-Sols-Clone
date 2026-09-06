@@ -330,7 +330,8 @@ namespace AshenSol.Player
             }
 
             var inp = Services.Input;
-            bool canAct = ControlEnabled && !IsStunned && !hazardRecovering && inp != null;
+            bool paused = TimeController.Instance != null && TimeController.Instance.IsPaused;
+            bool canAct = ControlEnabled && !IsStunned && !hazardRecovering && !paused && inp != null;
             HorizontalInput = canAct ? inp.Horizontal : 0f;
             if (Mathf.Abs(HorizontalInput) < 0.2f) HorizontalInput = 0f;
             if (Combat.LocksMovement && IsGrounded) HorizontalInput = 0f;

@@ -31,6 +31,7 @@ namespace AshenSol.UI
         float lastMouseMove = -99f;
         Vector2 lastMousePos;
         bool mouseSeen;
+        float mouseTravel;          // the mouse only takes over after a deliberate movement
 
         public Action OnStart;
 
@@ -165,8 +166,17 @@ namespace AshenSol.UI
                 // only hand control to the mouse once it has actually MOVED — otherwise a cursor that
                 // happens to rest over a row would silently steal the selection
                 if (!mouseSeen) { mouseSeen = true; lastMousePos = mp; }
-                else if ((mp - lastMousePos).sqrMagnitude > 16f) { lastMousePos = mp; lastMouseMove = Time.unscaledTime; }
-                if (Time.unscaledTime - lastMouseMove < 3f)
+                else
+                {
+                    float d = (mp - lastMousePos).magnitude;
+                    lastMousePos = mp;
+                    if (d > 1f)
+                    {
+                        mouseTravel += d;
+                        if (mouseTravel > 80f) lastMouseMove = Time.unscaledTime;
+                    }
+                }
+                if (mouseTravel > 80f && Time.unscaledTime - lastMouseMove < 3f)
                 {
                     for (int i = 0; i < rows.Count; i++)
                     {
@@ -179,7 +189,7 @@ namespace AshenSol.UI
                         }
                     }
                 }
-                if (mouse.leftButton.wasPressedThisFrame && RectTransformUtility.RectangleContainsScreenPoint(rows[index].Rt, mp, null))
+                if (mouseTravel > 80f && mouse.leftButton.wasPressedThisFrame && RectTransformUtility.RectangleContainsScreenPoint(rows[index].Rt, mp, null))
                 {
                     Activate();
                     return;
