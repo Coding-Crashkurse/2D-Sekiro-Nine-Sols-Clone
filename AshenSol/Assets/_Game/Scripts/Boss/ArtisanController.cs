@@ -365,6 +365,7 @@ namespace AshenSol.Boss
             GroundShockwave.ClearAll();
             healthBar.Hide();
             GameEvents.RaiseBossHealthChanged(0f, 0f, false);
+            Progression.AddAsh(AshValue);
             GameEvents.RaiseEnemyKilled(this);
             GameEvents.RaiseLog("artisan killed");
             StartCoroutine(DeathSequence());

@@ -71,6 +71,7 @@ namespace AshenSol.Player
         {
             if (attackCo != null) { c.StopCoroutine(attackCo); attackCo = null; }
             IsAttacking = false; LungeActive = false; inRecovery = false; comboQueued = false;
+            IsCharging = false; heavySwing = false;
             c.Rig.EndAttack();
         }
 
@@ -167,6 +168,7 @@ namespace AshenSol.Player
             c.Rig.EndAttack();
             IsAttacking = false; inRecovery = false; heavySwing = false;
             ComboIndex = 0;
+            attackCo = null;
         }
 
         IEnumerator AttackRoutine(int idx)

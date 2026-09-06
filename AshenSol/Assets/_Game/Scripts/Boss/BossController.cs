@@ -51,6 +51,7 @@ namespace AshenSol.Boss
 
         float teleMul = 1f;
         /// <summary>Phase-2 speed-up combined with the difficulty setting.</summary>
+        // Waits use the combined duration; BeginTelegraph applies difficulty internally.
         float Tele { get { return teleMul * Settings.TelegraphMul; } }
         bool invulnerable, phasePending, dying;
         string lastAttack = "";
@@ -567,6 +568,7 @@ namespace AshenSol.Boss
             GroundShockwave.ClearAll();
             healthBar.Hide();
             GameEvents.RaiseBossHealthChanged(0f, 0f, false);
+            Progression.AddAsh(AshValue);
             GameEvents.RaiseEnemyKilled(this);
             GameEvents.RaiseLog("boss killed");
             StartCoroutine(DeathSequence());
@@ -865,7 +867,7 @@ namespace AshenSol.Boss
             {
                 FacePlayer();
                 Move(0f);
-                BeginTelegraph(AttackKind.Parryable, BossTuning.SlashTelegraph * Tele);
+                BeginTelegraph(AttackKind.Parryable, BossTuning.SlashTelegraph * teleMul);
                 yield return Wait(BossTuning.SlashTelegraph * Tele);
                 EndTelegraph();
                 bool up = i == 1;
@@ -885,7 +887,7 @@ namespace AshenSol.Boss
             CurrentAttack = "DashSlash";
             FacePlayer();
             Move(0f);
-            BeginTelegraph(AttackKind.Parryable, BossTuning.DashTelegraph * Tele);
+            BeginTelegraph(AttackKind.Parryable, BossTuning.DashTelegraph * teleMul);
             Rig.SetPose(true, -45f, 180f, 18f, 30f, -30f);   // crouched, coiled to spring
             yield return Wait(BossTuning.DashTelegraph * Tele);
             EndTelegraph();
@@ -916,7 +918,7 @@ namespace AshenSol.Boss
             FacePlayer();
             Move(0f);
             float tele = BossTuning.SlamTelegraph * Tele;
-            BeginTelegraph(AttackKind.Unblockable, tele);
+            BeginTelegraph(AttackKind.Unblockable, BossTuning.SlamTelegraph * teleMul);
             Rig.SetPose(true, -150f, 180f, -8f, -34f, 28f);   // legs tucked for the leap
             Body.gravityScale = 0f;
             float t = 0f;
@@ -969,7 +971,7 @@ namespace AshenSol.Boss
             CurrentAttack = "Bolts";
             FacePlayer();
             Move(0f);
-            BeginTelegraph(AttackKind.Parryable, BossTuning.BoltsTelegraph * Tele);
+            BeginTelegraph(AttackKind.Parryable, BossTuning.BoltsTelegraph * teleMul);
             Rig.SetPose(true, -100f, 180f, 5f);
             yield return Wait(BossTuning.BoltsTelegraph * Tele);
             EndTelegraph();
@@ -992,7 +994,7 @@ namespace AshenSol.Boss
             CurrentAttack = "Whirl";
             FacePlayer();
             Move(0f);
-            BeginTelegraph(AttackKind.Parryable, BossTuning.WhirlTelegraph * Tele);
+            BeginTelegraph(AttackKind.Parryable, BossTuning.WhirlTelegraph * teleMul);
             yield return Wait(BossTuning.WhirlTelegraph * Tele);
             EndTelegraph();
             Services.Audio.PlaySfxAt("boss_whirl", Center, 1f);
@@ -1028,7 +1030,7 @@ namespace AshenSol.Boss
             CurrentAttack = "RedThrust";
             FacePlayer();
             Move(0f);
-            BeginTelegraph(AttackKind.Unblockable, BossTuning.ThrustTelegraph * Tele);
+            BeginTelegraph(AttackKind.Unblockable, BossTuning.ThrustTelegraph * teleMul);
             Rig.SetPose(true, -35f, 180f, 14f, 26f, -26f);
             yield return Wait(BossTuning.ThrustTelegraph * Tele);
             EndTelegraph();
@@ -1073,7 +1075,7 @@ namespace AshenSol.Boss
 
             // --- 1. he plants and reaches up; the white telegraph says this one can be met. The camera pulls
             // back so the sun and the player share the frame, and the arena dims: the sun is the light now.
-            float tel = BossTuning.SolarTelegraph * Tele;
+            float tel = BossTuning.SolarTelegraph * teleMul;
             BeginTelegraph(AttackKind.Parryable, tel);
             float charge = tel * Settings.TelegraphMul;
             Rig.SetPose(true, -105f, 180f, -105f, 12f, -12f);   // both arms up, blade overhead, feet planted
@@ -1219,7 +1221,7 @@ namespace AshenSol.Boss
             CurrentAttack = "Gore";
             FacePlayer();
             Move(0f);
-            BeginTelegraph(AttackKind.Unblockable, BossTuning.GoreTelegraph * Tele);
+            BeginTelegraph(AttackKind.Unblockable, BossTuning.GoreTelegraph * teleMul);
             Rig.SetPose(true, -20f, 180f, 28f, 32f, -32f);        // head down, crown forward
             yield return Wait(BossTuning.GoreTelegraph * Tele);
             EndTelegraph();

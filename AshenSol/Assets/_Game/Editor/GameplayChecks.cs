@@ -8,6 +8,7 @@ using AshenSol.Core;
 using AshenSol.Player;
 using AshenSol.Enemies;
 using AshenSol.Level;
+using AshenSol.Boss;
 
 namespace AshenSol.EditorTools
 {
@@ -187,6 +188,20 @@ namespace AshenSol.EditorTools
             p.Respawn(new Vector2(0f, 100f)); p.Body.simulated = false;
             var enemy = EnemyBase.Create(EnemyType.SpearSentinel, new Vector2(1f, 100f), flow.LevelRoot);
             enemy.StopAllCoroutines(); enemy.Body.simulated = false;
+            input.Heavy(); input.Tick(); p.Combat.Tick(0.01f);
+            var poseField = typeof(PlayerRig).GetField("forced", BindingFlags.Instance | BindingFlags.NonPublic);
+            Check(p.Combat.IsCharging && poseField.GetValue(p.Rig).ToString() == "Charge", "heavy attack enters charge pose");
+            p.SetControlEnabled(false);
+            Check(!p.Combat.IsCharging && !p.IsAttacking && poseField.GetValue(p.Rig).ToString() != "Charge", "interrupted heavy clears charge state and pose");
+            p.SetControlEnabled(true);
+            input.Attack(); input.Tick(); p.Combat.Tick(0.01f);
+            enemy.Body.simulated = true;
+            Physics2D.SyncTransforms();
+            typeof(PlayerCombat).GetMethod("DoHitScan", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(p.Combat, new object[] { 0, PlayerCombat.Hits[0] });
+            Check(Mathf.Approximately(enemy.Posture, enemy.MaxPosture * EnemyTuning.PostureFromHit), "light attack after cancelled heavy deals normal posture damage");
+            p.Combat.Reset(); input.Tick();
+            enemy.ResetToSpawn(); enemy.StopAllCoroutines(); enemy.Body.simulated = false;
             int before = enemy.Hp;
             enemy.ReceiveAttack(new AttackInfo { Team = Team.Player, Damage = 7, Tag = "execute", Origin = p.Center });
             Check(before - enemy.Hp == 7, "execution honors supplied upgraded damage");
@@ -259,6 +274,42 @@ namespace AshenSol.EditorTools
             Physics2D.SyncTransforms();
             Call(p, "FixedUpdate");
             Check(p.IsGrounded && p.LastSafeGroundPosition == new Vector2(0f, 100f), "moving platforms cannot replace a permanent safe return point");
+
+            var warden = BossController.Create(new Vector2(10f, 100f), flow.LevelRoot);
+            var savedDifficulty = Settings.Difficulty;
+            string[] attacks = { "TripleSlash", "DashSlash", "Slam", "Bolts", "Whirl", "RedThrust", "SolarCollapse", "GoreCharge" };
+            float[] durations = { BossTuning.SlashTelegraph, BossTuning.DashTelegraph, BossTuning.SlamTelegraph,
+                BossTuning.BoltsTelegraph, BossTuning.WhirlTelegraph, BossTuning.ThrustTelegraph, BossTuning.SolarTelegraph, BossTuning.GoreTelegraph };
+            try
+            {
+                foreach (DifficultyLevel difficulty in Enum.GetValues(typeof(DifficultyLevel)))
+                foreach (float phaseMultiplier in new[] { 1f, BossTuning.Phase2TelegraphMul })
+                for (int i = 0; i < attacks.Length; i++)
+                {
+                    Settings.Difficulty = difficulty;
+                    warden.ResetFight(); warden.StopAllCoroutines(); warden.Body.simulated = false;
+                    Set(warden, "teleMul", phaseMultiplier);
+                    var routine = (IEnumerator)typeof(BossController).GetMethod(attacks[i], BindingFlags.Instance | BindingFlags.NonPublic).Invoke(warden, null);
+                    Check(routine.MoveNext() && warden.IsTelegraphing
+                        && Mathf.Approximately(warden.TimeUntilStrike, durations[i] * phaseMultiplier * Settings.TelegraphMul),
+                        attacks[i] + " telegraph scales once on " + difficulty + " phase multiplier " + phaseMultiplier);
+                    (routine as IDisposable)?.Dispose();
+                }
+            }
+            finally { Settings.Difficulty = savedDifficulty; }
+
+            var artisan = ArtisanController.Create(new Vector2(20f, 100f), flow.LevelRoot);
+            foreach (var boss in new EnemyBase[] { warden, artisan })
+            {
+                boss.ResetToSpawn(); boss.StopAllCoroutines(); boss.Body.simulated = false;
+                int ashBefore = Progression.Ash;
+                var lethal = new AttackInfo { Team = Team.Player, Damage = 10000, Origin = p.Center, Tag = "check" };
+                boss.ReceiveAttack(lethal);
+                boss.StopAllCoroutines();
+                Check(!boss.IsAlive && Progression.Ash == ashBefore + boss.AshValue, boss.DisplayName + " grants its ash reward");
+                boss.ReceiveAttack(lethal);
+                Check(Progression.Ash == ashBefore + boss.AshValue, boss.DisplayName + " cannot grant the reward twice");
+            }
         }
     }
 }

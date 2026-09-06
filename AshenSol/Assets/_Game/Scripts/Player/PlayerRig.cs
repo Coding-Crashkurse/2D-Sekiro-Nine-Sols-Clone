@@ -277,6 +277,7 @@ namespace AshenSol.Player
 
         public void EndAttack()
         {
+            if (forced == Pose.Charge) forced = Pose.None;
             if (!clipActive) return;
             clipActive = false;
             if (trail != null) trail.emitting = false;
@@ -286,7 +287,7 @@ namespace AshenSol.Player
 
         public void PlayParry() { forced = Pose.Parry; forcedTimer = 99f; }
         /// <summary>Held wind-up for the charged strike: blade drawn back over the shoulder.</summary>
-        public void PlayCharge() { forced = Pose.Charge; forcedTimer = 99f; EndAttack(); }
+        public void PlayCharge() { EndAttack(); forced = Pose.Charge; forcedTimer = 99f; }
         public void ParrySuccessPose(bool perfect)
         {
             forced = Pose.ParrySuccess; forcedTimer = 0.12f;
