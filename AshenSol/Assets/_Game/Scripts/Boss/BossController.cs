@@ -151,9 +151,9 @@ namespace AshenSol.Boss
             ago.transform.SetParent(transform, false);
             ago.transform.localPosition = new Vector3(0f, 1.7f, 0f);
             aura = ago.transform;
-            auraGlow = Additive(aura, "fx_glow", Palette.Red, SortOrder.Boss - 4, 11f);
-            auraRing2 = Additive(aura, "fx_ring", Palette.Red, SortOrder.Boss - 3, 9f);
-            auraRing = Additive(aura, "fx_ring", Palette.Amber, SortOrder.Boss - 2, 6.5f);
+            auraGlow = Additive(aura, "fx_glow", Palette.Red, SortOrder.Boss - 4, 8.5f);
+            auraRing2 = Additive(aura, "fx_ring", Palette.Red, SortOrder.Boss - 3, 6.6f);
+            auraRing = Additive(aura, "fx_ring", Palette.Amber, SortOrder.Boss - 2, 4.8f);
             var al = new GameObject("auraLight");
             al.transform.SetParent(aura, false);
             auraLight = al.AddComponent<Light2D>();
@@ -194,9 +194,9 @@ namespace AshenSol.Boss
         void SetAura(float amount)
         {
             auraAmount = Mathf.Clamp01(amount);
-            if (auraGlow != null) auraGlow.color = Palette.Red.WithAlpha(0.5f * auraAmount);
-            if (auraRing != null) auraRing.color = Palette.Amber.WithAlpha(0.3f * auraAmount);
-            if (auraRing2 != null) auraRing2.color = Palette.Red.WithAlpha(0.24f * auraAmount);
+            if (auraGlow != null) auraGlow.color = Palette.Red.WithAlpha(0.8f * auraAmount);
+            if (auraRing != null) auraRing.color = Palette.Amber.WithAlpha(0.26f * auraAmount);
+            if (auraRing2 != null) auraRing2.color = Palette.Red.WithAlpha(0.2f * auraAmount);
             if (auraLight != null) auraLight.intensity = 2.6f * auraAmount;
         }
 
@@ -309,15 +309,15 @@ namespace AshenSol.Boss
         void TickAura(float dt)
         {
             float pulse = 0.78f + 0.22f * Mathf.Sin(Time.time * 5.2f);
-            if (auraGlow != null) auraGlow.color = Palette.Red.WithAlpha(0.5f * auraAmount * pulse);
+            if (auraGlow != null) auraGlow.color = Palette.Red.WithAlpha(0.8f * auraAmount * pulse);
             if (auraRing != null)
             {
-                auraRing.color = Palette.Amber.WithAlpha(0.3f * auraAmount * pulse);
+                auraRing.color = Palette.Amber.WithAlpha(0.26f * auraAmount * pulse);
                 auraRing.transform.localRotation = Quaternion.Euler(0f, 0f, Time.time * 27f);
             }
             if (auraRing2 != null)
             {
-                auraRing2.color = Palette.Red.WithAlpha(0.24f * auraAmount * (1.8f - pulse));
+                auraRing2.color = Palette.Red.WithAlpha(0.2f * auraAmount * (1.8f - pulse));
                 auraRing2.transform.localRotation = Quaternion.Euler(0f, 0f, Time.time * -18f);
             }
             if (aura != null) aura.localScale = Vector3.one * (auraAmount * (1f + 0.07f * Mathf.Sin(Time.time * 3.3f)));
@@ -696,7 +696,7 @@ namespace AshenSol.Boss
         /// <summary>Ash-lit second form: hotter palette, brighter core, slightly larger silhouette.</summary>
         void ApplySecondForm()
         {
-            var hot = new Color(0.72f, 0.38f, 0.34f);   // charred, but lit from inside by the corona
+            var hot = new Color(0.98f, 0.55f, 0.46f);   // charred iron catching its own firelight
             foreach (var r in Renderers) if (r != null) r.color = hot;
             if (core != null) core.color = Palette.Red;
             if (coreLight != null) { coreLight.intensity = 3.6f; coreLight.pointLightOuterRadius = 6.5f; }

@@ -78,9 +78,15 @@ namespace AshenSol.UI
         {
             root = UiKit.Panel(parent, "Credits", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             group = UiKit.Group(root);
-            UiKit.Fill(root, "black", Palette.Ink.WithAlpha(0.985f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            UiKit.Fill(root, "black", Palette.Ink, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
 
-            // a low ember wash along the bottom so the black is not flat
+            // the valley you came through, sunk back into the night
+            var valley = UiKit.Image(root, "valley", Res.Sprite("bg_title"), new Color(0.34f, 0.32f, 0.36f, 1f),
+                new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2240f, 1260f), false);
+            valley.preserveAspect = false;
+            UiKit.Fill(root, "veil", Palette.Ink.WithAlpha(0.55f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+
+            // a low ember wash along the bottom
             glow = UiKit.Image(root, "wash", Res.Sprite("fx_glow"), Palette.Amber.WithAlpha(0.1f),
                 new Vector2(0.5f, 0f), new Vector2(0f, -180f), new Vector2(2400f, 900f), false);
             glow.material = MaterialLibrary.Additive;

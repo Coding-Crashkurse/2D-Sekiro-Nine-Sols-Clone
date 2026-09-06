@@ -54,7 +54,6 @@ namespace AshenSol.Level
             Services.Ui.ShowPrompt(Progression.CanAffordLevel
                 ? "E   rest at the shrine      " + Progression.Ash + " ash carried"
                 : "E   rest at the shrine      " + Progression.Ash + " / " + Progression.LevelCost + " ash", 0.3f);
-            if (Services.Input != null && Services.Input.InteractPressed) StartCoroutine(Rest());
         }
 
         bool CanRest
@@ -149,6 +148,15 @@ namespace AshenSol.Level
 
         void Update()
         {
+            // Button edges live in Update. Reading them from physics trigger callbacks loses
+            // presses on rendered frames without a physics step (especially at high refresh rates).
+            if (CanRest && Services.Input != null && Services.Input.InteractPressed)
+            {
+                var player = PlayerController.Instance;
+                if (player.ControlEnabled && player.IsGrounded && !player.IsStunned
+                    && GetComponent<Collider2D>().bounds.Intersects(player.Collider.bounds))
+                    StartCoroutine(Rest());
+            }
             t += Time.unscaledDeltaTime;
             float flick = 1f + 0.12f * Mathf.Sin(t * 3.7f) * Mathf.Sin(t * 1.3f);
             light.intensity = Mathf.Lerp(light.intensity, targetIntensity * flick, 1f - Mathf.Exp(-3f * Time.unscaledDeltaTime));

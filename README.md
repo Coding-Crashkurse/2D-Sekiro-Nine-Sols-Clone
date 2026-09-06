@@ -1,8 +1,16 @@
 # ASHEN SOL
 
 Ein kleines, parry-lastiges 2D-Action-Spiel im Stil von *Nine Sols* (Taopunk: Taoisten-Tempelruinen
-trifft Cyberpunk). Zwei Level: ein Korridor-Level mit Gegnern und Plattforming, dahinter ein
-versiegeltes Tor zur Bossarena.
+trifft Cyberpunk). Vier Abschnitte, zwei Bosse und ein Abspann:
+
+| # | Level | Inhalt |
+|---|---|---|
+| I | **THE OUTER SANCTUM** | Korridor mit Gegnern, Plattforming, versiegeltes Tor |
+| II | **THE SUNKEN WORKS** | Qi-Fontänen, Fahrstuhl-Plattformen, Leitern, dann **THE SEVENTH ARTISAN** |
+| III | **THE PILGRIM STAIR** | Pflicht-Zwischenlevel: Treppe, Sprungpassage, Gauntlet, Schrein |
+| IV | **THE SEALED GATE** | **THE FORSAKEN WARDEN** — mit cineastischem Übergang in **ASH UNBOUND** |
+
+Danach läuft ein Abspann mit eigener Musik.
 
 ## Spielen
 
@@ -19,6 +27,7 @@ Fertiger Build: **`Builds/Windows/AshenSol.exe`** — einfach doppelklicken.
 | Dash | L / Shift | RB / RT |
 | Qi-Blast | I | Y (Nord) |
 | Heilen | H | LB |
+| **Am Schrein rasten** | E / F | LT |
 | Pause | Esc | Start |
 
 ### Die Kampfregel
@@ -41,6 +50,41 @@ Fertiger Build: **`Builds/Windows/AshenSol.exe`** — einfach doppelklicken.
 
 **Qi** (max. 3, goldene Sechsecke): +1 pro perfekter Parade und pro Kill. Ausgeben kannst du es für
 die **Hinrichtung (I)**, den **Qi Blast (I ohne Ziel)** oder **Heilen (H)**.
+
+### Seelen: Asche, Tod und Leveln
+
+Das Spiel ist soulslike aufgebaut:
+
+* Jeder Kill gibt **ASCHE** (Grunt 22, Sentinel 34, Drohne 16, Artisan 190, Warden 260).
+  Asche wird **getragen, nicht gesichert** — sie steht oben links unter der Qi-Leiste.
+* **Beim Tod fällt die gesamte Asche dort liegen, wo du gestorben bist.** Am Fundort glimmt ein
+  Haufen; lauf hin und du bekommst alles zurück. **Stirbst du vorher noch einmal, ist sie weg** —
+  der neue Haufen ersetzt den alten.
+* **Schreine sind Checkpoints und Levelaufstieg zugleich.** Stell dich an einen Schrein und drücke
+  **E** — die Musik senkt sich, die Kamera fährt heran, die Klangschale klingt an, dann öffnet sich
+  das Menü. Von allein geht es nie auf.
+* Ein Level kostet `60 + (Level−1) × 55` Asche und temperiert **eine** Eigenschaft:
+
+  | | Wirkung |
+  |---|---|
+  | **VIGOR** | +20 maximale Leben (heilt sofort mit) |
+  | **EDGE** | +12 % Schwertschaden |
+  | **FOCUS** | +1 maximales Qi (höchstens +3) |
+
+### Der Endboss: die zweite Form
+
+Bei 55 % Leben spielt eine **rund 20-sekündige Zwischensequenz** (mit jeder Taste überspringbar):
+der Warden geht zu Boden, die Leiste leert sich, die Musik verstummt — und die Asche in ihm nimmt
+den Körper zurück. Brennende Hörner wachsen durch die Maske, er steht als **ASH UNBOUND** wieder
+auf, brennt fortan in einer Korona aus Ringen und Glut, und bekommt zwei neue Angriffe:
+
+* **GORE CHARGE** — Sturmangriff mit den Hörnern, endet in einer Bodenwelle.
+* **SOLAR COLLAPSE** — er rammt die Glefe in den Boden und zieht eine kleine Sonne aus den Hörnern.
+  Der Angriff eröffnet die zweite Form und kommt danach alle 17 Sekunden wieder.
+  **Weglaufen geht nicht — die Explosion füllt die ganze Arena.**
+  Perfekt pariert kostet sie nichts; zu spät geblockt trotzdem noch 60 %;
+  gar nicht pariert **drei Viertel deiner gesamten Lebensleiste**. Der Moment zum Parieren ist,
+  wenn die Sonne in sich zusammenfällt.
 
 ### Schwierigkeitsgrade
 
@@ -84,13 +128,16 @@ Schärpe und Umhang.
 | `Tools/compile.sh` | Kompilieren + Projekt-Bootstrap (Layer, Shader, Player-Settings, Szene) |
 | `Tools/build.sh` | Windows-Player nach `Builds/Windows/AshenSol.exe` bauen |
 | `Tools/autopilot.sh [sek]` | Build mit Bot durchspielen lassen, Screenshots + Log nach `Screenshots/` |
-| `Tools/gen_sprites.py` | alle 71 Sprites neu generieren (Pillow) + `Tools/contact_sheet.png` |
+| `Tools/gen_sprites.py` | alle prozeduralen Sprites neu generieren (Pillow) + `Tools/contact_sheet.png` |
 | `Tools/import_audio.py` | ElevenLabs-Rohdateien trimmen, normalisieren und ins Projekt kopieren |
 | `Tools/fix_packages.sh` | umgeht einen Unity-6000.4.6f1-Bug im ShaderGraph-Paket (läuft automatisch) |
 
 Der Autopilot (`-autopilot`) ersetzt die Eingabe durch einen Bot, der pariert, dashed, das Level
-durchquert und den Boss besiegt. Am Ende schreibt er eine Zeile
+durchquert, am Schrein levelt und den Boss besiegt. Am Ende schreibt er eine Zeile
 `AUTOPILOT RESULT: reachedGate=… bossDefeated=… exceptions=…` — der schnellste Regressionstest.
+Nützliche Flags: `-skipTitle -startLevel works|stair|boss` springt direkt in einen Abschnitt,
+`-victoryHold <sek>` legt fest, wie lange der Bot nach dem Sieg noch mitläuft (für den Abspann),
+`-mute` schaltet den Ton ab (bei automatischen Läufen immer gesetzt).
 
 ## Bekannte Eigenheiten der Umgebung
 

@@ -671,7 +671,8 @@ namespace AshenSol.Player
             lastVy = v.y;
 
             // safe ground bookkeeping
-            if (grounded && groundIsSolid && Mathf.Abs(v.y) < 0.5f)
+            // A moving platform may no longer be here when we return after a fall or death.
+            if (grounded && groundIsSolid && platform == null && Mathf.Abs(v.y) < 0.5f)
             {
                 safeTimer -= dt;
                 if (safeTimer <= 0f)

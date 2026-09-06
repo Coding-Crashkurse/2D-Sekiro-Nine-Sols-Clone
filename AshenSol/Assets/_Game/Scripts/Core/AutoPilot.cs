@@ -26,6 +26,9 @@ namespace AshenSol.Core
 
         float attackCd, parryCd, dashCd, qiCd, healCd, confirmCd, interactCd;
         float stuckTime; float lastX;
+        // forward-progress watchdog: jumping at a wall keeps the bot ungrounded, so the grounded
+        // stuck check never fires. Watch the furthest x instead and fall back to the nearest vent.
+        float bestX = -999f, noProgress, ventUntil; Vector2 ventAt;
         float pendingShotAt = -1f; string pendingLabel;
         float statusTimer; string brainState = "-";
         int climbShots; float climbShotTimer;   // -climbShots N captures the climb cycle frame by frame
@@ -101,12 +104,22 @@ namespace AshenSol.Core
         void OnLevelBuilt(LevelId id)
         {
             Log("level built " + id);
+            bestX = -999f; noProgress = 0f; ventUntil = 0f;
             if (id == LevelId.BossArena) reachedGate = true;
             ScheduleShot("level_" + id, 2.5f);
         }
         void OnBossStarted(string n, string s) { bossStarted = true; Log("boss fight started: " + n); ScheduleShot("boss_intro", 1.6f); }
         void OnBossPhase(int p) { Log("boss phase " + p); ScheduleShot("boss_phase" + p, 0.8f); }
-        void OnBossDefeated() { bossDefeated = true; victoryAt = elapsed; Log("boss defeated"); ScheduleShot("victory", 3.5f); }
+        void OnBossDefeated()
+        {
+            // The Artisan raises this event too. Only the final arena ends the run.
+            if (GameFlow.Instance == null || GameFlow.Instance.CurrentLevel != LevelId.BossArena)
+            {
+                Log("area boss defeated");
+                return;
+            }
+            bossDefeated = true; victoryAt = elapsed; Log("boss defeated"); ScheduleShot("victory", 3.5f);
+        }
         void OnState(GameState s) { }
 
         void ScheduleShot(string label, float delay)
@@ -225,6 +238,18 @@ namespace AshenSol.Core
         {
             var p = PlayerController.Instance;
             if (p == null || p.IsDead || !p.ControlEnabled) { brainState = "no-control"; return; }
+
+            if (ventUntil > elapsed) { RideVent(p); return; }
+            if (p.Position.x > bestX + 0.4f) { bestX = p.Position.x; noProgress = 0f; }
+            else noProgress += Time.unscaledDeltaTime;
+            if (noProgress > 7f && FindVent(p, out ventAt))
+            {
+                noProgress = 0f;
+                ventUntil = elapsed + 8f;
+                Log("no progress at x=" + p.Position.x.ToString("F1") + " -> riding vent at x=" + ventAt.x.ToString("F1"));
+                RideVent(p);
+                return;
+            }
 
             // threats: enemy projectiles heading at us
             Projectile threat = null;
@@ -354,6 +379,18 @@ namespace AshenSol.Core
             // if the exit gate is still sealed, go back and finish the stragglers instead of
             // grinding against the level's far wall
             var info = GameFlow.Instance != null ? GameFlow.Instance.CurrentLevelInfo : null;
+            // A fight can carry us past an exit before its opening animation finishes.
+            // Steer back through the trigger instead of jumping forever against the far wall.
+            if (info != null && info.ExitGate != null && info.ExitGate.IsOpen)
+            {
+                Vector2 exit = info.ExitGate.transform.position;
+                if (Mathf.Abs(p.Position.x - exit.x) < 6f && p.Position.y >= exit.y - 0.5f)
+                {
+                    brainState = "exit";
+                    input.Horizontal = Mathf.Abs(p.Position.x - exit.x) < 0.2f ? 0f : Mathf.Sign(exit.x - p.Position.x);
+                    return;
+                }
+            }
             if (info != null && info.ExitGate != null && !info.ExitGate.IsOpen
                 && p.Position.x > info.ExitGate.transform.position.x - 3f)
             {
@@ -380,6 +417,40 @@ namespace AshenSol.Core
             lastX = p.Position.x;
             if (stuckTime > 1.2f && p.IsGrounded) DoJump();
             if (stuckTime > 3f && dashCd <= 0f) { input.Dash(); dashCd = 0.6f; stuckTime = 0f; }
+        }
+
+        /// <summary>Walk back onto the vent column and let the updraft do the climbing.</summary>
+        void RideVent(PlayerController p)
+        {
+            brainState = "vent";
+            float rise = p.Position.y - ventAt.y;
+            if (rise > 8.5f)
+            {
+                input.Horizontal = 1f;                       // step off the column onto the ledge
+                if (p.IsGrounded) { ventUntil = 0f; bestX = p.Position.x; noProgress = 0f; }
+                return;
+            }
+            float dx = ventAt.x - p.Position.x;
+            input.Horizontal = Mathf.Abs(dx) > 0.4f ? Mathf.Sign(dx) : 0f;
+            input.JumpHeld = true;
+            jumpHold = 0.3f;
+            if (p.IsGrounded) input.Jump();
+        }
+
+        /// <summary>Nearest lifting vent, if one is close enough to be the intended route.</summary>
+        static bool FindVent(PlayerController p, out Vector2 at)
+        {
+            at = Vector2.zero;
+            var vents = UnityEngine.Object.FindObjectsByType<AshenSol.Level.QiVent>(FindObjectsSortMode.None);
+            float best = 999f;
+            for (int i = 0; i < vents.Length; i++)
+            {
+                var v = vents[i];
+                if (v == null || v.Kind != AshenSol.Level.QiVent.Mode.Column) continue;
+                float d = Mathf.Abs(v.transform.position.x - p.Position.x);
+                if (d < best && d < 16f) { best = d; at = v.transform.position; }
+            }
+            return best < 900f;
         }
 
         static bool GroundAhead(PlayerController p)

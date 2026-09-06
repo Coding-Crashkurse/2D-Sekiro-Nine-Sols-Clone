@@ -20,12 +20,23 @@ namespace AshenSol.EditorTools
         const string Pending = "AshenSol.GameplayChecks";
         static double deadline;
         static int passed;
+        static int errors, editorSearchErrors;
 
         static GameplayChecks()
         {
             EditorApplication.playModeStateChanged += OnPlayMode;
             deadline = EditorApplication.timeSinceStartup + 120;
             EditorApplication.update += Watchdog;
+            Application.logMessageReceived += OnLog;
+        }
+
+        static void OnLog(string message, string stack, LogType type)
+        {
+            if (!SessionState.GetBool(Pending, false) || (type != LogType.Error && type != LogType.Exception)) return;
+            // This Unity version throws in its editor search index even in an empty scene.
+            // Report that infrastructure fault separately; never ignore a gameplay stack.
+            if (stack.Contains("UnityEditor.Search.SearchDatabase") && !stack.Contains("AshenSol.")) editorSearchErrors++;
+            else errors++;
         }
 
         public static void Run()
@@ -60,13 +71,13 @@ namespace AshenSol.EditorTools
                 catch (Exception e) { Finish(e.ToString()); yield break; }
                 yield return next;
             }
-            Finish(GameManager.ExceptionCount == 0 ? null : "Runtime errors: " + GameManager.ExceptionCount);
+            Finish(errors == 0 ? null : "Errors during checks: " + errors);
         }
 
         static void Finish(string error)
         {
             SessionState.SetBool(Pending, false);
-            if (error == null) Debug.Log("GAMEPLAY CHECKS PASS: " + passed);
+            if (error == null) Debug.Log("GAMEPLAY CHECKS PASS: " + passed + "; editor search errors: " + editorSearchErrors);
             else Debug.LogError("GAMEPLAY CHECKS FAILED: " + error);
             if (Application.isBatchMode) EditorApplication.Exit(error == null ? 0 : 1);
             else EditorApplication.ExitPlaymode();
@@ -95,7 +106,7 @@ namespace AshenSol.EditorTools
             while (flow.Busy || flow.State == GameState.Boot) yield return null;
             if (!flow.InLevel) flow.LoadLevel(LevelId.Level1);
             while (flow.Busy || flow.Player == null) yield return null;
-            Time.captureDeltaTime = 1f / 60f;
+            Time.captureDeltaTime = 1f / Mathf.Max(1f, CmdArgs.GetFloat("-checkFps", 60f));
             yield return null;
             var p = flow.Player;
             p.enabled = false;
@@ -132,6 +143,21 @@ namespace AshenSol.EditorTools
             Check(p.IsDashing, "dash buffered across cooldown");
             p.Respawn(new Vector2(0f, 100f)); p.Body.simulated = false;
 
+            input.Attack(); input.Tick(); p.Combat.Tick(0.01f);
+            input.Horizontal = -1f;
+            input.Dash(); input.Tick(); Call(p, "Update");
+            Check(p.IsDashing && p.Facing == -1, "dash cancel follows requested direction");
+            input.Horizontal = 0f; input.Tick();
+            p.Respawn(new Vector2(0f, 100f)); p.Body.simulated = false;
+
+            TimeController.Instance.SetPaused(true);
+            input.Attack(); input.Tick(); Call(p, "Update");
+            TimeController.Instance.SetPaused(false);
+            Call(p, "Update");
+            Check(!p.IsAttacking, "menu input cannot leak into resumed gameplay");
+            input.Tick();
+            yield return null;
+
             var ladder = new GameObject("CheckLadder").AddComponent<ClimbSurface>();
             ladder.Top = 110f;
             ladder.transform.position = new Vector2(0f, 100f);
@@ -143,6 +169,20 @@ namespace AshenSol.EditorTools
             Check(!p.IsClimbing && p.Velocity.y > 0f, "fresh jump leaves ladder");
             UnityEngine.Object.Destroy(ladder.gameObject);
             input.Vertical = 0f; input.JumpHeld = false; input.Tick();
+
+            var platform = new GameObject("CheckOneWay");
+            platform.layer = Layers.OneWay;
+            platform.transform.position = new Vector2(0f, 99.9f);
+            platform.AddComponent<BoxCollider2D>().size = new Vector2(3f, 0.2f);
+            p.Respawn(new Vector2(0f, 100f));
+            Physics2D.SyncTransforms();
+            Call(p, "FixedUpdate");
+            Check(p.IsGrounded, "one-way platform supports standing");
+            input.Vertical = -1f; input.Jump(); input.Tick(); Call(p, "Update");
+            Call(p, "FixedUpdate");
+            Check(!p.IsGrounded && p.Velocity.y < 0f, "drop-through clears grounded state immediately");
+            UnityEngine.Object.Destroy(platform);
+            input.Vertical = 0f; input.Tick();
 
             p.Respawn(new Vector2(0f, 100f)); p.Body.simulated = false;
             var enemy = EnemyBase.Create(EnemyType.SpearSentinel, new Vector2(1f, 100f), flow.LevelRoot);
@@ -182,6 +222,43 @@ namespace AshenSol.EditorTools
             cam.Kick(Vector2.right, 1f);
             var kick = (Vector2)typeof(CameraController).GetField("kick", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(cam);
             Check(kick == Vector2.zero, "screen-shake off suppresses camera kicks");
+
+            GameEvents.RaisePlayerQiChanged(6, 6);
+            var ui = AshenSol.UI.UiManager.Instance;
+            var pips = (UnityEngine.UI.Image[])ui.GetType().GetField("pips", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(ui);
+            Check(pips.Length == 6 && Array.TrueForAll(pips, pip => pip.gameObject.activeSelf), "HUD displays all six upgraded Qi slots");
+            GameEvents.RaisePlayerQiChanged(0, 3);
+            Check(!pips[3].gameObject.activeSelf && pips[2].gameObject.activeSelf, "HUD resets Qi capacity for a new run");
+
+            p.Respawn(new Vector2(3f, 100f));
+            var floor = new GameObject("CheckShrineFloor");
+            floor.layer = Layers.Ground;
+            floor.transform.position = new Vector2(3f, 99.9f);
+            floor.AddComponent<BoxCollider2D>().size = new Vector2(3f, 0.2f);
+            var shrine = Checkpoint.Create(new Vector2(3f, 100f), "check", flow.LevelRoot);
+            Physics2D.SyncTransforms();
+            Call(p, "FixedUpdate");
+            input.Interact(); input.Tick();
+            Call(shrine, "Update");
+            Check(!p.ControlEnabled, "shrine interaction works without a physics trigger callback");
+            shrine.StopAllCoroutines();
+            UnityEngine.Object.Destroy(shrine.gameObject);
+            UnityEngine.Object.Destroy(floor);
+            input.Tick();
+
+            p.Respawn(new Vector2(0f, 100f));
+            p.ApplyHazard(15);
+            Check(p.HazardRecovering, "hazard recovery starts");
+            p.Respawn(new Vector2(10f, 100f)); p.Body.simulated = false;
+            yield return new WaitForSecondsRealtime(0.5f);
+            Check(p.Position == new Vector2(10f, 100f) && !p.HazardRecovering, "respawn cancels the previous hazard teleport");
+
+            p.Respawn(new Vector2(0f, 100f));
+            var moving = MovingPlatform.Create(new Vector2(20f, 100f), new Vector2(24f, 100f), 3f, 2f, flow.LevelRoot);
+            p.transform.position = moving.TopCenter;
+            Physics2D.SyncTransforms();
+            Call(p, "FixedUpdate");
+            Check(p.IsGrounded && p.LastSafeGroundPosition == new Vector2(0f, 100f), "moving platforms cannot replace a permanent safe return point");
         }
     }
 }

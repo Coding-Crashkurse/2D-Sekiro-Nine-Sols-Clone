@@ -504,3 +504,69 @@ broken enemy is within `ExecuteRangeX/Y` spends 1 Qi and deals that enemy's `Exe
 
 Boss bar UI carries both: red HP on top, yellow posture underneath
 (`IUiService.UpdateBossBar(hp01, posture01, broken)`).
+
+---
+
+## 16. Souls progression (`Core/Progression.cs`, `Level/AshPile.cs`, `UI/UpgradePanel.cs`)
+
+Static `Progression` holds the run: `Level`, `Ash`, `BonusHp`, `DamageMul`, `BonusQi`, and the
+pile waiting to be picked up (`DroppedAsh`, `DropPoint`, `DropLevel`). `GameFlow.StartRun` resets it.
+
+* `EnemyBase.AshValue` awards ash on death (Grunt 22, Sentinel 34, Drone 16, Artisan 190, Warden 260).
+* `DropOnDeath(where, level)` moves everything carried onto the ground and spawns an `AshPile`
+  there; walking into the pile calls `Recover()`. A second death replaces the pile — the old ash
+  is gone.
+* `LevelCost = 60 + (Level - 1) * 55`. `Buy(kind)` spends it on `Vigor` (+20 hp), `Edge` (+12 %
+  sword damage) or `Focus` (+1 max Qi, capped at +3).
+* `PlayerController.MaxHp/MaxQi` add the bonuses; `PlayerCombat` multiplies every outgoing sword,
+  blast and execution number by `Progression.DamageMul`.
+
+### Shrines (`Level/LevelObjects.cs`, class `Checkpoint`)
+
+A shrine activates the respawn point on touch, but **never opens the menu by itself**. While the
+player stands in it, it shows `E   rest at the shrine` and waits for `IInputProvider.InteractPressed`
+(E / F / gamepad LT). `Rest()` then plays the transition — duck the music, focus and zoom the camera,
+ring `shrine_open`, raise embers for ~0.85 s — opens `UpgradePanel`, waits for it to close, and puts
+the camera, music and player control back.
+
+## 17. SOLAR COLLAPSE (`Boss/BossController.SolarCollapse`)
+
+The phase-two ultimate. `PhaseTransition` sets `solarPending`, so the new form always opens with it;
+after that it re-enters the rotation on a `SolarCooldown` (17 s) timer.
+
+1. He plants, raises the blade and starts a **parryable** (white) telegraph of `SolarTelegraph` (2.1 s).
+   A sun grows over his head — `fx_glow` + two counter-rotating `fx_ring`s + `fx_flare`, all additive,
+   with a 30-unit `Light2D`. Camera shake and chromatic aberration ramp with the charge.
+2. The sun **folds inward** over 0.14 s. That is the beat to parry on.
+3. The strike is a single `StrikePlayer` with an 80 × 44 box — the whole arena. Damage is
+   `player.MaxHp * SolarDamageFraction` (0.75), and `AttackInfo.PierceGuard` is set, so a non-perfect
+   block still takes `PlayerTuning.PierceChipFraction` (60 %) instead of the usual 30 %.
+   A perfect parry costs nothing; dash i-frames still dodge it.
+4. Five expanding shockwave rings, a white screen flash, hit-stop, slow-motion and two
+   `GroundShockwave`s roll out; then `SolarRecovery` (2.2 s) of open guard.
+
+### Second-form presentation
+
+`ApplySecondForm` scales him to 1.24, tints the armour to a lit charred `(0.98, 0.55, 0.46)`,
+brightens core and rig lights, and calls `SetAura(1)`. `TickAura` runs every frame from then on: a
+pulsing `fx_glow` fill with two counter-rotating rings, a `Light2D` breathing with it, embers shed
+every 0.2 s, and afterimages while `|velocity.x| > 5`.
+
+## 18. End credits (`UI/CreditsRoll.cs`)
+
+`GameFlow.VictoryRoutine` shows the stats card, and its continue button now calls `RollCredits()`
+→ `IUiService.ShowCredits(GoToTitle)` instead of returning straight to the title.
+
+The roll is built once from a `Line[]` script of styled entries (Title, Tagline, Role, Name, Cast,
+Rule, Gap, End) laid out top-down into a `content` rect, which is then lerped from fully below the
+screen to the last line resting on the centre line over `RollSeconds` (56 s), held `HoldSeconds`
+(5 s), and faded out. Backdrop is the painted `bg_title` sunk under an ink veil. `music_credits`
+plays under it. Any key skips (armed 1.5 s in, so a key held from the victory screen does not).
+
+Top billing is **Producer: Markus Lang** and **Lead Engineer: Claude Code**.
+
+## 19. Title screen art
+
+`bg_title` is the hand-painted valley (`AshenSol/background.png` imported to
+`Resources/Sprites/bg_title.png`), drawn full-bleed at 2240 × 1260 with `preserveAspect = false`
+behind an ink veil at 0.3. It replaced the generated `bg_boss_sky` gradient.

@@ -33,6 +33,8 @@ namespace AshenSol.UI
         UpgradePanel upgradePanel;
         CreditsRoll credits;
         Text levelText; Image ashFill;
+        Image[] emptyPips;
+        Text qiLabel;
 
         void Awake()
         {
@@ -95,14 +97,16 @@ namespace AshenSol.UI
             hpFill = UiKit.Image(hud, "hpFill", null, Palette.Teal, tl, barPos + new Vector2(3f, -3f), barSize - new Vector2(6f, 6f));
             hpFlash = UiKit.Image(hud, "hpFlash", null, Palette.Red.WithAlpha(0f), tl, barPos, barSize);
             UiKit.Image(hud, "hpFrame", Res.Sprite("ui_bar_frame"), Color.white, tl, barPos, barSize);
-            pips = new Image[3]; pipPop = new float[3];
-            for (int i = 0; i < 3; i++)
+            int capacity = Progression.PlayerBaseQi + Progression.MaxFocus;
+            pips = new Image[capacity]; emptyPips = new Image[capacity]; pipPop = new float[capacity];
+            for (int i = 0; i < capacity; i++)
             {
-                UiKit.Image(hud, "pipEmpty" + i, Res.Sprite("ui_pip"), Palette.Bone.WithAlpha(0.7f), tl, new Vector2(52f + i * 40f, -84f), new Vector2(30f, 30f));
+                emptyPips[i] = UiKit.Image(hud, "pipEmpty" + i, Res.Sprite("ui_pip"), Palette.Bone.WithAlpha(0.7f), tl, new Vector2(52f + i * 40f, -84f), new Vector2(30f, 30f));
                 pips[i] = UiKit.Image(hud, "pipFull" + i, Res.Sprite("ui_pip_full"), Palette.Gold, tl, new Vector2(52f + i * 40f, -84f), new Vector2(30f, 30f));
                 pips[i].color = Palette.Gold.WithAlpha(0f);
             }
-            UiKit.Text(hud, "qiLabel", "QI", 16, Palette.Bone.WithAlpha(0.7f), tl, new Vector2(176f, -84f), new Vector2(60f, 30f), TextAnchor.MiddleLeft);
+            qiLabel = UiKit.Text(hud, "qiLabel", "QI", 16, Palette.Bone.WithAlpha(0.7f), tl, new Vector2(176f, -84f), new Vector2(60f, 30f), TextAnchor.MiddleLeft);
+            OnQi(0, Progression.PlayerBaseQi);
             levelText = UiKit.Text(hud, "level", "LV 1", 18, Palette.Gold, tl, new Vector2(48f, -118f), new Vector2(520f, 26f), TextAnchor.MiddleLeft);
             UiKit.Image(hud, "ashBack", null, Palette.Ink.WithAlpha(0.7f), tl, new Vector2(48f, -140f), new Vector2(240f, 7f));
             ashFill = UiKit.Image(hud, "ashFill", null, Palette.Gold.WithAlpha(0.85f), tl, new Vector2(48f, -140f), new Vector2(0f, 7f));
@@ -256,7 +260,13 @@ namespace AshenSol.UI
 
         void OnQi(int q, int max)
         {
-            if (q > qi) for (int i = qi; i < q && i < 3; i++) pipPop[i] = 1f;
+            if (q > qi) for (int i = qi; i < q && i < pips.Length; i++) pipPop[i] = 1f;
+            for (int i = 0; i < pips.Length; i++)
+            {
+                pips[i].gameObject.SetActive(i < max);
+                emptyPips[i].gameObject.SetActive(i < max);
+            }
+            qiLabel.rectTransform.anchoredPosition = new Vector2(56f + Mathf.Min(max, pips.Length) * 40f, -84f);
             qi = q;
         }
 
@@ -281,7 +291,7 @@ namespace AshenSol.UI
             hpTrail.rectTransform.sizeDelta = new Vector2(w * Mathf.Max(trail01, hp01), 20f);
             hpFill.color = Color.Lerp(Palette.Red, Palette.Teal, Mathf.Clamp01(hp01 * 2.5f));
             if (hpFlashT > 0f) { hpFlashT -= dt; hpFlash.color = Palette.Red.WithAlpha(Mathf.Clamp01(hpFlashT / 0.25f) * 0.6f); }
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < pips.Length; i++)
             {
                 bool full = i < qi;
                 float a = Mathf.MoveTowards(pips[i].color.a, full ? 1f : 0f, dt * 6f);

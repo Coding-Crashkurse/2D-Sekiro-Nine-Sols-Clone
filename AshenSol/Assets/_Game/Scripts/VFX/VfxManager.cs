@@ -14,13 +14,14 @@ namespace AshenSol.VFX
 
         Transform fxRoot;
         readonly List<SpriteFx> spritePool = new List<SpriteFx>();
+        readonly List<SlashFx> slashPool = new List<SlashFx>();
         readonly List<LightFx> lightPool = new List<LightFx>();
         readonly List<GhostFx> ghostPool = new List<GhostFx>();
         readonly List<FloatingTextFx> textPool = new List<FloatingTextFx>();
         static readonly Dictionary<Texture, Material> additiveCache = new Dictionary<Texture, Material>();
         static readonly Dictionary<Texture, Material> unlitCache = new Dictionary<Texture, Material>();
 
-        ParticleSystem sparks, ink, dust, embers;
+        ParticleSystem sparks, hitSparks, ink, dust, embers;
         SpriteRenderer screenQuad; Coroutine screenFlashCo, chromaCo;
         Font font;
 
@@ -34,6 +35,10 @@ namespace AshenSol.VFX
             if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 
             sparks = MakeSystem("Sparks", Res.Sprite("fx_spark"), true, true, 0.6f, SortOrder.Fx + 6, 1.6f, 0.05f);
+            hitSparks = MakeSystem("SwordSparks", Res.Sprite("fx_glow"), true, true, 0.3f, SortOrder.Fx + 6, 1.1f, 0.025f);
+            var sparkSize = hitSparks.sizeOverLifetime;
+            sparkSize.enabled = true;
+            sparkSize.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 1f, 1f, 0f));
             ink = MakeSystem("Ink", Res.Sprite("fx_ink"), false, true, 1.3f, SortOrder.Fx + 2, 1.3f, 0.03f);
             dust = MakeSystem("Dust", Res.Sprite("fx_dust"), false, false, -0.04f, SortOrder.Fx - 2, 1f, 0f);
             embers = MakeSystem("Embers", Res.Sprite("fx_glow"), true, false, -0.2f, SortOrder.Fx + 4, 1f, 0f);
@@ -41,6 +46,7 @@ namespace AshenSol.VFX
             var elim = embers.limitVelocityOverLifetime; elim.enabled = true; elim.dampen = 0.35f; elim.limit = 0.5f;
 
             for (int i = 0; i < 24; i++) spritePool.Add(SpriteFx.Make(fxRoot));
+            for (int i = 0; i < 12; i++) slashPool.Add(SlashFx.Make(fxRoot));
             for (int i = 0; i < 12; i++) lightPool.Add(LightFx.Make(fxRoot));
             for (int i = 0; i < 80; i++) ghostPool.Add(GhostFx.Make(fxRoot));
             for (int i = 0; i < 16; i++) textPool.Add(FloatingTextFx.Make(fxRoot, font));
@@ -131,6 +137,7 @@ namespace AshenSol.VFX
 
         // ---------------- pools ----------------
         SpriteFx GetSprite() { foreach (var s in spritePool) if (!s.IsActive) return s; var n = SpriteFx.Make(fxRoot); spritePool.Add(n); return n; }
+        SlashFx GetSlash() { foreach (var s in slashPool) if (!s.IsActive) return s; var n = SlashFx.Make(fxRoot); slashPool.Add(n); return n; }
         LightFx GetLight() { foreach (var l in lightPool) if (!l.IsActive) return l; var n = LightFx.Make(fxRoot); lightPool.Add(n); return n; }
         GhostFx GetGhost() { foreach (var g in ghostPool) if (!g.IsActive) return g; if (ghostPool.Count > 400) return null; var n = GhostFx.Make(fxRoot); ghostPool.Add(n); return n; }
         FloatingTextFx GetText() { foreach (var t in textPool) if (!t.IsActive) return t; var n = FloatingTextFx.Make(fxRoot, font); textPool.Add(n); return n; }
@@ -138,8 +145,7 @@ namespace AshenSol.VFX
         // ---------------- IVfxService ----------------
         public void SlashArc(Vector2 pos, float angleDeg, bool flipX, Color color, float scale = 1f)
         {
-            var sp = Res.Sprite("fx_slash");
-            GetSprite().Play(sp, AdditiveFor(sp), pos, angleDeg, flipX, color, color.WithAlpha(0f), 1.7f * scale, 2.3f * scale, 0.17f, SortOrder.Fx + 8);
+            GetSlash().Play(pos, angleDeg, flipX, color, scale);
             FlashLight(pos, color, 1.5f, 2.5f * scale, 0.12f);
         }
 
@@ -165,15 +171,15 @@ namespace AshenSol.VFX
         {
             if (dir.sqrMagnitude < 0.001f) dir = Vector2.up;
             float baseA = Mathf.Atan2(dir.y, dir.x);
-            int n = Mathf.RoundToInt(10 * scale);
+            int n = Mathf.RoundToInt(7 * scale);
             for (int i = 0; i < n; i++)
             {
                 float a = baseA + Random.Range(-0.6f, 0.6f);
                 float sp = Random.Range(4f, 9f) * scale;
-                Emit(sparks, pos, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * sp, color, Random.Range(0.06f, 0.12f) * scale, Random.Range(0.2f, 0.35f));
+                Emit(hitSparks, pos, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * sp, color, Random.Range(0.05f, 0.09f) * scale, Random.Range(0.14f, 0.24f));
             }
-            var flare = Res.Sprite("fx_flare");
-            GetSprite().Play(flare, AdditiveFor(flare), pos, Random.Range(0f, 90f), false, color, color.WithAlpha(0f), 1.2f * scale, 0.6f * scale, 0.14f, SortOrder.Fx + 9, 60f);
+            var glow = Res.Sprite("fx_glow");
+            GetSprite().Play(glow, AdditiveFor(glow), pos, 0f, false, Color.Lerp(color, Color.white, 0.45f), color.WithAlpha(0f), 0.7f * scale, 1.25f * scale, 0.14f, SortOrder.Fx + 9);
         }
 
         public void InkSplatter(Vector2 pos, Vector2 dir, Color color, int count = 12)
