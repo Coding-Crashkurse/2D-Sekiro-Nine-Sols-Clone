@@ -19,6 +19,7 @@ namespace AshenSol.Core
         Rect bounds; bool hasBounds;
         Vector2 pos, vel;
         Vector2 lastTargetPos; float lookAhead;
+        float frameY = 2.0f;     // vertical framing: above the feet normally, below them on a long fall
         float trauma; Vector2 kick;
         float zoomTarget = 6f, zoomCur = 6f, zoomVel;
         Vector2 focusPos; float focusBlend, focusBlendTarget, focusSpeed = 1f;
@@ -152,6 +153,7 @@ namespace AshenSol.Core
             if (target == null) return;
             lastTargetPos = target.position;
             lookAhead = 0f;
+            frameY = 2.0f;
             pos = Desired();
             vel = Vector2.zero;
             ApplyTransform();
@@ -160,7 +162,7 @@ namespace AshenSol.Core
         Vector2 Desired()
         {
             Vector2 tp = target != null ? (Vector2)target.position : pos;
-            Vector2 d = tp + new Vector2(lookAhead, 2.0f);   // frame the play space, not the floor slab
+            Vector2 d = tp + new Vector2(lookAhead, frameY);   // frame the play space, not the floor slab
             if (focusBlend > 0f) d = Vector2.Lerp(d, focusPos, Ease.InOutSine(focusBlend));
             return Clamp(d);
         }
@@ -195,9 +197,14 @@ namespace AshenSol.Core
             if (target != null)
             {
                 float dx = target.position.x - lastTargetPos.x;
+                float dy = target.position.y - lastTargetPos.y;
                 lastTargetPos = target.position;
                 float want = Mathf.Abs(dx) > 0.001f ? Mathf.Sign(dx) * 1.6f : lookAhead;
                 lookAhead = Mathf.Lerp(lookAhead, want, 1f - Mathf.Exp(-2.5f * dt));
+                // a long fall: look down so the landing is on screen before the feet are
+                float vy = dy / dt;
+                float wantY = vy < -9f ? -1.2f : 2.0f;
+                frameY = Mathf.Lerp(frameY, wantY, 1f - Mathf.Exp((wantY < frameY ? -4f : -2.5f) * dt));
             }
 
             focusBlend = Mathf.MoveTowards(focusBlend, focusBlendTarget, focusSpeed * dt);

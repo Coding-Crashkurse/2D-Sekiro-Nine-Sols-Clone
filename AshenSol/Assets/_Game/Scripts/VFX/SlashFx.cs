@@ -18,6 +18,7 @@ namespace AshenSol.VFX
         Color[] colors;
         Color tint;
         float elapsed, angle, direction;
+        float span = 1f, aspect = 1f;
         bool mirrored;
         public bool IsActive { get; private set; }
 
@@ -55,9 +56,12 @@ namespace AshenSol.VFX
             return fx;
         }
 
-        public void Play(Vector2 position, float angleDeg, bool flipX, Color color, float scale)
+        /// <summary>arcSpan scales the crescent's angle (a thrust is a short streak), arcAspect flattens it (a
+        /// horizontal slash is wide and low). Short arcs are centred on the position instead of hanging off it.</summary>
+        public void Play(Vector2 position, float angleDeg, bool flipX, Color color, float scale, float arcSpan = 1f, float arcAspect = 1f)
         {
             tint = color;
+            span = Mathf.Max(0.1f, arcSpan); aspect = Mathf.Max(0.15f, arcAspect);
             angle = angleDeg;
             direction = angleDeg < 0f ? -1f : 1f;
             mirrored = flipX;
@@ -86,13 +90,14 @@ namespace AshenSol.VFX
             float rotation = angle + direction * Mathf.Lerp(-12f, 18f, Ease.OutCubic(p));
             transform.rotation = Quaternion.Euler(0f, 0f, mirrored ? -rotation : rotation);
 
+            Vector2 shift = span < 0.6f ? new Vector2(-1.1f, 0f) : Vector2.zero;
             for (int i = 0; i <= Segments; i++)
             {
                 float u = (float)i / Segments;
-                float a = Mathf.Lerp(-1.95f, 1.95f, Mathf.Lerp(tail, head, u)) * direction;
+                float a = Mathf.Lerp(-1.95f * span, 1.95f * span, Mathf.Lerp(tail, head, u)) * direction;
                 float cos = Mathf.Cos(a), sin = Mathf.Sin(a);
-                Vector2 center = new Vector2(cos * 1.75f - 0.65f, sin * 1.05f);
-                Vector2 normal = new Vector2(cos / 1.75f, sin / 1.05f).normalized;
+                Vector2 center = new Vector2(cos * 1.75f - 0.65f, sin * 1.05f * aspect) + shift;
+                Vector2 normal = new Vector2(cos / 1.75f, sin / (1.05f * aspect)).normalized;
                 float taper = Mathf.Pow(Mathf.Max(0f, Mathf.Sin(u * Mathf.PI)), 0.7f);
                 float width = 0.22f * taper * Mathf.Lerp(0.65f, 1f, u) * Mathf.Lerp(1f, 0.55f, p);
                 for (int row = 0; row < Rows; row++)

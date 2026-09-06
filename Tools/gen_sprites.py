@@ -407,6 +407,71 @@ def spear_spear():
         return img
     return body(w, h, shape, (60, 52, 46), (26, 24, 26), mix(BONE, TEAL, 0.2), 110, detail_fn=details, grain=3)
 
+# ================================================================ FOUNDRY BRUTE (hammer)
+BRUTE_T = (64, 48, 42)
+BRUTE_B = (20, 15, 16)
+
+def brute_torso():
+    w, h = 68, 84
+    def shape(m):
+        poly(m, [(18, 0), (50, 0), (64, 10), (67, 34), (58, 54), (60, 78), (52, 84),
+                 (16, 84), (8, 78), (10, 54), (1, 34), (4, 10)])
+    def details(img, m):
+        for y in (20, 34, 48):   # plate seams
+            img = polyfill(img, [(8, y), (60, y - 3), (60, y + 1), (8, y + 4)], mix(BRUTE_T, BONE, 0.12), 190)
+        img = polyfill(img, [(44, 1), (64, 11), (66, 30), (50, 20)], mix(BRUTE_T, STONE, 0.35), 240)   # pauldron
+        img = polyfill(img, [(4, 1), (22, 0), (18, 18), (2, 28)], mix(BRUTE_T, STONE, 0.25), 220)
+        # furnace grate in the chest
+        img = blob(img, (26, 30, 42, 46), shade(AMBER, 0.6), 220, glow_color=AMBER, glow_r=6, glow_s=0.8, kind="rrect", radius=3)
+        for y in (34, 38, 42):
+            img = stroke(img, [(28, y), (40, y)], INK, 1.2, 230)
+        img = polyfill(img, [(10, 62), (58, 60), (58, 66), (10, 68)], (38, 28, 26), 235)   # belt
+        img = blob(img, (30, 60, 38, 68), shade(GOLD, 0.6), 220, kind="rrect", radius=1)
+        return img
+    return body(w, h, shape, BRUTE_T, BRUTE_B, mix(BONE, AMBER, 0.25), 150, detail_fn=details)
+
+def brute_head():
+    w, h = 46, 48
+    def shape(m):
+        poly(m, [(14, 2), (32, 2), (42, 12), (44, 30), (36, 44), (24, 48), (10, 42), (3, 28), (5, 12)])
+        rect(m, (18, 0, 30, 6))   # crest ridge
+    def details(img, m):
+        img = polyfill(img, [(12, 16), (42, 20), (40, 30), (12, 28)], (12, 10, 14), 255)   # visor slot
+        img = stroke(img, [(14, 22), (40, 25)], AMBER, 1.8, 255, glow_color=AMBER, glow_r=5, glow_s=1.0)
+        img = stroke(img, [(8, 12), (22, 6), (38, 10)], mix(BONE, AMBER, 0.2), 1.1, 150)   # brow ridge
+        for x in (12, 20, 28, 36):
+            img = blob(img, (x, 34, x + 3, 37), mix(BRUTE_T, BONE, 0.4), 200)   # rivets
+        return img
+    return body(w, h, shape, BRUTE_T, BRUTE_B, mix(BONE, AMBER, 0.25), 140, detail_fn=details)
+
+def brute_hammer():
+    w, h = 40, 140
+    IRON = (48, 40, 40)
+    HAFT = (70, 52, 40)
+    def shape(m):
+        rrect(m, (2, 2, 38, 38), 3)        # head block
+        rect(m, (16, 38, 24, 136))         # haft
+        rrect(m, (13, 118, 27, 138), 3)    # grip wrap
+    def details(img, m):
+        head = mask_new(w, h)
+        rrect(head, (2, 2, 38, 38), 3)
+        img = over(img, glow(head, AMBER, 6, 0.45))
+        img = polyfill(img, [(4, 4), (36, 4), (36, 36), (4, 36)], IRON, 255)
+        img = polyfill(img, [(4, 4), (36, 4), (32, 10), (8, 10)], mix(IRON, BONE, 0.3), 220)   # top bevel
+        # forge cracks glowing in the head
+        img = stroke(img, [(8, 30), (16, 18), (14, 12)], AMBER, 1.3, 240, glow_color=AMBER, glow_r=3.5, glow_s=0.9)
+        img = stroke(img, [(30, 32), (24, 22), (28, 14)], AMBER, 1.1, 220, glow_color=AMBER, glow_r=3, glow_s=0.8)
+        img = stroke(img, [(16, 18), (24, 22)], AMBER, 1.0, 200, glow_color=AMBER, glow_r=3, glow_s=0.7)
+        img = blob(img, (2, 12, 38, 16), (30, 26, 28), 230, kind="rrect", radius=1)   # iron bands
+        img = blob(img, (2, 26, 38, 30), (30, 26, 28), 230, kind="rrect", radius=1)
+        img = polyfill(img, [(17, 38), (23, 38), (23, 118), (17, 118)], HAFT, 255)
+        img = stroke(img, [(20, 40), (20, 116)], mix(HAFT, BONE, 0.3), 0.8, 130)
+        img = blob(img, (13, 118, 27, 138), (34, 26, 24), 255, kind="rrect", radius=3)
+        for y in range(120, 136, 4):
+            img = stroke(img, [(14, y), (26, y + 1)], shade(AMBER, 0.45), 0.8, 150)
+        return img
+    return body(w, h, shape, (56, 46, 44), (24, 20, 22), mix(BONE, AMBER, 0.3), 120, detail_fn=details, grain=4)
+
 # ================================================================ DRONE
 def drone_body():
     w, h = 58, 42
@@ -1404,6 +1469,12 @@ def main():
     save(limb(14, 42, "spear_arm", SENT_T, SENT_B, None, True, mix(BONE, TEAL, 0.2)), 14, 42, "spear_arm")
     save(limb(16, 48, "spear_leg", SENT_T, SENT_B, None, False, mix(BONE, TEAL, 0.2)), 16, 48, "spear_leg")
     save(spear_spear(), 10, 160, "spear_spear")
+
+    save(brute_torso(), 68, 84, "brute_torso")
+    save(brute_head(), 46, 48, "brute_head")
+    save(limb(18, 54, "brute_arm", BRUTE_T, BRUTE_B, AMBER, True, mix(BONE, AMBER, 0.25), wrap=[30]), 18, 54, "brute_arm")
+    save(limb(22, 58, "brute_leg", BRUTE_T, BRUTE_B, None, False, mix(BONE, AMBER, 0.25)), 22, 58, "brute_leg")
+    save(brute_hammer(), 40, 140, "brute_hammer")
 
     save(drone_body(), 58, 42, "drone_body")
     save(drone_eye(), 18, 18, "drone_eye")

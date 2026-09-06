@@ -121,12 +121,13 @@ namespace AshenSol.Intro
 
             if (!skipped && index < panels.Count - 1)
             {
-                // ink wipe into the next panel
-                Services.Vfx.ScreenFlash(Palette.Ink.WithAlpha(0.85f), 0.5f);
-                yield return new WaitForSecondsRealtime(0.22f);
+                // ink wipe into the next panel: fully dark before the swap, then the new panel fades up
+                Services.Ui.Fade(1f, 0.25f);
+                yield return new WaitForSecondsRealtime(0.28f);
                 Services.Ui.ShowSubtitle(null);
                 SetPanelVisible(p, false);
-                yield return new WaitForSecondsRealtime(0.18f);
+                Services.Ui.Fade(0f, 0.45f);
+                yield return new WaitForSecondsRealtime(0.15f);
             }
             else SetPanelVisible(p, false);
         }
@@ -225,7 +226,7 @@ namespace AshenSol.Intro
             {
                 var rig = IntroStage.Figure(t, IntroStage.HuskConfig(), new Vector2(xs[i], -4.2f), i % 2 == 0 ? 1 : -1,
                     new Color(0.17f, 0.16f, 0.21f), 0.95f + (i % 3) * 0.06f);
-                rig.SetPose(true, 20f, 200f, 62f);        // slumped over
+                rig.SetPose(true, 20f, 200f, 62f, 26f, -34f);        // slumped over
                 husks.Add(rig);
             }
             IntroStage.Ash(t, new Rect(-16f, -5f, 32f, 16f), 90f);
@@ -332,7 +333,7 @@ namespace AshenSol.Intro
 
             var warden = IntroStage.Figure(t, IntroStage.WardenConfig(), new Vector2(-2.6f, -4f), 1,
                 new Color(0.12f, 0.11f, 0.15f), 1f);
-            warden.SetPose(true, 30f, 180f, -20f);   // kneeling before the gate
+            warden.SetPose(true, 30f, 180f, -20f, 46f, -62f);   // kneeling before the gate
             IntroStage.Ash(t, new Rect(-14f, -5f, 28f, 14f), 55f);
 
             return new Panel
@@ -413,6 +414,8 @@ namespace AshenSol.Intro
             // frame for the walk bob, so writing to Root here is overwritten instantly and the hero
             // ends up walking on the spot.
             var body = hero.Root.parent;
+            var figure = IntroFigure.Of(hero);
+            if (figure != null) figure.VelocityX = 2.6f;      // the walk cycle; the figure itself is moved below
             float t = 0f;
             var start = body.position;
             var glowStart = glow.transform.position;
@@ -423,7 +426,6 @@ namespace AshenSol.Intro
                 t += dt;
                 body.position = start + new Vector3(t * 1.15f, 0f, 0f);
                 glow.transform.position = glowStart + new Vector3(t * 1.15f, 0f, 0f);
-                hero.Animate(2.6f, dt);                       // drives the walk cycle
                 step -= dt;
                 if (step <= 0f)
                 {

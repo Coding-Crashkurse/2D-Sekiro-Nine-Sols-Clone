@@ -7,7 +7,7 @@ trifft Cyberpunk). Vier Abschnitte, zwei Bosse und ein Abspann:
 |---|---|---|
 | I | **THE OUTER SANCTUM** | Korridor mit Gegnern, Plattforming, versiegeltes Tor |
 | II | **THE SUNKEN WORKS** | Qi-Fontänen, Fahrstuhl-Plattformen, Leitern, dann **THE SEVENTH ARTISAN** |
-| III | **THE PILGRIM STAIR** | Pflicht-Zwischenlevel: Treppe, Sprungpassage, Gauntlet, Schrein |
+| III | **THE PILGRIM STAIR** | Pflicht-Zwischenlevel: Treppe, Sprungpassage, Gauntlet, Schrein — und der neue **Foundry Brute** mit dem Hammer |
 | IV | **THE SEALED GATE** | **THE FORSAKEN WARDEN** — mit cineastischem Übergang in **ASH UNBOUND** |
 
 Danach läuft ein Abspann mit eigener Musik.
@@ -46,8 +46,9 @@ Heilen belegt, sonst würde eine Leiter dauernd Heiltränke auslösen.
   Ist die gelbe Leiste voll, **bricht die Deckung**: der Gegner ist **3 Sekunden wehrlos**,
   nimmt doppelten Schaden, und über ihm erscheint ein pulsierendes **I**.
 * **Hinrichtung: `I`** neben einem gebrochenen Gegner → kostet 1 Qi, richtet massiven Schaden an
-  (Grunt 60, Sentinel 85, Drohne 45, Boss 130). Danach ist die Haltungsleiste wieder leer.
-* **Normale Gegner brechen bei einer einzigen perfekten Parade.** Der **Boss braucht drei** —
+  (Grunt 60, Sentinel 85, Drohne 45, Brute 95, Boss 130). Danach ist die Haltungsleiste wieder leer.
+* **Normale Gegner brechen bei einer einzigen perfekten Parade.** Der **Foundry Brute** (Hammer, ab
+  Level III) **braucht zwei** — nach der ersten steht „ONE MORE" über ihm. Der **Boss braucht drei** —
   seine Dreierschlag-Kombo ist genau dafür gemacht.
 * Die Haltung regeneriert nach 1,6 s Ruhe wieder. Wer nicht nachsetzt, verliert den Fortschritt.
 * Ohne Ziel in Reichweite bleibt `I` der **Qi Blast**: 12 Schaden im Umkreis plus kräftiger
@@ -65,7 +66,7 @@ die **Hinrichtung (I)**, den **Qi Blast (I ohne Ziel)** oder **Heilen (H)**.
 
 Das Spiel ist soulslike aufgebaut:
 
-* Jeder Kill gibt **ASCHE** (Grunt 22, Sentinel 34, Drohne 16, Artisan 190, Warden 260).
+* Jeder Kill gibt **ASCHE** (Grunt 22, Sentinel 34, Drohne 16, Brute 55, Artisan 190, Warden 260).
   Asche wird **getragen, nicht gesichert** — sie steht oben links unter der Qi-Leiste.
 * **Beim Tod fällt die gesamte Asche dort liegen, wo du gestorben bist.** Am Fundort glimmt ein
   Haufen; lauf hin und du bekommst alles zurück. **Stirbst du vorher noch einmal, ist sie weg** —

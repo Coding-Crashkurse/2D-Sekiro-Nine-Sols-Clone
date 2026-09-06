@@ -35,12 +35,13 @@ EXTRA_MUSIC = [("music_intro", "music_intro"), ("music_works", "music_works"), (
                ("music_stair", "music_stair"), ("music_credits", "music_credits"),
                ("music_transform", "music_transform")]
 
-# boss barks: a normal deep voice pitched down and doubled into something inhuman
-BOSS_VOICE = [("tts_You_s", "warden_1"), ("tts_Now_h", "warden_2")]
-MONSTER_FILTER = ("asplit=2[a][b];[a]asetrate=44100*0.80,aresample=44100,atempo=1.12[a1];"
-                  "[b]asetrate=44100*0.74,aresample=44100,atempo=1.12,adelay=40|40,volume=0.5[b1];"
-                  "[a1][b1]amix=inputs=2:normalize=0,aecho=0.8:0.85:120:0.25,"
-                  "acompressor=threshold=-18dB:ratio=3,volume=3dB")
+# boss barks, voiced by "Endboss" (b2upA2PQiBGugEAmKTA3). That voice is already a gravelled bass,
+# so it only gets size and a room: a 7% pitch drop at the same length, a short stone tail, compression.
+# (The old chain doubled a friendly voice with a detuned copy - it would turn this one to mud.)
+BOSS_VOICE = [("tts_You_s_20260906_163156.mp3", "warden_1"),
+              ("tts_Now_h_20260906_163158.mp3", "warden_2")]
+MONSTER_FILTER = ("asetrate=44100*0.93,aresample=44100,atempo=1.075,"
+                  "aecho=0.85:0.7:130:0.2,acompressor=threshold=-18dB:ratio=3")
 
 # these keep their silence/tails: they loop or are meant to breathe
 NO_TRIM = {"ambience_wind", "ambience_arena", "drone_hover"}
@@ -58,7 +59,7 @@ def peak_db(path):
     return float(m.group(1)) if m else 0.0
 
 
-def convert(src, dst, target_db, trim):
+def convert(src, dst, target_db, trim, extra=None):
     gain = target_db - peak_db(src)
     filters = []
     if trim:
@@ -67,10 +68,26 @@ def convert(src, dst, target_db, trim):
         filters.append("areverse")
         filters.append("silenceremove=start_periods=1:start_threshold=-50dB:start_silence=0.01")
         filters.append("areverse")
+    if extra:
+        filters.append(extra)
     filters.append(f"volume={gain:.2f}dB")
     cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", src,
            "-af", ",".join(filters), "-ar", "44100", "-b:a", "192k", dst]
     subprocess.run(cmd, check=True)
+
+    # a compressor in the extra chain squashes the level after the normalising gain was computed
+    # from the source, so measure what actually came out and correct it
+    if extra:
+        fix = target_db - peak_db(dst)
+        if abs(fix) > 0.3:
+            tmp = dst + ".tmp.mp3"
+            if os.path.exists(tmp):
+                os.remove(tmp)
+            os.replace(dst, tmp)
+            subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", tmp,
+                            "-af", f"volume={fix:.2f}dB", "-ar", "44100", "-b:a", "192k", dst], check=True)
+            os.remove(tmp)
+            gain += fix
     return gain
 
 
@@ -127,6 +144,14 @@ def main():
             gain = convert(src, os.path.join(OUT_VOICE, parts[1] + ".mp3"), -1.0, trim=True)
             voice.append(parts[1])
             print("  voice %-22s %+6.1f dB   <- %s" % (parts[1], gain, parts[0]))
+
+    for src_name, target in BOSS_VOICE:
+        src = os.path.join(RAW_VOICE, src_name)
+        if not os.path.exists(src):
+            missing.append(src_name); continue
+        gain = convert(src, os.path.join(OUT_VOICE, target + ".mp3"), -1.0, trim=True, extra=MONSTER_FILTER)
+        voice.append(target)
+        print("  boss  %-22s %+6.1f dB   <- %s" % (target, gain, src_name))
 
     print(f"\n{done} sfx + {min(len(music), len(MUSIC_ORDER))} music + {len(voice)} voice lines imported")
     if missing:

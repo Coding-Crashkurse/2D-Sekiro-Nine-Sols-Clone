@@ -40,7 +40,7 @@ namespace AshenSol.Boss
         public string CurrentAttack { get; private set; } = "";
         public event Action Defeated;
 
-        protected override float CenterHeight { get { return 1.6f; } }
+        protected override float CenterHeight { get { return 1.6f * transform.localScale.y; } }   // the second form is scaled up: hitboxes and bars follow
         protected override float PostureOnParry { get { return BossTuning.PostureOnParry; } }
         protected override float PostureRegen { get { return BossTuning.PostureRegen; } }
         public override int ExecuteDamage { get { return BossTuning.ExecuteDamage; } }
@@ -91,7 +91,7 @@ namespace AshenSol.Boss
                 Prefix = "boss", Torso = "boss_torso", Head = "boss_head", Arm = "boss_arm", Weapon = "boss_glaive", Leg = "boss_leg",
                 HipY = 1.1f, LegOffset = 0.18f, TorsoH = 1.5f, HeadY = 1.42f, Shoulder = new Vector2(0.22f, 1.22f), ArmLen = 0.82f, ArmSpriteH = 0.92f,
                 LegSpriteH = 1.1f, HeadSpriteH = 0.82f, WeaponOffset = new Vector2(0f, 0.55f), WeaponVerticalIdle = true, ArmIdle = 10f,
-                SortBase = SortOrder.Boss, LightColor = Palette.Red, LightIntensity = 0.9f, LightRadius = 3.2f, WeaponTipDistance = 1.8f
+                SortBase = SortOrder.Boss, LightColor = Palette.Red, LightIntensity = 0.9f, LightRadius = 3.2f, WeaponTipDistance = 1.8f, TrailColor = Palette.BossSlash
             };
             var rig = EnemyRig.BuildHumanoid(transform, cfg);
 
@@ -100,7 +100,7 @@ namespace AshenSol.Boss
             capeAnchor.SetParent(rig.Torso, false);
             capeAnchor.localPosition = new Vector3(-0.32f, 1.25f, 0f);
             cape = SashChain.Build(transform, capeAnchor, 7, Palette.RedDeep, "boss_cape_seg", 0.3f, SortOrder.Boss - 5, 1.7f, 0.9f);
-            cape.Gravity = 16f; cape.Wind = 0.12f;
+            cape.Gravity = 30f; cape.Wind = 1.2f; cape.Drag = 1.6f;
 
             var coreGo = new GameObject("core");
             coreGo.transform.SetParent(rig.Torso, false);
@@ -252,8 +252,8 @@ namespace AshenSol.Boss
                 foreach (var r in Renderers) if (r != null) r.color = Color.white;
                 Rig.Cfg.LightColor = Palette.Red;
                 Rig.Cfg.LightIntensity = 0.9f;
-                if (cape != null) cape.Wind = 0.12f;
-                Rig.SetPose(true, 25f, 180f, -14f); // kneeling guardian before the fight
+                if (cape != null) cape.Wind = 1.2f;
+                Rig.SetPose(true, 25f, 180f, -14f, 42f, -60f); // kneeling guardian before the fight
             }
             GroundShockwave.ClearAll();
             GameEvents.RaiseBossHealthChanged(1f, 0f, false);
@@ -360,7 +360,7 @@ namespace AshenSol.Boss
 
         protected override void OnHealthChanged()
         {
-            GameEvents.RaiseBossHealthChanged(Mathf.Clamp01((float)Hp / MaxHp), Posture01, PostureBroken);
+            GameEvents.RaiseBossHealthChanged(Mathf.Clamp01((float)Hp / MaxHp), PostureDisplay01, PostureBroken);
             if (Phase == 1 && Hp > 0 && Hp <= MaxHp * BossTuning.Phase2Threshold) phasePending = true;
         }
 
@@ -375,6 +375,7 @@ namespace AshenSol.Boss
             if (outcome == HitOutcome.Parried)
             {
                 healthBar.Show();
+                Rig.Recoil(0.2f);   // the glaive bounces off the parry instead of finishing its arc
                 AddPosture(PostureOnParry);
                 if (!PostureBroken) { Rig.Flash(Color.white, 0.12f); Rig.Punch(0.92f, 1.08f); }
             }
@@ -396,7 +397,7 @@ namespace AshenSol.Boss
             Services.Vfx.Shockwave(transform.position, 5f, Palette.Gold);
             Services.Vfx.ScreenFlash(Palette.Gold.WithAlpha(0.18f), 0.2f);
             Services.Cam.Shake(0.5f);
-            Rig.SetPose(true, 40f, 180f, -22f);   // dropped to one knee
+            Rig.SetPose(true, 40f, 180f, -22f, 46f, -62f);   // dropped to one knee
         }
 
         protected override void RecoverPosture()
@@ -607,7 +608,7 @@ namespace AshenSol.Boss
             Services.Audio.PlaySfxAt("boss_stagger", Center, 1f);
             Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.45f), 0.4f);
             Services.Vfx.FlashLight(Center, Color.white, 4f, 9f, 0.5f);
-            Rig.SetPose(true, 35f, 180f, -24f);          // down on one knee
+            Rig.SetPose(true, 35f, 180f, -24f, 46f, -62f);          // down on one knee
             Rig.Flash(Color.white, 0.5f);
             Services.Audio.PlayMusic("music_transform", 0.5f);   // the cue builds with the scene
             Services.Audio.SetMusicDuck(1f, 0.4f);
@@ -720,7 +721,7 @@ namespace AshenSol.Boss
             Rig.Cfg.LightColor = Palette.Red;
             Rig.Cfg.LightIntensity = 2.4f;
             transform.localScale = Vector3.one * 1.24f;
-            if (cape != null) cape.Wind = 0.5f;
+            if (cape != null) cape.Wind = 4f;               // burning gusts
             SetAura(1f);
             Services.Vfx.Embers(Center, 40, Palette.Red);
         }
@@ -753,7 +754,7 @@ namespace AshenSol.Boss
             FacePlayer();
             Move(0f);
             BeginTelegraph(AttackKind.Parryable, BossTuning.DashTelegraph * Tele);
-            Rig.SetPose(true, -45f, 180f, 18f);
+            Rig.SetPose(true, -45f, 180f, 18f, 34f, -22f);   // crouched, coiled to spring
             yield return Wait(BossTuning.DashTelegraph * Tele);
             EndTelegraph();
             Rig.SetPose(false);
@@ -784,7 +785,7 @@ namespace AshenSol.Boss
             Move(0f);
             float tele = BossTuning.SlamTelegraph * Tele;
             BeginTelegraph(AttackKind.Unblockable, tele);
-            Rig.SetPose(true, -150f, 180f, -8f);
+            Rig.SetPose(true, -150f, 180f, -8f, -34f, 28f);   // legs tucked for the leap
             Body.gravityScale = 0f;
             float t = 0f;
             float startY = transform.position.y;
@@ -799,7 +800,7 @@ namespace AshenSol.Boss
                 yield return null;
             }
             EndTelegraph();
-            Rig.SetPose(true, 60f, 180f, -20f);
+            Rig.SetPose(true, 60f, 180f, -20f, 26f, -30f);   // legs reaching for the floor
             // drop
             t = 0f;
             while (t < 0.7f)
@@ -811,6 +812,7 @@ namespace AshenSol.Boss
             }
             Body.linearVelocity = Vector2.zero;
             Body.gravityScale = 1f;
+            Rig.Punch(1.3f, 0.7f);                            // the mass arrives
             Vector2 feet = transform.position;
             Services.Vfx.Shockwave(feet, 4f, Palette.Red);
             Services.Vfx.DustPuff(feet + new Vector2(-1f, 0f), 1.8f);
@@ -825,7 +827,7 @@ namespace AshenSol.Boss
             StrikePlayer(info, Center, new Vector2(3.6f, 3.2f));
             GroundShockwave.Spawn(feet + new Vector2(1.2f, 0f), 1, BossTuning.ShockwaveSpeed, BossTuning.ShockwaveDamage, BossTuning.ShockwaveLife, transform.parent);
             GroundShockwave.Spawn(feet + new Vector2(-1.2f, 0f), -1, BossTuning.ShockwaveSpeed, BossTuning.ShockwaveDamage, BossTuning.ShockwaveLife, transform.parent);
-            Rig.SetPose(true, 30f, 180f, -18f); // kneel: punish window
+            Rig.SetPose(true, 30f, 180f, -18f, 46f, -62f); // kneel: punish window
             yield return Wait(BossTuning.SlamRecovery);
             Rig.SetPose(false);
         }
@@ -862,9 +864,9 @@ namespace AshenSol.Boss
             yield return Wait(BossTuning.WhirlTelegraph * Tele);
             EndTelegraph();
             Services.Audio.PlaySfxAt("boss_whirl", Center, 1f);
+            Rig.Spin(BossTuning.WhirlHits * BossTuning.WhirlInterval, 1300f);   // one continuous turn, not four restarted swings
             for (int h = 0; h < BossTuning.WhirlHits; h++)
             {
-                Rig.Strike(0.22f, -160f, 200f);
                 Services.Vfx.SlashArc(Center + new Vector2(Facing * 0.6f, 0.4f), h * 90f, Facing < 0, Palette.BossSlash, 2.2f);
                 if (h > 0) Services.Audio.PlaySfxAt("boss_swing", Center, 0.8f, 0.12f);
                 float t = 0f; bool resolved = false;
@@ -895,7 +897,7 @@ namespace AshenSol.Boss
             FacePlayer();
             Move(0f);
             BeginTelegraph(AttackKind.Unblockable, BossTuning.ThrustTelegraph * Tele);
-            Rig.SetPose(true, -35f, 180f, 14f);
+            Rig.SetPose(true, -35f, 180f, 14f, 30f, -20f);
             yield return Wait(BossTuning.ThrustTelegraph * Tele);
             EndTelegraph();
             FacePlayer();
@@ -941,7 +943,7 @@ namespace AshenSol.Boss
             float tel = BossTuning.SolarTelegraph * Tele;
             BeginTelegraph(AttackKind.Parryable, tel);
             float charge = tel * Settings.TelegraphMul;
-            Rig.SetPose(true, -105f, 180f, -105f);   // both arms up, blade overhead
+            Rig.SetPose(true, -105f, 180f, -105f, 12f, -12f);   // both arms up, blade overhead, feet planted
             Services.Audio.PlaySfxAt("solar_charge", Center, 1f, 0.02f);
             Services.Ui.ShowPrompt("SOLAR COLLAPSE", 1.6f);
 
@@ -1051,7 +1053,7 @@ namespace AshenSol.Boss
             Destroy(waveGo);
 
             // --- 4. it costs him: a long opening while the horns cool
-            Rig.SetPose(true, 30f, 180f, -18f);
+            Rig.SetPose(true, 30f, 180f, -18f, 46f, -62f);   // on one knee while the horns cool
             yield return Wait(BossTuning.SolarRecovery * 0.5f);
             Rig.SetPose(false);
             yield return Wait(BossTuning.SolarRecovery * 0.3f);
@@ -1064,7 +1066,7 @@ namespace AshenSol.Boss
             FacePlayer();
             Move(0f);
             BeginTelegraph(AttackKind.Unblockable, BossTuning.GoreTelegraph * Tele);
-            Rig.SetPose(true, -20f, 180f, 28f);        // head down, horns forward
+            Rig.SetPose(true, -20f, 180f, 28f, 36f, -26f);        // head down, horns forward
             yield return Wait(BossTuning.GoreTelegraph * Tele);
             EndTelegraph();
             FacePlayer();

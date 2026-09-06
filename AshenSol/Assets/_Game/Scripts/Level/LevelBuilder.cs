@@ -323,6 +323,7 @@ namespace AshenSol.Level
 
             TutorialSign.Create(new Vector2(8f, 0f), "Ash buys levels at a shrine.\nDie and you drop what you carry.", root);
             TutorialSign.Create(new Vector2(62.5f, 18f), "The gate is above.\nSo is what is left of him.", root);
+            TutorialSign.Create(new Vector2(65.5f, 18f), "The hammer holds: TWO perfect parries break it.\nRED slam: dash away, then jump the wave.", root);
 
             // ---------- the gauntlet ----------
             var g1 = EncounterZone.Create("S-A", new Rect(4f, 0f, 18f, 8f), root);
@@ -332,8 +333,9 @@ namespace AshenSol.Level
             g2.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(31.5f, 6.1f), ens));
             g2.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(40f, 12.4f), ens));
             g2.Add(Spawn(info, EnemyType.Grunt, new Vector2(46.5f, 13.6f), ens));
+            // the terrace introduces the hammer: one brute, read on its own, with a drone to keep you honest
             var g3 = EncounterZone.Create("S-C", new Rect(58f, 18f, 16f, 10f), root);
-            g3.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(68f, 18.1f), ens));
+            g3.Add(Spawn(info, EnemyType.HammerBrute, new Vector2(69.5f, 18.1f), ens));
             g3.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(64f, 21.4f), ens));
             var g4 = EncounterZone.Create("S-D", new Rect(88.6f, 18f, 14f, 10f), root);
             g4.Add(Spawn(info, EnemyType.Grunt, new Vector2(93f, 18.1f), ens));
@@ -343,6 +345,7 @@ namespace AshenSol.Level
             g5.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(122f, 26.1f), ens));
             g5.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(118f, 29.4f), ens));
             g5.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(131f, 29.4f), ens));
+            g5.Add(Spawn(info, EnemyType.HammerBrute, new Vector2(129f, 26.1f), ens));
             g5.Add(Spawn(info, EnemyType.Grunt, new Vector2(136f, 26.1f), ens));
             info.Zones.Add(g1); info.Zones.Add(g2); info.Zones.Add(g3); info.Zones.Add(g4); info.Zones.Add(g5);
 

@@ -83,13 +83,14 @@ namespace AshenSol.Enemies
             if (hideTimer > 0f) { hideTimer -= udt; if (hideTimer <= 0f) targetAlpha = 0f; }
             alpha = Mathf.MoveTowards(alpha, targetAlpha, udt * 4f);
 
-            holder.position = owner.Center + new Vector2(0f, heightAbove - (owner.Center.y - owner.transform.position.y));
+            // follow the body's scale so a boss that grows keeps the bar above its head
+            holder.position = (Vector2)owner.transform.position + new Vector2(0f, heightAbove * owner.transform.localScale.y);
             holder.rotation = Quaternion.identity;
             if (alpha <= 0.001f) { SetAlpha(0f); promptRenderer.enabled = false; return; }
 
             float hp01 = owner.MaxHp > 0 ? Mathf.Clamp01((float)owner.Hp / owner.MaxHp) : 0f;
             shownHp = Mathf.Lerp(shownHp, hp01, 1f - Mathf.Exp(-14f * udt));
-            shownPosture = Mathf.Lerp(shownPosture, owner.Posture01, 1f - Mathf.Exp(-18f * udt));
+            shownPosture = Mathf.Lerp(shownPosture, owner.PostureDisplay01, 1f - Mathf.Exp(-18f * udt));
 
             SetBar(hpFill, -Width * 0.5f, shownHp * Width, HpHeight);
             SetBar(postureFill, -Width * 0.5f, shownPosture * Width, PostureHeight);

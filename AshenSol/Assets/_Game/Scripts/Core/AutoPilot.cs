@@ -33,6 +33,7 @@ namespace AshenSol.Core
         float bestX = -999f, noProgress, ventUntil; Vector2 ventAt;
         float pendingShotAt = -1f; string pendingLabel;
         float statusTimer; string brainState = "-";
+        EnemyBase huntTarget;   // the straggler we are walking back to while the exit is sealed
         int climbShots; float climbShotTimer;   // -climbShots N captures the climb cycle frame by frame
         float introSeenUntil;   // watch a slice of the intro, then skip so runs stay short
         float killAt = -1f;   // -killPlayerAt <sec>: die once on purpose to test the ash drop
@@ -95,6 +96,8 @@ namespace AshenSol.Core
         {
             Log(s);
             if (s.StartsWith("guard broken")) ScheduleShot("guard_break", 0.25f);
+            else if (s.StartsWith("brute ")) ScheduleShot(s.Replace(' ', '_'), s.EndsWith("quake") ? 1.15f : 0.75f);   // windup, then the hit
+            else if (s.Contains("parry vs hammer_")) ScheduleShot("hammer_parry", 0.03f);
             else if (s.StartsWith("intro panel")) ScheduleShot("intro" + s.Substring(12).Trim(), 2.2f);
         }
         void OnParried(Vector2 p, bool perf)
@@ -429,22 +432,31 @@ namespace AshenSol.Core
                     return;
                 }
             }
+            // Once a hunt starts it sticks to its target until the fight block above takes over;
+            // otherwise a slow straggler left behind (the brute) makes us pace at the gate forever.
+            if (huntTarget != null && (!huntTarget.IsAlive || !huntTarget.gameObject.activeInHierarchy || info == null || info.ExitGate == null || info.ExitGate.IsOpen))
+                huntTarget = null;
             if (info != null && info.ExitGate != null && !info.ExitGate.IsOpen
-                && p.Position.x > info.ExitGate.transform.position.x - 3f)
+                && (huntTarget != null || p.Position.x > info.ExitGate.transform.position.x - 3f))
             {
-                EnemyBase straggler = null; float bestD = 9999f;
-                for (int i = 0; i < EnemyBase.All.Count; i++)
+                if (huntTarget == null)
                 {
-                    var e = EnemyBase.All[i];
-                    if (e == null || !e.IsAlive || !e.gameObject.activeInHierarchy) continue;
-                    float dd = Mathf.Abs(e.Center.x - p.Center.x);
-                    if (dd < bestD) { bestD = dd; straggler = e; }
+                    float bestD = 9999f;
+                    for (int i = 0; i < EnemyBase.All.Count; i++)
+                    {
+                        var e = EnemyBase.All[i];
+                        if (e == null || !e.IsAlive || !e.gameObject.activeInHierarchy) continue;
+                        float dd = Mathf.Abs(e.Center.x - p.Center.x);
+                        if (dd < bestD) { bestD = dd; huntTarget = e; }
+                    }
                 }
-                if (straggler != null)
+                if (huntTarget != null)
                 {
                     brainState = "hunt";
-                    input.Horizontal = straggler.Center.x > p.Center.x ? 1f : -1f;
-                    if (p.IsGrounded && bestD < 1.5f && straggler.Center.y > p.Center.y + 1.2f) DoJump();
+                    float dx = huntTarget.Center.x - p.Center.x;
+                    input.Horizontal = dx > 0f ? 1f : -1f;
+                    if (p.IsGrounded && Mathf.Abs(dx) < 1.5f && huntTarget.Center.y > p.Center.y + 1.2f) DoJump();
+                    else if (p.IsGrounded && ShouldJump(p)) DoJump();
                     return;
                 }
             }

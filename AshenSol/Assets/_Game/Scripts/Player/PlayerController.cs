@@ -87,7 +87,6 @@ namespace AshenSol.Player
         int dashDir = 1;
         bool airDashUsed, jumpCut, wasGrounded, groundIsSolid, hazardRecovering;
         float lastVy;
-        int flickerFrame;
         AshenSol.Level.ClimbSurface climbSurface;
         float updraftTimer, updraftLift, updraftAccel, climbCooldown;
         Vector2 carriedVel;          // velocity contributed by the platform under our feet
@@ -145,7 +144,7 @@ namespace AshenSol.Player
             if (Collider != null) Collider.enabled = true;
             Physics2D.IgnoreLayerCollision(Layers.Player, Layers.OneWay, false);
             if (Combat != null) Combat.Reset();
-            if (Rig != null) { Rig.ResetPose(); Rig.SetVisible(true); Rig.SetFacing(Facing); }
+            if (Rig != null) { Rig.ResetPose(); Rig.SetVisible(true); Rig.SetDim(1f); Rig.SetFacing(Facing); }
             ControlEnabled = true;
             GameEvents.RaisePlayerHealthChanged(Hp, MaxHp);
             GameEvents.RaisePlayerQiChanged(Qi, MaxQi);
@@ -374,7 +373,7 @@ namespace AshenSol.Player
             Services.Vfx.HitSpark(Center, away, Palette.Red, 0.8f);
             Services.Audio.PlaySfx("player_hurt");
             Rig.Flash(Palette.Red, 0.12f);
-            Rig.Hurt();
+            Rig.Hurt(away.x * Facing <= 0f);   // recoil away from where it came from
             GameEvents.RaiseLog("player hit by " + tag + " dmg=" + damage + " hp=" + Hp);
             if (Hp <= 0) Die();
         }
@@ -545,13 +544,11 @@ namespace AshenSol.Player
             }
             else footstepTimer = 0.05f;
 
-            // i-frame flicker
-            if (invulnTimer > 0f && !IsDashing)
-            {
-                flickerFrame++;
-                Rig.SetVisible((Mathf.FloorToInt(Time.unscaledTime * 24f) & 1) == 0);
-            }
-            else if (!hazardRecovering) Rig.SetVisible(true);
+            // i-frames: pulse the body's alpha instead of blinking the renderers, so the sword light
+            // does not strobe the bloom
+            if (invulnTimer > 0f && !IsDashing) Rig.SetDim((Mathf.FloorToInt(Time.unscaledTime * 24f) & 1) == 0 ? 1f : 0.35f);
+            else Rig.SetDim(1f);
+            if (!hazardRecovering) Rig.SetVisible(true);
 
             Rig.SetFacing(Facing);
             Rig.Animate(this, dt);

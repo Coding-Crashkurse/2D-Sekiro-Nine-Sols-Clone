@@ -138,12 +138,17 @@ namespace AshenSol.Player
                 yield return null;
             }
 
-            c.Rig.PlayAttack(2, h.Active + 0.1f);
+            // release: the coiled blade comes over the top; the hitbox opens a few frames in, when the
+            // blade has actually reached the front, so the hit-stop catches it in the target
+            const float Release = 0.06f;
+            c.Rig.PlayAttack(3, Release, h.Active, h.Recovery, c.IsGrounded);
             LungeActive = true;
             IsCharging = false;
+            Services.Vfx.DustPuff(c.Position, 1.3f);
+            t = 0f;
+            while (t < Release) { t += Time.deltaTime; yield return null; }
             Vector2 arcPos = c.Center + new Vector2(c.Facing * 1.15f, 0.15f);
             Services.Vfx.SlashArc(arcPos, 0f, c.Facing < 0, Palette.PlayerSlash, 1.9f);
-            Services.Vfx.DustPuff(c.Position, 1.3f);
             Services.Cam.Kick(new Vector2(c.Facing, 0f), 0.18f);
 
             t = 0f;
@@ -169,7 +174,7 @@ namespace AshenSol.Player
             IsAttacking = true; inRecovery = false; comboQueued = false;
             hitThisSwing.Clear();
             var h = Hits[idx];
-            c.Rig.PlayAttack(idx, h.Startup + h.Active);
+            c.Rig.PlayAttack(idx, h.Startup, h.Active, h.Recovery, c.IsGrounded);
             Services.Audio.PlaySfx("sword_swing_" + (idx + 1), 0.9f, 0.08f);
             LungeActive = true;
 
@@ -350,14 +355,27 @@ namespace AshenSol.Player
         {
             IsQiBlasting = true;
             c.FaceTowards(victim.Center.x);
-            c.Rig.PlayAttack(2, 0.22f);
+            c.Rig.PlayAttack(2, 0.08f, 0.28f, 0.3f, c.IsGrounded);   // the contact key lands on the 0.22 s mark below
             c.Rig.PulseSwordLight(5f, 0.5f);
             Services.Audio.PlaySfx("sword_swing_3", 1f, 0.03f);
             Services.Vfx.ChromaticPulse(0.5f, 0.4f);
             TimeController.Instance.SlowMo(0.35f, 0.35f);
 
+            // close the distance during the wind-up so the blow lands on the body, not two units short of it
+            float stepTo = victim.Center.x - c.Facing * 1.15f;
             float t = 0f;
-            while (t < 0.22f) { t += ExecutionDelta; yield return null; }
+            while (t < 0.22f)
+            {
+                t += ExecutionDelta;
+                float gap = stepTo - c.Position.x;
+                if (c.IsGrounded && Mathf.Abs(gap) > 0.05f && Mathf.Abs(gap) < 2f)
+                {
+                    float nx = Mathf.MoveTowards(c.Position.x, stepTo, 9f * ExecutionDelta);
+                    if (Physics2D.Raycast(new Vector2(nx, c.Position.y + 0.2f), Vector2.down, 0.5f, Layers.GroundMask).collider != null)
+                        c.transform.position = new Vector3(nx, c.Position.y, 0f);
+                }
+                yield return null;
+            }
             while (TimeController.Instance != null && TimeController.Instance.IsPaused) yield return null;
 
             if (victim != null && victim.IsAlive)

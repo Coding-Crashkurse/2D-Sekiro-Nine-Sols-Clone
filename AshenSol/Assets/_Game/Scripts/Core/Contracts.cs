@@ -12,7 +12,7 @@ namespace AshenSol.Core
     public enum HitOutcome { Ignored = 0, Dodged = 1, Parried = 2, Blocked = 3, Hit = 4 }
     public enum GameState { Boot = 0, Title = 1, Level1 = 2, BossArena = 3, Victory = 4, Intro = 5, Works = 6, Stair = 7 }
     public enum LevelId { None = 0, Level1 = 1, Works = 2, Stair = 3, BossArena = 4 }
-    public enum EnemyType { Grunt = 0, SpearSentinel = 1, WatcherDrone = 2, Boss = 100 }
+    public enum EnemyType { Grunt = 0, SpearSentinel = 1, WatcherDrone = 2, HammerBrute = 3, Boss = 100 }
 
     /// <summary>Describes one attack instance delivered to an IDamageable.</summary>
     public struct AttackInfo
@@ -112,6 +112,8 @@ namespace AshenSol.Core
     public interface IVfxService
     {
         void SlashArc(Vector2 pos, float angleDeg, bool flipX, Color color, float scale = 1f);
+        /// <summary>Slash arc with a custom shape: span scales the arc angle (1 = the full crescent), aspect flattens it (1 = round).</summary>
+        void SlashArc(Vector2 pos, float angleDeg, bool flipX, Color color, float scale, float span, float aspect);
         void ParrySpark(Vector2 pos, bool perfect);
         void HitSpark(Vector2 pos, Vector2 dir, Color color, float scale = 1f);
         void InkSplatter(Vector2 pos, Vector2 dir, Color color, int count = 12);

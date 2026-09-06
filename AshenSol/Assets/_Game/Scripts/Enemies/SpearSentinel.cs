@@ -111,7 +111,7 @@ namespace AshenSol.Enemies
             Rig.Thrust(0.12f);
             Services.Audio.PlaySfxAt("spear_thrust", Center, 0.9f);
             Body.linearVelocity = new Vector2(Facing * 4f, Body.linearVelocity.y);
-            Services.Vfx.SlashArc(Center + new Vector2(Facing * 2.0f, 0f), 90f, Facing < 0, Palette.EnemySlash, 0.6f);
+            Services.Vfx.SlashArc(Center + new Vector2(Facing * 2.0f, 0f), 90f, Facing < 0, Palette.EnemySlash, 0.9f, 0.3f, 0.5f);   // a thrust is a streak, not a crescent
             bool resolved = false;
             float t = 0f;
             while (t < EnemyTuning.SpearActive)

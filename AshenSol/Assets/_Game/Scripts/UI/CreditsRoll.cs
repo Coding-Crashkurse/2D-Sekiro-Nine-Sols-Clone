@@ -86,11 +86,11 @@ namespace AshenSol.UI
             UiKit.Fill(root, "black", new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 1f),
                 Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
 
-            // the valley you came through, sunk back into the night
-            valley = UiKit.Image(root, "valley", Res.Sprite("bg_title"), new Color(0.34f, 0.32f, 0.36f, 1f),
+            // the valley you came through, seen once more under the dead sun
+            valley = UiKit.Image(root, "valley", Res.Sprite("bg_ending"), new Color(0.62f, 0.6f, 0.64f, 1f),
                 new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2240f, 1260f), false);
             valley.preserveAspect = false;
-            UiKit.Fill(root, "veil", Palette.Ink.WithAlpha(0.55f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            UiKit.Fill(root, "veil", Palette.Ink.WithAlpha(0.38f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
 
             // a low ember wash along the bottom
             glow = UiKit.Image(root, "wash", Res.Sprite("fx_glow"), Palette.Amber.WithAlpha(0.1f),

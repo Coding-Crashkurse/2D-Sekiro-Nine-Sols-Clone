@@ -40,6 +40,24 @@ namespace AshenSol.Enemies
         public const float LungeTelegraph = 0.65f, LungeSpeed = 14f, LungeDistance = 5f, LungeActive = 0.3f, LungeRecovery = 1.0f;
         public const int LungeDamage = 26; public const float LungeKnockback = 8f;
 
+        // Foundry brute (the hammer). Slow, heavy, and its guard takes TWO perfect parries.
+        public const int BruteHp = 150;
+        public const float BruteMaxPosture = 100f;
+        public const float BrutePostureOnParry = 50f;     // two perfect parries break a brute
+        public const float BrutePostureRegen = 22f;
+        public const float BrutePostureFromHitsMul = 0.4f;  // hits, heavies and blasts barely dent the guard: parry it open
+        public const int BruteExecuteDamage = 95;
+        public const float BruteSpeed = 1.9f;
+        public const float BruteAggroX = 8f, BruteAggroY = 3f, BruteLoseAggro = 13f;
+        public const float BruteReach = 2.4f;
+        public const float SmashTelegraph = 0.95f, SmashActive = 0.16f, SmashRecovery = 1.1f;   // overhead, pierces a late block
+        public const int SmashDamage = 30; public const float SmashKnockback = 9f;
+        public const float SweepTelegraph = 0.8f, SweepActive = 0.2f, SweepRecovery = 0.9f;     // wide horizontal swing
+        public const int SweepDamage = 24; public const float SweepKnockback = 8f;
+        public const float QuakeTelegraph = 1.05f, QuakeActive = 0.14f, QuakeRecovery = 1.4f;   // RED ground slam, waves both ways
+        public const int QuakeDamage = 32; public const float QuakeKnockback = 10f;
+        public const float QuakeWaveSpeed = 9f, QuakeWaveLife = 1.0f; public const int QuakeWaveDamage = 16;
+
         // Drone
         public const int DroneHp = 30;
         public const float DroneMaxPosture = 100f;

@@ -441,6 +441,7 @@ namespace AshenSol.Level
     }
 
     // ------------------------------------------------------------------ Parallax
+    [DefaultExecutionOrder(200)]   // after the camera has moved this frame, never a frame behind it
     public class ParallaxLayer : MonoBehaviour
     {
         public float Factor = 0.5f;       // 1 = glued to camera, 0 = world locked, <0 = foreground

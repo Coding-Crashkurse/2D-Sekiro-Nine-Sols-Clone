@@ -153,6 +153,7 @@ namespace AshenSol.Level
             main.startColor = new ParticleSystem.MinMaxGradient(
                 Palette.Teal.WithAlpha(0.7f), Color.Lerp(Palette.Teal, Color.white, 0.5f).WithAlpha(0.5f));
             main.gravityModifier = -0.02f;
+            main.useUnscaledTime = true;   // the forge breathes through hit-stop
             var em = ps.emission; em.enabled = true; em.rateOverTime = kind == Mode.Column ? 34f : 16f;
             var sh = ps.shape;
             sh.enabled = true; sh.shapeType = ParticleSystemShapeType.Box;

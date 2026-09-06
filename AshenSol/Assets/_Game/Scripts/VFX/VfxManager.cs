@@ -36,6 +36,9 @@ namespace AshenSol.VFX
 
             sparks = MakeSystem("Sparks", Res.Sprite("fx_spark"), true, true, 0.6f, SortOrder.Fx + 6, 1.6f, 0.05f);
             hitSparks = MakeSystem("SwordSparks", Res.Sprite("fx_glow"), true, true, 0.3f, SortOrder.Fx + 6, 1.1f, 0.025f);
+            // impact sparks fly during the hit-stop: the world may freeze, the hit must not
+            var sparksMain = sparks.main; sparksMain.useUnscaledTime = true;
+            var hitMain = hitSparks.main; hitMain.useUnscaledTime = true;
             var sparkSize = hitSparks.sizeOverLifetime;
             sparkSize.enabled = true;
             sparkSize.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 1f, 1f, 0f));
@@ -145,7 +148,12 @@ namespace AshenSol.VFX
         // ---------------- IVfxService ----------------
         public void SlashArc(Vector2 pos, float angleDeg, bool flipX, Color color, float scale = 1f)
         {
-            GetSlash().Play(pos, angleDeg, flipX, color, scale);
+            SlashArc(pos, angleDeg, flipX, color, scale, 1f, 1f);
+        }
+
+        public void SlashArc(Vector2 pos, float angleDeg, bool flipX, Color color, float scale, float span, float aspect)
+        {
+            GetSlash().Play(pos, angleDeg, flipX, color, scale, span, aspect);
             FlashLight(pos, color, 1.5f, 2.5f * scale, 0.12f);
         }
 
@@ -159,10 +167,12 @@ namespace AshenSol.VFX
                 Color c = perfect ? Color.Lerp(Color.white, Palette.Teal, Random.value) : Palette.Amber;
                 Emit(sparks, pos, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * sp, c, Random.Range(0.08f, 0.16f), Random.Range(0.3f, 0.45f));
             }
+            // The ring and the star sit BEHIND the fighters and run on unscaled time: the hit-stop then
+            // shows two dark silhouettes against the flash instead of a white star with nobody in it.
             var ring = Res.Sprite("fx_ring");
-            GetSprite().Play(ring, AdditiveFor(ring), pos, 0f, false, Color.white, Color.white.WithAlpha(0f), 0.2f, perfect ? 2.6f : 1.4f, 0.25f, SortOrder.Fx + 7);
+            GetSprite().Play(ring, AdditiveFor(ring), pos, 0f, false, Color.white, Color.white.WithAlpha(0f), 0.3f, perfect ? 2.4f : 1.3f, 0.22f, SortOrder.EnemyBack - 2, 0f, null, true);
             var flare = Res.Sprite("fx_flare");
-            GetSprite().Play(flare, AdditiveFor(flare), pos, Random.Range(0f, 90f), false, perfect ? Color.white : Palette.Amber, Color.white.WithAlpha(0f), perfect ? 3.2f : 1.6f, perfect ? 2.2f : 1.0f, 0.2f, SortOrder.Fx + 9, 45f);
+            GetSprite().Play(flare, AdditiveFor(flare), pos, Random.Range(0f, 90f), false, perfect ? Color.white : Palette.Amber, Color.white.WithAlpha(0f), perfect ? 1.7f : 1.0f, perfect ? 1.1f : 0.6f, 0.18f, SortOrder.EnemyBack - 3, 45f, null, true);
             FlashLight(pos, perfect ? Color.white : Palette.Amber, perfect ? 3.5f : 1.5f, perfect ? 5f : 3f, 0.15f);
             if (perfect) ScreenFlash(Color.white.WithAlpha(0.22f), 0.09f);
         }
@@ -179,7 +189,7 @@ namespace AshenSol.VFX
                 Emit(hitSparks, pos, new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * sp, color, Random.Range(0.05f, 0.09f) * scale, Random.Range(0.14f, 0.24f));
             }
             var glow = Res.Sprite("fx_glow");
-            GetSprite().Play(glow, AdditiveFor(glow), pos, 0f, false, Color.Lerp(color, Color.white, 0.45f), color.WithAlpha(0f), 0.7f * scale, 1.25f * scale, 0.14f, SortOrder.Fx + 9);
+            GetSprite().Play(glow, AdditiveFor(glow), pos, 0f, false, Color.Lerp(color, Color.white, 0.45f), color.WithAlpha(0f), 0.7f * scale, 1.25f * scale, 0.14f, SortOrder.Fx + 9, 0f, null, true);
         }
 
         public void InkSplatter(Vector2 pos, Vector2 dir, Color color, int count = 12)
@@ -350,6 +360,7 @@ namespace AshenSol.VFX
             main.startSize = new ParticleSystem.MinMaxCurve(0.04f, 0.11f);
             main.startColor = new ParticleSystem.MinMaxGradient(color.WithAlpha(0.7f), Color.Lerp(color, Color.white, 0.3f).WithAlpha(0.5f));
             main.gravityModifier = -0.01f;
+            main.useUnscaledTime = true;   // the atmosphere keeps drifting through hit-stop and slow-motion
             var em = ps.emission; em.enabled = true; em.rateOverTime = rate;
             var sh = ps.shape; sh.enabled = true; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(area.width, area.height, 1f);
             var vel = ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;

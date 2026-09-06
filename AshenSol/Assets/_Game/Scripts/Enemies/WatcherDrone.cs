@@ -40,15 +40,19 @@ namespace AshenSol.Enemies
             return EnemyRig.BuildDrone(transform, SortOrder.Enemy);
         }
 
-        protected override void OnReset() { hoverTarget = SpawnPos; bobT = Random.value * 10f; }
+        protected override void OnReset() { hoverTarget = SpawnPos; bobT = Random.value * 10f; hoverVel = Vector2.zero; }
+
+        Vector2 hoverVel;
 
         void FixedUpdate()
         {
             if (!IsAlive || Body == null) return;
             bobT += Time.fixedDeltaTime;
             Vector2 goal = hoverTarget + new Vector2(0f, Mathf.Sin(bobT * EnemyTuning.DroneBobHz * Mathf.PI * 2f) * EnemyTuning.DroneBobAmp);
-            Vector2 p = Vector2.MoveTowards(Body.position, goal, EnemyTuning.DroneFollowSpeed * Time.fixedDeltaTime);
+            // eased hover with a lean into the direction of travel
+            Vector2 p = Vector2.SmoothDamp(Body.position, goal, ref hoverVel, 0.4f, EnemyTuning.DroneFollowSpeed * 1.5f, Time.fixedDeltaTime);
             Body.MovePosition(p);
+            Rig.Bank = Mathf.Clamp(-hoverVel.x * 4f, -14f, 14f);
         }
 
         protected override IEnumerator Behaviour()

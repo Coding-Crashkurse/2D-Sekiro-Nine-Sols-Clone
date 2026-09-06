@@ -226,7 +226,7 @@ namespace AshenSol.EditorTools
             GameEvents.RaisePlayerQiChanged(6, 6);
             var ui = AshenSol.UI.UiManager.Instance;
             var pips = (UnityEngine.UI.Image[])ui.GetType().GetField("pips", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(ui);
-            Check(pips.Length == 6 && Array.TrueForAll(pips, pip => pip.gameObject.activeSelf), "HUD displays all six upgraded Qi slots");
+            Check(pips.Length == Progression.PlayerBaseQi + Progression.MaxFocus && Array.TrueForAll(pips, pip => pip.gameObject.activeSelf), "HUD displays every upgraded Qi slot");
             GameEvents.RaisePlayerQiChanged(0, 3);
             Check(!pips[3].gameObject.activeSelf && pips[2].gameObject.activeSelf, "HUD resets Qi capacity for a new run");
 

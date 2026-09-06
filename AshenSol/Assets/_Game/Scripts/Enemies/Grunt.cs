@@ -99,7 +99,7 @@ namespace AshenSol.Enemies
             EndTelegraph();
             Rig.Strike(0.12f);
             Services.Audio.PlaySfxAt("grunt_swing", Center, 0.9f);
-            Services.Vfx.SlashArc(Center + new Vector2(Facing * 1.1f, 0.1f), -30f, Facing < 0, Palette.EnemySlash, 0.9f);
+            Services.Vfx.SlashArc(Center + new Vector2(Facing * 1.1f, 0.1f), -30f, Facing < 0, Palette.EnemySlash, 0.9f, 0.9f, 0.6f);   // a flat, horizontal cut
             Body.linearVelocity = new Vector2(Facing * 2.5f, Body.linearVelocity.y);
             bool resolved = false;
             float t = 0f;

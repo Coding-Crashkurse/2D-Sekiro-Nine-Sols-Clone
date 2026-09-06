@@ -45,7 +45,9 @@ namespace AshenSol.UI
             GameEvents.PlayerQiChanged += OnQi;
             GameEvents.BossHealthChanged += OnBossHealth;
             GameEvents.BossPhaseChanged += OnBossPhase;
+            Progression.Changed += OnProgression;
             Build();
+            OnProgression();
         }
 
         void OnDestroy()
@@ -54,6 +56,7 @@ namespace AshenSol.UI
             GameEvents.PlayerQiChanged -= OnQi;
             GameEvents.BossHealthChanged -= OnBossHealth;
             GameEvents.BossPhaseChanged -= OnBossPhase;
+            Progression.Changed -= OnProgression;
         }
 
         // ------------------------------------------------------------ build
@@ -273,6 +276,15 @@ namespace AshenSol.UI
         }
 
         void OnBossHealth(float h, float p, bool broken) { bossHp01 = h; bossPosture01 = p; bossBroken = broken; }
+
+        /// <summary>Souls readout: rebuilt only when the numbers change, not every frame.</summary>
+        void OnProgression()
+        {
+            if (levelText == null) return;
+            levelText.text = "LV " + Progression.Level + "    <color=#ffcc55>" + Progression.Ash + "</color> ash"
+                           + (Progression.CanAffordLevel ? "    <color=#4fe3d0>shrine ready</color>" : "");
+            ashFill.rectTransform.sizeDelta = new Vector2(240f * Progression.Progress01, 7f);
+        }
         void OnBossPhase(int p) { if (bossName != null) StartCoroutine(PhaseColor()); }
 
         IEnumerator PhaseColor()
@@ -287,7 +299,7 @@ namespace AshenSol.UI
         {
             float dt = Time.unscaledDeltaTime;
             // HUD
-            float w = hpFill.rectTransform.parent.GetComponent<RectTransform>() != null ? 414f : 414f;
+            const float w = 414f;   // inner width of the HP bar
             hpFill.rectTransform.sizeDelta = new Vector2(Mathf.Lerp(hpFill.rectTransform.sizeDelta.x, w * hp01, 1f - Mathf.Exp(-18f * dt)), 20f);
             if (trailDelay > 0f) trailDelay -= dt; else trail01 = Mathf.MoveTowards(trail01, hp01, dt * 1.8f);
             hpTrail.rectTransform.sizeDelta = new Vector2(w * Mathf.Max(trail01, hp01), 20f);
@@ -311,19 +323,14 @@ namespace AshenSol.UI
             float bw = 894f;
             float shownHp = Mathf.Lerp(bossFill.rectTransform.sizeDelta.x / bw, bossHp01, 1f - Mathf.Exp(-14f * dt));
             bossFill.rectTransform.sizeDelta = new Vector2(bw * shownHp, 12f);
-            bossPosture.rectTransform.sizeDelta = new Vector2(bw * bossPosture01, 6f);
+            float shownPosture = Mathf.Lerp(bossPosture.rectTransform.sizeDelta.x / bw, bossPosture01, 1f - Mathf.Exp(-16f * dt));
+            bossPosture.rectTransform.sizeDelta = new Vector2(bw * shownPosture, 6f);
             float hot = (bossBroken || bossPosture01 > 0.995f) ? 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * 12f) : 0f;
             bossPosture.color = Color.Lerp(Palette.Posture, Color.white, hot);
             // prompt
             if (promptTimer > 0f) { promptTimer -= dt; promptGroup.alpha = Mathf.MoveTowards(promptGroup.alpha, 1f, dt * 5f); }
             else promptGroup.alpha = Mathf.MoveTowards(promptGroup.alpha, 0f, dt * 2.5f);
-            // souls readout: what you carry, and whether a shrine can use it
-            if (levelText != null)
-            {
-                levelText.text = "LV " + Progression.Level + "    <color=#ffcc55>" + Progression.Ash + "</color> ash"
-                               + (Progression.CanAffordLevel ? "    <color=#4fe3d0>shrine ready</color>" : "");
-                ashFill.rectTransform.sizeDelta = new Vector2(240f * Progression.Progress01, 7f);
-            }
+            // souls readout: refreshed from Progression.Changed, see OnProgression
             if (upgradePanel != null) upgradePanel.Tick();
             if (credits != null) credits.Tick();
 
@@ -397,6 +404,7 @@ namespace AshenSol.UI
             bossSub.text = subtitle;
             bossHp01 = 1f; bossPosture01 = 0f; bossBroken = false;
             bossFill.rectTransform.sizeDelta = new Vector2(894f, 12f);
+            bossPosture.rectTransform.sizeDelta = new Vector2(0f, 6f);
             bossVisible = true;
         }
 

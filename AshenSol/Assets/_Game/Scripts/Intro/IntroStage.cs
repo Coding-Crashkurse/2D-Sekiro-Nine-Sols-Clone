@@ -124,6 +124,7 @@ namespace AshenSol.Intro
             main.startColor = new ParticleSystem.MinMaxGradient(
                 new Color(0.85f, 0.82f, 0.8f, 0.75f), new Color(0.6f, 0.58f, 0.6f, 0.5f));
             main.gravityModifier = 0.035f;
+            main.useUnscaledTime = true;
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, 6.28f);
             var em = ps.emission; em.enabled = true; em.rateOverTime = rate;
             var sh = ps.shape;
@@ -168,6 +169,8 @@ namespace AshenSol.Intro
                 r.color = ReadableTint(silhouette, 0.75f);
                 r.material = MaterialLibrary.SpriteUnlit;   // unaffected by 2D lights: a clean silhouette
             }
+            var tick = go.AddComponent<IntroFigure>();
+            tick.Rig = rig;
             rig.Animate(0f, 0.016f);
             return rig;
         }
@@ -184,7 +187,7 @@ namespace AshenSol.Intro
                 LegSpriteH = 0.54f, HeadSpriteH = 0.46f,
                 WeaponOffset = new Vector2(0f, 0.30f), WeaponVerticalIdle = true, ArmIdle = 14f,
                 SortBase = SortOrder.Player, LightColor = Palette.Teal, LightIntensity = 0.9f, LightRadius = 1.8f,
-                WeaponTipDistance = 0.75f
+                WeaponTipDistance = 0.75f, TrailColor = Palette.PlayerSlash
             };
         }
 
@@ -229,8 +232,36 @@ namespace AshenSol.Intro
                 LegSpriteH = 1.1f, HeadSpriteH = 0.82f,
                 WeaponOffset = new Vector2(0f, 0.55f), WeaponVerticalIdle = true, ArmIdle = 10f,
                 SortBase = SortOrder.Boss, LightColor = Palette.Red, LightIntensity = 0.8f, LightRadius = 3f,
-                WeaponTipDistance = 1.8f
+                WeaponTipDistance = 1.8f, TrailColor = Palette.BossSlash
             };
+        }
+    }
+
+    /// <summary>Ticks a stand-alone puppet every frame on unscaled time, so poses, flashes, telegraphs and
+    /// strikes set by the cutscene actually play. Settles the rig before it is first seen.</summary>
+    public class IntroFigure : MonoBehaviour
+    {
+        public EnemyRig Rig;
+        /// <summary>Horizontal speed fed to the walk cycle (the beat moves the transform itself).</summary>
+        public float VelocityX;
+        bool settled;
+
+        public static IntroFigure Of(EnemyRig rig)
+        {
+            return rig != null && rig.Root != null && rig.Root.parent != null ? rig.Root.parent.GetComponent<IntroFigure>() : null;
+        }
+
+        void OnEnable() { settled = false; }
+
+        void Update()
+        {
+            if (Rig == null) return;
+            if (!settled)
+            {
+                settled = true;
+                for (int i = 0; i < 40; i++) Rig.Animate(VelocityX, 1f / 30f);
+            }
+            Rig.Animate(VelocityX, Time.unscaledDeltaTime);
         }
     }
 }

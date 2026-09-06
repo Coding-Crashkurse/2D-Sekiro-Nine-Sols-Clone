@@ -8,7 +8,7 @@ namespace AshenSol.VFX
     public class SpriteFx : MonoBehaviour
     {
         public SpriteRenderer Renderer { get; private set; }
-        float t, life; Color c0, c1; float s0, s1; float rot0, rotSpeed; bool active; System.Func<float, float> ease;
+        float t, life; Color c0, c1; float s0, s1; float rot0, rotSpeed; bool active, unscaled; System.Func<float, float> ease;
 
         public static SpriteFx Make(Transform parent)
         {
@@ -22,13 +22,14 @@ namespace AshenSol.VFX
 
         public bool IsActive { get { return active; } }
 
-        public void Play(Sprite sprite, Material mat, Vector2 pos, float angle, bool flipX, Color colorStart, Color colorEnd, float scaleStart, float scaleEnd, float seconds, int sort, float rotSpeedDeg = 0f, System.Func<float, float> easeFn = null)
+        public void Play(Sprite sprite, Material mat, Vector2 pos, float angle, bool flipX, Color colorStart, Color colorEnd, float scaleStart, float scaleEnd, float seconds, int sort, float rotSpeedDeg = 0f, System.Func<float, float> easeFn = null, bool unscaledTime = false)
         {
             gameObject.SetActive(true);
             Renderer.sprite = sprite; Renderer.material = mat; Renderer.flipX = flipX; Renderer.sortingOrder = sort;
             transform.position = pos; transform.rotation = Quaternion.Euler(0f, 0f, angle);
             c0 = colorStart; c1 = colorEnd; s0 = scaleStart; s1 = scaleEnd; life = Mathf.Max(0.01f, seconds); t = 0f; rot0 = angle; rotSpeed = rotSpeedDeg;
             ease = easeFn ?? Ease.OutCubic;
+            unscaled = unscaledTime;
             active = true;
             Apply(0f);
         }
@@ -36,7 +37,7 @@ namespace AshenSol.VFX
         void Update()
         {
             if (!active) return;
-            t += Time.deltaTime;
+            t += unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
             float p = Mathf.Clamp01(t / life);
             Apply(p);
             if (p >= 1f) { active = false; gameObject.SetActive(false); }

@@ -216,6 +216,8 @@ namespace AshenSol.Boss
             hoverTarget = SpawnPos;
             transform.position = SpawnPos;
             bobT = 0f;
+            hoverVel = Vector2.zero;
+            if (rigRoot != null) rigRoot.localRotation = Quaternion.identity;
             ReleaseBlades(true);
             PoseBlades(new Vector2(-18f, 18f));
             hammerL.enabled = hammerR.enabled = true;
@@ -275,11 +277,20 @@ namespace AshenSol.Boss
             }
         }
 
+        Vector2 hoverVel;
+
         void FixedUpdate()
         {
             if (!IsAlive || Body == null) return;
             Vector2 goal = hoverTarget + new Vector2(0f, Mathf.Sin(bobT * 1.1f) * 0.35f);
-            Body.MovePosition(Vector2.MoveTowards(Body.position, goal, ArtisanTuning.MoveSpeed * Time.fixedDeltaTime));
+            // eased flight instead of a constant-speed slide: it leans into a move and settles out of it
+            Vector2 next = Vector2.SmoothDamp(Body.position, goal, ref hoverVel, 0.32f, ArtisanTuning.MoveSpeed * 1.7f, Time.fixedDeltaTime);
+            Body.MovePosition(next);
+            if (rigRoot != null)
+            {
+                float bank = Mathf.Clamp(-hoverVel.x * 2.2f, -16f, 16f);
+                rigRoot.localRotation = Quaternion.Euler(0f, 0f, Mathf.LerpAngle(rigRoot.localEulerAngles.z, bank, 0.2f));
+            }
         }
 
         // ---------------- damage ----------------
@@ -297,7 +308,7 @@ namespace AshenSol.Boss
 
         protected override void OnHealthChanged()
         {
-            GameEvents.RaiseBossHealthChanged(Mathf.Clamp01((float)Hp / MaxHp), Posture01, PostureBroken);
+            GameEvents.RaiseBossHealthChanged(Mathf.Clamp01((float)Hp / MaxHp), PostureDisplay01, PostureBroken);
             if (Phase == 1 && Hp > 0 && Hp <= MaxHp * ArtisanTuning.Phase2Threshold) phasePending = true;
         }
 
@@ -550,8 +561,9 @@ namespace AshenSol.Boss
             }
             EndTelegraph();
 
-            // drop
+            // drop: the hover target goes to the floor too, so FixedUpdate pulls the same way instead of fighting it
             float y = transform.position.y;
+            hoverTarget = new Vector2(transform.position.x, arena.yMin + 1.1f);
             StartBladeTrails(true, true);
             while (transform.position.y > arena.yMin + 1.1f)
             {

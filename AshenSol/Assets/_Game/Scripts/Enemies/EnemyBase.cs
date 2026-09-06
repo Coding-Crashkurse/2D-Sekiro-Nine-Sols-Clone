@@ -24,6 +24,7 @@ namespace AshenSol.Enemies
             {
                 case EnemyType.SpearSentinel: e = go.AddComponent<SpearSentinel>(); break;
                 case EnemyType.WatcherDrone: e = go.AddComponent<WatcherDrone>(); break;
+                case EnemyType.HammerBrute: e = go.AddComponent<HammerBrute>(); break;
                 default: e = go.AddComponent<Grunt>(); break;
             }
             e.Init(pos, facing, zoneId);
@@ -41,6 +42,8 @@ namespace AshenSol.Enemies
         public bool PostureBroken { get; private set; }
         public float PostureBreakRemaining { get; private set; }
         public float Posture01 { get { return MaxPosture > 0f ? Mathf.Clamp01(Posture / MaxPosture) : 0f; } }
+        /// <summary>What the bars draw: the guard while it holds, the time left in the break once it is broken.</summary>
+        public float PostureDisplay01 { get { return PostureBroken ? Mathf.Clamp01(PostureBreakRemaining / EnemyTuning.PostureBreakSeconds) : Posture01; } }
         /// <summary>True while the guard is broken — the window for the Qi execution.</summary>
         public bool CanBeExecuted { get { return IsAlive && PostureBroken; } }
         public bool IsAlive { get; protected set; }
@@ -68,6 +71,9 @@ namespace AshenSol.Enemies
         /// <summary>Posture added by one perfect parry. Defaults to a full bar: one parry breaks a mook.</summary>
         protected virtual float PostureOnParry { get { return MaxPosture; } }
         protected virtual float PostureRegen { get { return 30f; } }
+        /// <summary>Scales the posture added by sword hits, the charged strike and the Qi blast (parries are untouched).
+        /// Below 1 the guard has to be opened with parries rather than chipped down.</summary>
+        protected virtual float PostureFromHitsMul { get { return 1f; } }
         /// <summary>Damage of the Qi execution performed on a broken guard.</summary>
         public virtual int ExecuteDamage { get { return 60; } }
         protected virtual float KnockbackResist { get { return 0f; } }
@@ -139,6 +145,7 @@ namespace AshenSol.Enemies
             {
                 PostureBreakRemaining -= dt;
                 if (PostureBreakRemaining <= 0f) RecoverPosture();
+                else OnHealthChanged();                   // the break window drains on the bars
             }
             else if (Posture > 0f)
             {
@@ -163,10 +170,12 @@ namespace AshenSol.Enemies
             Services.Audio.PlaySfxAt(kind == AttackKind.Parryable ? "enemy_telegraph" : "enemy_telegraph_red", Center, 0.9f);
         }
 
-        protected void EndTelegraph()
+        /// <summary>pop: the strike follows, so the body flashes hard for a few frames. False when the
+        /// wind-up is merely aborted (stagger, death).</summary>
+        protected void EndTelegraph(bool pop = true)
         {
             IsTelegraphing = false; TimeUntilStrike = -1f;
-            if (Rig != null) Rig.EndTelegraph();
+            if (Rig != null) Rig.EndTelegraph(pop);
         }
 
         protected IEnumerator Wait(float seconds)
@@ -194,6 +203,7 @@ namespace AshenSol.Enemies
             if (outcome == HitOutcome.Parried)
             {
                 healthBar.Show();
+                if (Rig != null) Rig.Recoil(0.16f);       // the blow bounces off; a break below replaces this with the stagger
                 AddPosture(PostureOnParry);
                 if (!PostureBroken && Rig != null) { Rig.Flash(Color.white, 0.12f); Rig.Punch(0.93f, 1.07f); }
             }
@@ -208,7 +218,7 @@ namespace AshenSol.Enemies
         {
             if (!IsAlive) return;
             if (behaviour != null) { StopCoroutine(behaviour); behaviour = null; }
-            EndTelegraph();
+            EndTelegraph(false);
             staggerTimer = Mathf.Max(staggerTimer, seconds);
             if (Body != null && Body.bodyType == RigidbodyType2D.Dynamic)
                 Body.linearVelocity = new Vector2(-Facing * 2.5f, 1.5f);
@@ -290,13 +300,17 @@ namespace AshenSol.Enemies
             if (Hp <= 0) { Die(); return HitOutcome.Hit; }
 
             if (execute) RecoverPosture();                       // the break is consumed by the finisher
-            else if (info.Tag == "qi_blast") AddPosture(MaxPosture * EnemyTuning.PostureFromQiBlast);
-            else if (info.Tag == "player_heavy") AddPosture(MaxPosture * EnemyTuning.PostureFromHeavy);
-            else if (info.Team == Team.Player) AddPosture(MaxPosture * EnemyTuning.PostureFromHit);
+            else if (info.Tag == "qi_blast") AddPosture(MaxPosture * EnemyTuning.PostureFromQiBlast * PostureFromHitsMul);
+            else if (info.Tag == "player_heavy") AddPosture(MaxPosture * EnemyTuning.PostureFromHeavy * PostureFromHitsMul);
+            else if (info.Team == Team.Player) AddPosture(MaxPosture * EnemyTuning.PostureFromHit * PostureFromHitsMul);
             return HitOutcome.Hit;
         }
 
-        protected virtual void OnHurt(in AttackInfo info, int dmg) { }
+        /// <summary>Default hit reaction: a short flinch and a body punch. Bosses override this away.</summary>
+        protected virtual void OnHurt(in AttackInfo info, int dmg)
+        {
+            if (Rig != null) { Rig.Flinch(0.14f); Rig.Punch(0.92f, 1.08f); }
+        }
         protected virtual void OnHealthChanged() { }
 
         protected virtual void Die()
@@ -305,7 +319,7 @@ namespace AshenSol.Enemies
             IsAlive = false;
             if (behaviour != null) { StopCoroutine(behaviour); behaviour = null; }
             StopAllCoroutines();
-            EndTelegraph();
+            EndTelegraph(false);
             staggerTimer = 0f;
             if (Collider != null) Collider.enabled = false;
             if (Body != null) { Body.linearVelocity = Vector2.zero; Body.simulated = false; }

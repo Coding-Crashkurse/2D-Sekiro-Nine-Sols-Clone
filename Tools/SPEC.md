@@ -174,7 +174,7 @@ States & motion: Idle (bob 0.03 u @ 1.2 Hz, sword sway ±4°), Run (legs ±38° 
 
 ## 4. Enemies (`AshenSol.Enemies`, owner: **enemies** agent)
 
-Files: `EnemyBase.cs`, `EnemyRig.cs`, `Grunt.cs`, `SpearSentinel.cs`, `WatcherDrone.cs`, `Projectile.cs`, `EnemyHealthBar.cs`, `EnemyTuning.cs`.
+Files: `EnemyBase.cs`, `EnemyRig.cs`, `Grunt.cs`, `SpearSentinel.cs`, `HammerBrute.cs`, `WatcherDrone.cs`, `Projectile.cs`, `EnemyHealthBar.cs`, `EnemyTuning.cs`.
 
 ```csharp
 public abstract class EnemyBase : MonoBehaviour, IDamageable {
@@ -225,6 +225,8 @@ public class Projectile : MonoBehaviour, IReflectable {
 | Parry reaction | stagger 0.55 s, pushed 1 u back | stagger 0.5 s | — (bolts reflect: 30 dmg to a drone kills it) |
 | Rig sprites | `grunt_leg`×2, `grunt_torso`, `grunt_head`, `grunt_arm`, `grunt_blade` | `spear_leg`×2, `spear_torso`, `spear_head`, `spear_arm`, `spear_spear` | `drone_body`, `drone_eye`, `drone_ring` (ring rotates) |
 | Sounds | `grunt_swing` | `spear_thrust`, `spear_lunge` | `drone_shot`, `drone_hover` (looped ambience while alive, quiet) |
+
+**Foundry Brute** (`HammerBrute.cs`, `EnemyType.HammerBrute`, Level III onward): HP 150, posture 100 but **a perfect parry adds only 50 — two parries break it**; hits, heavies and Qi blasts add only 40 % of their usual posture (`PostureFromHitsMul`), so the guard is parried open, not chipped (regen 22/s, execute 95, ash 55, knockback resist 0.8). Walks at 1.9 u/s, aggro ≤ 8 u (x) & 3 u (y), attacks inside 2.4 u, cycling Smash → Sweep → Quake. **Smash**: telegraph 0.95 (white) → hammer over the top, active 0.16, box (2.4,1.9) low in front, dmg 30, kb 9, `PierceGuard` (a late block still eats 60 %), then the hammer stays buried for 1.1 s. **Sweep**: telegraph 0.8 (white) → step 3.5 u/s, active 0.2, box (3.2,1.6), dmg 24, kb 8, recovery 0.9. **Quake**: telegraph 1.05 (red) → slam at the feet, box (3.0,2.2) dmg 32 kb 10 unblockable, plus a `GroundShockwave` each way (speed 9, dmg 16, life 1.0), then kneels 1.4 s. A parry that does not break it punches the rig, kicks the camera and floats "ONE MORE" once the bar is half full. Rig sprites `brute_leg`×2, `brute_torso`, `brute_head`, `brute_arm`, `brute_hammer` (hammer rests upright: `ArmIdle` 30, `WeaponIdleLocal` −30; the telegraph windup hauls it behind the shoulder). Sounds reuse `boss_swing`, `boss_slam`, `boss_shockwave`, `land` (footfalls).
 
 Ground enemies: Rigidbody2D dynamic (freeze rotation, mass 2), `CapsuleCollider2D`, layer `Layers.Enemy`; movement via velocity; ledge check (ray 0.6 u ahead, 1.2 u down) & wall check; facing flips rig scale. Drone: Rigidbody2D kinematic + `CircleCollider2D`, layer Enemy.
 Projectile: `CircleCollider2D` trigger radius 0.18, layer `Layers.Projectile`, kinematic body moved by velocity in `FixedUpdate`; on trigger with Player layer (team Enemy) → `PlayerController.Instance.ReceiveAttack` (`IsProjectile=true`, `Payload=this`, `Origin=position`); outcome Parried → the projectile was reflected by the player (do not destroy); Dodged → pass through; Hit/Blocked → `Vfx.HitSpark` + destroy. Team Player projectile hits `Layers.EnemyMask` → `ReceiveAttack` (Team.Player) → destroy. Hits Ground → spark + destroy. Visual: `fx_bolt` sprite (additive, rotated to velocity) + `Vfx.ProjectileTrail` + `Light2D`.
@@ -512,7 +514,7 @@ Boss bar UI carries both: red HP on top, yellow posture underneath
 Static `Progression` holds the run: `Level`, `Ash`, `BonusHp`, `DamageMul`, `BonusQi`, and the
 pile waiting to be picked up (`DroppedAsh`, `DropPoint`, `DropLevel`). `GameFlow.StartRun` resets it.
 
-* `EnemyBase.AshValue` awards ash on death (Grunt 22, Sentinel 34, Drone 16, Artisan 190, Warden 260).
+* `EnemyBase.AshValue` awards ash on death (Grunt 22, Sentinel 34, Drone 16, Brute 55, Artisan 190, Warden 260).
 * `DropOnDeath(where, level)` moves everything carried onto the ground and spawns an `AshPile`
   there; walking into the pile calls `Recover()`. A second death replaces the pile — the old ash
   is gone.
