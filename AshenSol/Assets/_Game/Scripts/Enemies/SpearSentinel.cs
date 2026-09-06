@@ -13,6 +13,7 @@ namespace AshenSol.Enemies
         public override int ExecuteDamage { get { return EnemyTuning.SpearExecuteDamage; } }
         protected override float KnockbackResist { get { return 0.3f; } }
         public override string DisplayName { get { return "Spear Sentinel"; } }
+        public override int AshValue { get { return 34; } }
 
         int attackCount;
         int patrolDir = 1;

@@ -30,6 +30,8 @@ namespace AshenSol.UI
         CanvasGroup subtitleGroup; Text subtitleText;
         RectTransform barTop, barBottom; float letterbox, letterboxTarget, letterboxSpeed = 1f;
         CanvasGroup skipGroup;
+        UpgradePanel upgradePanel;
+        Text levelText; Image ashFill;
 
         void Awake()
         {
@@ -73,6 +75,7 @@ namespace AshenSol.UI
             BuildVictory();
             BuildPause();
             BuildCutscene();
+            upgradePanel = new UpgradePanel(rootRt);
             var fadeRt = UiKit.Panel(rootRt, "Fade", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             fadeImg = fadeRt.gameObject.AddComponent<Image>();
             fadeImg.color = new Color(0f, 0f, 0f, 1f);
@@ -98,6 +101,9 @@ namespace AshenSol.UI
                 pips[i].color = Palette.Gold.WithAlpha(0f);
             }
             UiKit.Text(hud, "qiLabel", "QI", 16, Palette.Bone.WithAlpha(0.7f), tl, new Vector2(176f, -84f), new Vector2(60f, 30f), TextAnchor.MiddleLeft);
+            levelText = UiKit.Text(hud, "level", "LV 1", 18, Palette.Gold, tl, new Vector2(48f, -118f), new Vector2(520f, 26f), TextAnchor.MiddleLeft);
+            UiKit.Image(hud, "ashBack", null, Palette.Ink.WithAlpha(0.7f), tl, new Vector2(48f, -140f), new Vector2(240f, 7f));
+            ashFill = UiKit.Image(hud, "ashFill", null, Palette.Gold.WithAlpha(0.85f), tl, new Vector2(48f, -140f), new Vector2(0f, 7f));
             hudGroup.alpha = 0f;
         }
 
@@ -297,6 +303,15 @@ namespace AshenSol.UI
             // prompt
             if (promptTimer > 0f) { promptTimer -= dt; promptGroup.alpha = Mathf.MoveTowards(promptGroup.alpha, 1f, dt * 5f); }
             else promptGroup.alpha = Mathf.MoveTowards(promptGroup.alpha, 0f, dt * 2.5f);
+            // souls readout: what you carry, and whether a shrine can use it
+            if (levelText != null)
+            {
+                levelText.text = "LV " + Progression.Level + "    <color=#ffcc55>" + Progression.Ash + "</color> ash"
+                               + (Progression.CanAffordLevel ? "    <color=#4fe3d0>shrine ready</color>" : "");
+                ashFill.rectTransform.sizeDelta = new Vector2(240f * Progression.Progress01, 7f);
+            }
+            if (upgradePanel != null) upgradePanel.Tick();
+
             // cutscene furniture
             letterbox = Mathf.MoveTowards(letterbox, letterboxTarget, letterboxSpeed * dt);
             float barH = 108f * Ease.OutCubic(letterbox);
@@ -487,5 +502,12 @@ namespace AshenSol.UI
         }
 
         public void ShowSkipHint(bool visible) { skipWanted = visible; }
+
+        public bool UpgradePanelOpen { get { return upgradePanel != null && upgradePanel.IsOpen; } }
+
+        public void ShowUpgradePanel(Action<UpgradeKind> onPick)
+        {
+            if (upgradePanel != null) upgradePanel.Open(onPick);
+        }
     }
 }

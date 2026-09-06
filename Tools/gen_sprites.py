@@ -896,6 +896,25 @@ def prop_climb():
     return noise(img, 6, seed=62)
 
 
+
+def boss_horn():
+    """A single curved horn, tip up, pivot at the base. Grows out of the mask in phase two."""
+    w, h = 46, 116
+    img = canvas(w, h)
+    m = mask_new(w, h)
+    # outer curve then inner curve back down: a crescent that thins to a point
+    poly(m, [(16, 116), (30, 112), (36, 92), (37, 64), (32, 36), (24, 12), (18, 2),
+             (16, 16), (20, 40), (23, 66), (22, 90), (16, 104)])
+    img = over(img, glow(m, RED, 9, 0.5), grad_fill(m, mix(BONE, (200, 180, 170), 0.4), (52, 30, 30)),
+               rim(m, WHITE, -1.6, 1.6, 190))
+    # burning fissures along the length
+    img = stroke(img, [(20, 100), (25, 74), (27, 48), (23, 20)], RED, 1.6, 235, glow_color=RED, glow_r=4, glow_s=1.0)
+    img = stroke(img, [(28, 96), (31, 70), (30, 46)], AMBER, 1.0, 170, glow_color=AMBER, glow_r=3, glow_s=0.6)
+    for y in (96, 78, 60, 42):
+        img = stroke(img, [(17, y), (33, y - 3)], (40, 22, 22), 1.0, 150)
+    return noise(img, 5, seed=71)
+
+
 # ================================================================ BACKGROUNDS
 def vgradient(w, h, stops):
     """stops: list of (t, color)."""
@@ -1398,6 +1417,7 @@ def main():
     save(boss_glaive(), 26, 270, "boss_glaive")
     save(boss_cape_seg(), 24, 24, "boss_cape_seg")
     save(boss_core(), 34, 34, "boss_core")
+    save(boss_horn(), 46, 116, "boss_horn")
 
     print("[gen] tiles")
     save(tile_stone(), 100, 100, "tile_stone")

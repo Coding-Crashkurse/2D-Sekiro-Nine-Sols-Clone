@@ -60,6 +60,8 @@ namespace AshenSol.Enemies
         public Collider2D Collider { get; protected set; }
         public float DistanceToPlayer { get { var p = Player; return p != null ? Vector2.Distance(p.Center, Center) : 999f; } }
         public virtual string DisplayName { get { return Type.ToString(); } }
+        /// <summary>Ash granted for the kill.</summary>
+        public virtual int AshValue { get { return 22; } }
         public event Action<EnemyBase> Died;
 
         protected virtual float CenterHeight { get { return 0.8f; } }
@@ -313,6 +315,7 @@ namespace AshenSol.Enemies
             if (Rig != null) Rig.SetVisible(false);
             if (healthBar != null) healthBar.Hide();
             OnDied();
+            Progression.AddAsh(AshValue);
             var d = Died; if (d != null) d(this);
             GameEvents.RaiseEnemyKilled(this);
             GameEvents.RaiseLog("enemy killed: " + DisplayName + (ZoneId != null ? " zone=" + ZoneId : ""));

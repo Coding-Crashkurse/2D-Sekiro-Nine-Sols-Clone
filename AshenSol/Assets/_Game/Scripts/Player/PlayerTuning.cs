@@ -55,6 +55,7 @@ namespace AshenSol.Player
 
         // traversal
         public const float ClimbSpeed = 5.5f;
+        public const float ClimbHugOffset = 0.16f;   // how far the body sits off the ladder centre
         public const float ClimbJumpX = 7f;
         public const float UpdraftMax = 15f;
         public const float LaunchRefreshDash = 1f;

@@ -23,7 +23,7 @@ namespace AshenSol.Core
         public bool Busy { get { return busy; } }
         public bool DeathScreenShowing { get { return deathScreenShowing; } }
         public PlayerController Player { get { return player; } }
-        public bool InLevel { get { return State == GameState.Level1 || State == GameState.Works || State == GameState.BossArena; } }
+        public bool InLevel { get { return State == GameState.Level1 || State == GameState.Works || State == GameState.Stair || State == GameState.BossArena; } }
 
         PlayerController player;
         bool busy, deathScreenShowing, victoryPending;
@@ -60,7 +60,8 @@ namespace AshenSol.Core
             {
                 string lvl = (CmdArgs.Get("-startLevel", "level1") ?? "level1").ToLowerInvariant();
                 Stats = new GameStats();
-                LoadLevel(lvl == "boss" ? LevelId.BossArena : lvl == "works" ? LevelId.Works : LevelId.Level1);
+                LoadLevel(lvl == "boss" ? LevelId.BossArena : lvl == "works" ? LevelId.Works
+                        : lvl == "stair" ? LevelId.Stair : LevelId.Level1);
             }
             else GoToTitle();
         }
@@ -77,6 +78,7 @@ namespace AshenSol.Core
             if (busy || !InLevel) return;
             if (!IsPaused && !deathScreenShowing && !victoryPending) Stats.PlayTime += Time.unscaledDeltaTime;
             if (Services.Input == null) return;
+            if (Services.Ui.UpgradePanelOpen) return;      // the shrine menu owns input while it is up
             if (Services.Input.PausePressed && !deathScreenShowing && !victoryPending) TogglePause();
             else if (IsPaused && Services.Input.QuitPressed) { Unpause(); GoToTitle(); }
         }
@@ -138,6 +140,7 @@ namespace AshenSol.Core
         {
             if (State != GameState.Title || busy) return;
             Stats = new GameStats();
+            Progression.Reset();
             Services.Ui.HideTitle();
             Services.Audio.PlaySfx("ui_confirm");
             StartCoroutine(IntroThenLevel());
@@ -186,6 +189,7 @@ namespace AshenSol.Core
             {
                 info = id == LevelId.Level1 ? LevelBuilder.BuildLevel1(LevelRoot)
                      : id == LevelId.Works ? LevelBuilder.BuildWorks(LevelRoot)
+                     : id == LevelId.Stair ? LevelBuilder.BuildStair(LevelRoot)
                      : LevelBuilder.BuildBossArena(LevelRoot);
             }
             catch (Exception e) { Debug.LogException(e); }
@@ -215,8 +219,10 @@ namespace AshenSol.Core
             Services.Ui.HideBossBar();
 
             if (info.ExitGate != null) info.ExitGate.PlayerEntered += OnGateEntered;
+            SpawnAshPile();
             SetState(id == LevelId.Level1 ? GameState.Level1
                    : id == LevelId.Works ? GameState.Works
+                   : id == LevelId.Stair ? GameState.Stair
                    : GameState.BossArena);
             GameEvents.RaiseLevelBuilt(id);
             yield return null;
@@ -246,11 +252,19 @@ namespace AshenSol.Core
 
         public void SetRespawnPoint(Vector2 p) { RespawnPoint = p; }
 
+        /// <summary>Put the dropped ash back into the world if it belongs to this level.</summary>
+        void SpawnAshPile()
+        {
+            if (Progression.DroppedAsh <= 0 || Progression.DropLevel != CurrentLevel || LevelRoot == null) return;
+            AshPile.Create(Progression.DropPoint, LevelRoot);
+        }
+
         void OnGateEntered()
         {
             if (busy || !InLevel) return;
             LevelId next = State == GameState.Level1 ? LevelId.Works
-                         : State == GameState.Works ? LevelId.BossArena
+                         : State == GameState.Works ? LevelId.Stair
+                         : State == GameState.Stair ? LevelId.BossArena
                          : LevelId.None;
             if (next == LevelId.None) return;
             Services.Audio.PlaySfx("level_start");
@@ -263,6 +277,8 @@ namespace AshenSol.Core
         {
             if (!InLevel || deathScreenShowing || victoryPending) return;
             Stats.Deaths++;
+            // souls rule: everything carried stays where you fell
+            if (player != null) Progression.DropOnDeath(player.Position, CurrentLevel);
             GameEvents.RaiseLog("player died (deaths=" + Stats.Deaths + ")");
             StartCoroutine(DeathRoutine());
         }
@@ -299,6 +315,7 @@ namespace AshenSol.Core
             GameEvents.RaisePlayerRespawned();
             Services.Audio.SetMusicDuck(1f, 1f);
             deathScreenShowing = false;
+            SpawnAshPile();
             yield return null;
             Services.Ui.Fade(0f, 0.8f);
             busy = false;

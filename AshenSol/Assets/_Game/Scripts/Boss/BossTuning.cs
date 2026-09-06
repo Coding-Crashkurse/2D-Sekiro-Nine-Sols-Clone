@@ -22,6 +22,10 @@ namespace AshenSol.Boss
         public const float SlamTelegraph = 0.7f, SlamLeapHeight = 4.5f, SlamLeapTime = 0.35f, SlamDropSpeed = 40f, SlamRecovery = 1.0f;
         public const int SlamDamage = 30; public const float SlamKnockback = 10f;
         public const float ShockwaveSpeed = 9f, ShockwaveLife = 1.6f; public const int ShockwaveDamage = 15;
+        // GoreCharge (phase two, the horns)
+        public const float GoreTelegraph = 0.7f, GoreSpeed = 21f, GoreDuration = 1.1f, GoreRecovery = 1.2f;
+        public const int GoreDamage = 32;
+
         // Bolts
         public const float BoltsTelegraph = 0.45f, BoltSpeed = 9f, BoltsRecovery = 0.6f;
         public const int BoltDamage = 12; public const int ReflectedBoltDamage = 35;

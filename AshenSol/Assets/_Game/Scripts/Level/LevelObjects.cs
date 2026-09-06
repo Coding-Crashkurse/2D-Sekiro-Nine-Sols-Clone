@@ -45,6 +45,34 @@ namespace AshenSol.Level
         {
             if (other.gameObject.layer != Layers.Player) return;
             Activate(false);
+            OfferUpgrade();
+        }
+
+        void OnTriggerStay2D(Collider2D other)
+        {
+            if (other.gameObject.layer != Layers.Player) return;
+            OfferUpgrade();
+        }
+
+        /// <summary>A shrine is where ash becomes levels.</summary>
+        void OfferUpgrade()
+        {
+            if (!Progression.CanAffordLevel || Services.Ui.UpgradePanelOpen) return;
+            if (GameFlow.Instance != null && (GameFlow.Instance.Busy || GameFlow.Instance.IsPaused)) return;
+            Services.Ui.ShowUpgradePanel(kind =>
+            {
+                if (!Progression.Buy(kind)) return;
+                var p = PlayerController.Instance;
+                if (p != null && kind == UpgradeKind.Vigor) p.Heal(Progression.VigorHp);
+                Services.Audio.PlaySfx("qi_gain", 1f);
+                Services.Vfx.Embers((Vector2)transform.position + new Vector2(0f, 1.2f), 26, Palette.Gold);
+                Services.Vfx.FlashLight((Vector2)transform.position + new Vector2(0f, 1.2f), Palette.Gold, 3f, 5f, 0.5f);
+                if (p != null)
+                {
+                    GameEvents.RaisePlayerHealthChanged(p.Hp, p.MaxHp);
+                    GameEvents.RaisePlayerQiChanged(p.Qi, p.MaxQi);
+                }
+            });
         }
 
         public void Activate(bool silent)

@@ -47,6 +47,7 @@ namespace AshenSol.Boss
         protected override float KnockbackResist { get { return 1f; } }
         protected override string DeathSfx { get { return "boss_death"; } }
         public override string DisplayName { get { return BossName; } }
+        public override int AshValue { get { return 260; } }
 
         float teleMul = 1f;
         /// <summary>Phase-2 speed-up combined with the difficulty setting.</summary>
@@ -55,6 +56,7 @@ namespace AshenSol.Boss
         string lastAttack = "";
         SashChain cape;
         SpriteRenderer core; Light2D coreLight;
+        SpriteRenderer hornL, hornR; Light2D hornLight;
         float lastDustX;
 
         // ---------------- build ----------------
@@ -109,7 +111,51 @@ namespace AshenSol.Boss
             coreLight.color = Palette.Red;
             coreLight.intensity = 1.2f;
             coreLight.pointLightOuterRadius = 3f;
+
+            // the horns are grown during the phase change, so they start at zero scale
+            hornL = Horn(rig.Head, new Vector2(-0.34f, 0.52f), 18f);
+            hornR = Horn(rig.Head, new Vector2(0.30f, 0.55f), -14f);
+            var hl = new GameObject("hornLight");
+            hl.transform.SetParent(rig.Head, false);
+            hl.transform.localPosition = new Vector3(0f, 0.9f, 0f);
+            hornLight = hl.AddComponent<Light2D>();
+            hornLight.lightType = Light2D.LightType.Point;
+            hornLight.color = Palette.Red;
+            hornLight.intensity = 0f;
+            hornLight.pointLightOuterRadius = 5f;
             return rig;
+        }
+
+        static SpriteRenderer Horn(Transform parent, Vector2 pos, float angle)
+        {
+            var go = new GameObject("horn");
+            go.transform.SetParent(parent, false);
+            go.transform.localPosition = new Vector3(pos.x, pos.y, 0f);
+            go.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+            go.transform.localScale = Vector3.zero;
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = Res.Sprite("boss_horn");
+            sr.sortingOrder = SortOrder.Boss + 2;
+            return sr;
+        }
+
+        /// <summary>Rig renderers plus the horns, which are not part of the rig's own array.</summary>
+        SpriteRenderer[] AllRenderers()
+        {
+            var baseR = Renderers;
+            var list = new System.Collections.Generic.List<SpriteRenderer>(baseR.Length + 2);
+            for (int i = 0; i < baseR.Length; i++) if (baseR[i] != null) list.Add(baseR[i]);
+            if (hornL != null && hornL.enabled && hornL.transform.localScale.x > 0.01f) list.Add(hornL);
+            if (hornR != null && hornR.enabled && hornR.transform.localScale.x > 0.01f) list.Add(hornR);
+            return list.ToArray();
+        }
+
+        void SetHorns(float grow)
+        {
+            float g = Mathf.Clamp01(grow);
+            if (hornL != null) hornL.transform.localScale = new Vector3(g, g, 1f);
+            if (hornR != null) hornR.transform.localScale = new Vector3(g, g, 1f);
+            if (hornLight != null) hornLight.intensity = 3.4f * g;
         }
 
         protected override void OnReset()
@@ -120,6 +166,10 @@ namespace AshenSol.Boss
             if (cape != null) { cape.Reset(); cape.SetVisible(true); }
             if (core != null) { core.enabled = true; coreLight.enabled = true; }
             transform.localScale = Vector3.one;
+            SetHorns(0f);
+            if (hornL != null) hornL.enabled = true;
+            if (hornR != null) hornR.enabled = true;
+            if (hornLight != null) hornLight.enabled = true;
             if (Rig != null)
             {
                 foreach (var r in Renderers) if (r != null) r.color = Color.white;
@@ -284,7 +334,7 @@ namespace AshenSol.Boss
                 Services.Vfx.Embers(Center, 20, Palette.Red);
                 yield return new WaitForSecondsRealtime(0.35f);
             }
-            Services.Vfx.Dissolve(Renderers, Center, Palette.Red);
+            Services.Vfx.Dissolve(AllRenderers(), Center, Palette.Red);
             Services.Vfx.Embers(Center, 80, Palette.Gold);
             Services.Vfx.InkSplatter(Center, Vector2.up, Palette.Ink, 30);
             Services.Vfx.Shockwave(transform.position, 7f, Palette.Red);
@@ -292,6 +342,11 @@ namespace AshenSol.Boss
             Rig.SetVisible(false);
             if (cape != null) cape.SetVisible(false);
             core.enabled = false; coreLight.enabled = false;
+            // the horns live outside the rig, so hide them explicitly or they hang in the air
+            SetHorns(0f);
+            if (hornL != null) hornL.enabled = false;
+            if (hornR != null) hornR.enabled = false;
+            if (hornLight != null) hornLight.enabled = false;
             yield return new WaitForSecondsRealtime(2.5f);
             var d = Defeated; if (d != null) d();
             GameEvents.RaiseBossDefeated();
@@ -322,6 +377,7 @@ namespace AshenSol.Boss
                     case "Slam": yield return Slam(); break;
                     case "Bolts": yield return Bolts(); break;
                     case "Whirl": yield return Whirl(); break;
+                    case "Gore": yield return GoreCharge(); break;
                     case "RedThrust": yield return RedThrust(); break;
                 }
                 CurrentAttack = "";
@@ -337,6 +393,7 @@ namespace AshenSol.Boss
             Add("TripleSlash", d <= 3.6f ? 3f : 0f);
             Add("DashSlash", d > 3f && d <= 12f ? 3f : 0f);
             Add("Slam", 2f);
+            Add("Gore", Phase >= 2 ? 2.6f : 0f);
             Add("Bolts", d > 5f ? 3f : 1f);
             if (Phase >= 2)
             {
@@ -368,9 +425,31 @@ namespace AshenSol.Boss
         /// <summary>The second form, played as a kill that does not take: the bar empties and hides, the
         /// Warden goes down, and then the ash inside him takes the body back under a new name with a
         /// fresh bar. Unscaled time throughout so the slow-motion does not stretch the beats.</summary>
+        bool cineSkipped;
+
+        /// <summary>Cutscene wait that any key can cut short.</summary>
+        IEnumerator Cine(float seconds)
+        {
+            float t = 0f;
+            while (t < seconds)
+            {
+                var inp = Services.Input;
+                if (!cineSkipped && inp != null && (inp.AnyPressed || inp.ConfirmPressed || inp.PausePressed))
+                {
+                    cineSkipped = true;
+                    Services.Audio.StopVoice();
+                    GameEvents.RaiseLog("phase cutscene skipped");
+                }
+                if (cineSkipped) yield break;
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+        }
+
         IEnumerator PhaseTransition()
         {
             phasePending = false;
+            cineSkipped = false;
             // flip the phase immediately: posture regen keeps firing OnHealthChanged during the
             // transition, which would re-arm phasePending and run the whole thing a second time
             Phase = 2;
@@ -381,60 +460,103 @@ namespace AshenSol.Boss
             GroundShockwave.ClearAll();
             AshenSol.Enemies.Projectile.ClearAll();
 
+            var player = AshenSol.Player.PlayerController.Instance;
+            if (player != null) player.SetControlEnabled(false);
+            Services.Ui.SetLetterbox(1f, 0.6f);
+            Services.Ui.ShowSkipHint(true);
+            Services.Cam.Focus(Center + new Vector2(0f, 0.8f), 0.9f);
+            Services.Cam.SetZoom(4.6f, 1.2f);
+
             // --- 1. the killing blow that does not land
-            TimeController.Instance.SlowMo(0.25f, 1.6f);
+            TimeController.Instance.SlowMo(0.2f, 1.8f);
             Services.Cam.Shake(0.7f);
             HitStop.Request(0.12f);
             Services.Audio.PlaySfxAt("boss_stagger", Center, 1f);
-            Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.4f), 0.35f);
+            Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.45f), 0.4f);
             Services.Vfx.FlashLight(Center, Color.white, 4f, 9f, 0.5f);
             Rig.SetPose(true, 35f, 180f, -24f);          // down on one knee
             Rig.Flash(Color.white, 0.5f);
-            Services.Audio.SetMusicDuck(0.15f, 0.8f);
-            yield return new WaitForSecondsRealtime(1.1f);
+            Services.Audio.SetMusicDuck(0.1f, 0.8f);
+            yield return Cine(1.3f);
 
             // --- 2. the bar drains and the fight looks over
             Services.Ui.UpdateBossBar(0f, 0f, false);
             Services.Ui.HideBossBar();
-            Services.Audio.StopMusic(1.2f);
-            for (int i = 0; i < 3; i++)
-            {
-                Services.Vfx.Embers(Center, 10, Palette.Bone);
-                yield return new WaitForSecondsRealtime(0.4f);
-            }
+            Services.Audio.StopMusic(1.0f);
+            Services.Vfx.Embers(Center, 14, Palette.Bone);
+            yield return Cine(1.1f);
 
-            // --- 3. the ash refuses
+            // --- 3. he recognises the forms, not the student
+            float l1 = Services.Audio.PlayVoice("warden_1", 1f);
+            Services.Ui.ShowSubtitle("\u201cYou still hold the blade\u2026 the way I taught you.\u201d");
+            yield return Cine(Mathf.Max(l1, 3.5f) + 0.5f);
+            Services.Ui.ShowSubtitle(null);
+
+            // --- 4. the ash refuses to be finished
             Services.Audio.PlaySfxAt("posture_break", Center, 1f);
-            Services.Vfx.ChromaticPulse(1f, 0.8f);
-            Services.Cam.Shake(0.5f);
-            Rig.Flash(Palette.Red, 0.8f);
+            Services.Vfx.ChromaticPulse(1f, 1.2f);
             if (core != null) core.color = Color.white;
-            yield return new WaitForSecondsRealtime(0.7f);
+            Services.Cam.Shake(0.35f);
+            yield return Cine(1.2f);
 
+            // --- 5. the horns come through the mask
+            Services.Audio.PlaySfxAt("boss_slam", Center, 0.8f);
+            float g = 0f;
+            while (g < 1f && !cineSkipped)
+            {
+                g += Time.unscaledDeltaTime / 2.2f;
+                SetHorns(Ease.OutCubic(Mathf.Clamp01(g)));
+                if (Mathf.Repeat(g * 2.2f, 0.28f) < Time.unscaledDeltaTime)
+                {
+                    Services.Vfx.HitSpark(Center + new Vector2(0f, 2.4f), Vector2.up, Palette.Red, 1.1f);
+                    Services.Cam.Shake(0.14f);
+                    Services.Audio.PlaySfxAt("enemy_telegraph_red", Center, 0.5f, 0.2f);
+                }
+                yield return null;
+            }
+            SetHorns(1f);
+            Services.Vfx.FlashLight(Center + new Vector2(0f, 2.2f), Palette.Red, 4f, 7f, 0.6f);
+            Services.Vfx.Embers(Center + new Vector2(0f, 2f), 40, Palette.Red);
+            yield return Cine(0.5f);
+
+            // --- 6. he stands, and answers
             Rig.SetPose(false);
-            Rig.Punch(0.82f, 1.28f);
+            Rig.Punch(0.85f, 1.25f);
+            ApplySecondForm();
+            float l2 = Services.Audio.PlayVoice("warden_2", 1f);
+            Services.Ui.ShowSubtitle("\u201cNow hold it\u2026 against what the sun left in me.\u201d");
+            Services.Cam.SetZoom(5.4f, 1.5f);
+            yield return Cine(Mathf.Max(l2, 3.5f) + 0.3f);
+            Services.Ui.ShowSubtitle(null);
+
+            // --- 7. the roar
             Services.Audio.PlaySfxAt("boss_roar", Center, 1f);
             Services.Audio.PlaySfxAt("boss_phase2", Center, 1f);
-            Services.Vfx.Shockwave(transform.position, 9f, Palette.Red);
-            Services.Vfx.ScreenFlash(Palette.Red.WithAlpha(0.5f), 0.5f);
-            Services.Vfx.FlashLight(Center, Palette.Red, 6f, 12f, 1f);
-            Services.Vfx.Embers(Center, 70, Palette.Red);
+            Services.Vfx.Shockwave(transform.position, 10f, Palette.Red);
+            Services.Vfx.ScreenFlash(Palette.Red.WithAlpha(0.55f), 0.6f);
+            Services.Vfx.FlashLight(Center, Palette.Red, 6f, 13f, 1f);
+            Services.Vfx.Embers(Center, 80, Palette.Red);
             Services.Cam.Shake(1f);
             Services.Cam.Kick(Vector2.up, 0.4f);
-            TimeController.Instance.SlowMo(0.3f, 1.2f);
+            Services.Ui.ShowNameCard(SecondFormName, SecondFormSubtitle, 2.4f);
+            yield return Cine(1.6f);
 
-            // --- 4. second form: bigger, hotter, and renamed
+            // --- 8. back to the fight
+            SetHorns(1f);
             ApplySecondForm();
-            Services.Ui.ShowNameCard(SecondFormName, SecondFormSubtitle, 2.6f);
-            yield return new WaitForSecondsRealtime(1.3f);
+            Rig.SetPose(false);
+            Services.Ui.ShowSubtitle(null);
+            Services.Ui.ShowSkipHint(false);
+            Services.Ui.SetLetterbox(0f, 0.5f);
             Services.Ui.ShowBossBar(SecondFormName, SecondFormSubtitle);
             Services.Audio.PlayMusic("music_boss", 0.6f);
             Services.Audio.SetMusicDuck(1f, 0.6f);
+            Services.Cam.ReleaseFocus(0.7f);
+            Services.Cam.SetZoom(6.8f, 1f);
+            if (player != null && player.IsAlive) player.SetControlEnabled(true);
             GameEvents.RaiseLog("warden second form: " + SecondFormName);
             OnHealthChanged();
-
-            float t = 0f;
-            while (t < 0.9f) { t += Time.unscaledDeltaTime; yield return null; }
+            yield return new WaitForSecondsRealtime(0.4f);
 
             teleMul = BossTuning.Phase2TelegraphMul;
             invulnerable = false;
@@ -445,7 +567,7 @@ namespace AshenSol.Boss
         /// <summary>Ash-lit second form: hotter palette, brighter core, slightly larger silhouette.</summary>
         void ApplySecondForm()
         {
-            var hot = new Color(1f, 0.62f, 0.55f);
+            var hot = new Color(0.62f, 0.34f, 0.32f);   // charred: the glow comes from the core and horns
             foreach (var r in Renderers) if (r != null) r.color = hot;
             if (core != null) core.color = Palette.Red;
             if (coreLight != null) { coreLight.intensity = 2.6f; coreLight.pointLightOuterRadius = 4.5f; }
@@ -654,6 +776,58 @@ namespace AshenSol.Boss
             }
             Move(0f);
             yield return Wait(BossTuning.ThrustRecovery);
+        }
+
+        /// <summary>Phase two only: he puts his head down and runs the arena with the new horns.</summary>
+        IEnumerator GoreCharge()
+        {
+            CurrentAttack = "Gore";
+            FacePlayer();
+            Move(0f);
+            BeginTelegraph(AttackKind.Unblockable, BossTuning.GoreTelegraph * Tele);
+            Rig.SetPose(true, -20f, 180f, 28f);        // head down, horns forward
+            yield return Wait(BossTuning.GoreTelegraph * Tele);
+            EndTelegraph();
+            FacePlayer();
+            Services.Audio.PlaySfxAt("boss_dash", Center, 1f, 0.04f);
+            Services.Vfx.DustPuff(transform.position, 2f);
+
+            float t = 0f, ai = 0f; bool resolved = false;
+            while (t < BossTuning.GoreDuration)
+            {
+                if (!WallAhead(Facing, 1.4f))
+                    Body.linearVelocity = new Vector2(Facing * BossTuning.GoreSpeed, Body.linearVelocity.y);
+                else break;
+                if (!resolved)
+                {
+                    var info = new AttackInfo
+                    {
+                        Damage = BossTuning.GoreDamage, Knockback = 11f,
+                        Kind = AttackKind.Unblockable, Tag = "boss_gore", Origin = Center
+                    };
+                    var o = StrikePlayer(info, Center + new Vector2(Facing * 1.6f, 0.2f), new Vector2(2.6f, 2.4f));
+                    if (o != HitOutcome.Ignored) resolved = true;
+                }
+                ai -= Time.deltaTime;
+                if (ai <= 0f)
+                {
+                    ai = 0.045f;
+                    Services.Vfx.Afterimage(Renderers, Palette.Red.WithAlpha(0.5f), 0.25f);
+                    Services.Vfx.HitSpark(Center + new Vector2(0f, 1.8f), Vector2.up, Palette.Red, 0.5f);
+                }
+                t += Time.deltaTime;
+                yield return null;
+            }
+            // he slams into the wall and the impact rolls back out
+            Move(0f);
+            Vector2 at = new Vector2(transform.position.x, transform.position.y);
+            Services.Vfx.Shockwave(at, 5f, Palette.Red);
+            Services.Cam.Shake(0.8f);
+            HitStop.Request(0.06f);
+            Services.Audio.PlaySfxAt("boss_slam", at, 1f);
+            GroundShockwave.Spawn(at + new Vector2(-Facing * 1.4f, 0f), -Facing, 10f, BossTuning.ShockwaveDamage, 1.5f, transform.parent);
+            Rig.SetPose(false);
+            yield return Wait(BossTuning.GoreRecovery);
         }
 
         IEnumerator ActiveWindow(float seconds, Vector2 boxCenter, Vector2 boxSize, int damage, float knockback, AttackKind kind, string tag)

@@ -258,18 +258,22 @@ namespace AshenSol.Player
                     rate = 14f;
                     break;
                 case Pose.Climb:
-                    // hand over hand: the cycle is driven by how fast we are actually moving
-                    climbPhase += dt * 7f * Mathf.Clamp(Mathf.Abs(v.y) / 4f, 0f, 1.4f);
+                    // hand over hand. Arms reach well above the head and alternate; the legs push off
+                    // opposite rungs; the sword hangs from the raised hand instead of being brandished.
+                    climbPhase += dt * 6.5f * Mathf.Clamp(Mathf.Abs(v.y) / 3.5f, 0f, 1.4f);
                     float swing = Mathf.Sin(climbPhase);
-                    tArmF = 148f + swing * 34f;
-                    tArmB = 148f - swing * 34f;
-                    tLegF = 26f - swing * 22f;
-                    tLegB = -18f + swing * 22f;
-                    tTorso = 3f + swing * 3f;
-                    tBlade = -30f;
-                    tHead = -6f;
+                    // angles are mirrored by the rig root, so positive tilts AWAY from the wall:
+                    // reach past vertical so both hands sit over the rungs on the wall side
+                    tArmF = 198f + swing * 26f;
+                    tArmB = 198f - swing * 26f;
+                    tLegF = -42f + swing * 26f;          // knee up onto a rung
+                    tLegB = -4f - swing * 26f;           // the other leg pushing down
+                    tTorso = -5f;                        // lean into the wall
+                    tBlade = 186f;                       // slung, hanging past the hip
+                    tHead = -14f;                        // looking up the shaft
                     tBob = Mathf.Abs(swing) * 0.05f;
-                    rate = 26f;
+                    tTorsoY = -0.04f;
+                    rate = 22f;
                     break;
                 case Pose.QiBlast:
                     tTorso = -12f; tArmF = 88f; tArmB = 82f; tBlade = -95f; tLegF = 24f; tLegB = -18f; tHead = -6f;

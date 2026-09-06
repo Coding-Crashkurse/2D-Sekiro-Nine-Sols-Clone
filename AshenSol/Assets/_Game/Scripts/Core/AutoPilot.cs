@@ -28,6 +28,7 @@ namespace AshenSol.Core
         float stuckTime; float lastX;
         float pendingShotAt = -1f; string pendingLabel;
         float statusTimer; string brainState = "-";
+        int climbShots; float climbShotTimer;   // -climbShots N captures the climb cycle frame by frame
         float introSeenUntil;   // watch a slice of the intro, then skip so runs stay short
         float jumpHold;   // the bot must HOLD jump — tapping triggers the variable-height jump cut
 
@@ -131,6 +132,21 @@ namespace AshenSol.Core
             if (pendingShotAt >= 0f && elapsed >= pendingShotAt) { Shot(pendingLabel); pendingShotAt = -1f; }
             else if (shotTimer >= 6f) Shot("t" + Mathf.RoundToInt(elapsed));
 
+            // capture the climb animation on request
+            int wantClimbShots = Mathf.RoundToInt(CmdArgs.GetFloat("-climbShots", 0f));
+            var pc = PlayerController.Instance;
+            if (wantClimbShots > 0 && pc != null && pc.IsClimbing && climbShots < wantClimbShots)
+            {
+                climbShotTimer -= dt;
+                if (climbShotTimer <= 0f)
+                {
+                    climbShotTimer = 0.3f;
+                    climbShots++;
+                    Shot("climb" + climbShots);
+                    pendingShotAt = -1f;
+                }
+            }
+
             statusTimer -= dt;
             if (statusTimer <= 0f)
             {
@@ -147,6 +163,14 @@ namespace AshenSol.Core
             input.Horizontal = 0f; input.Vertical = 0f; input.ParryHeld = false;
             jumpHold -= dt;
             input.JumpHeld = jumpHold > 0f;
+            // the shrine menu pauses the world and owns input until something is bought
+            if (Services.Ui != null && Services.Ui.UpgradePanelOpen)
+            {
+                brainState = "shrine";
+                if (confirmCd <= 0f) { input.Confirm(); confirmCd = 0.6f; }
+                return;
+            }
+
             var flow = GameFlow.Instance;
             // the intro runs while the flow is busy, and the bot still has to be able to skip it
             if (flow == null || (flow.Busy && flow.State != GameState.Intro)) return;
@@ -162,6 +186,7 @@ namespace AshenSol.Core
                     break;
                 case GameState.Level1:
                 case GameState.Works:
+                case GameState.Stair:
                 case GameState.BossArena:
                     if (flow.DeathScreenShowing)
                     {
@@ -250,6 +275,14 @@ namespace AshenSol.Core
                     if (Mathf.Abs(dx) > 0.5f) input.Horizontal = dirTo;
                     if (p.IsGrounded && Mathf.Abs(dx) < 1.3f) DoJump();
                     if (attackCd <= 0f && Mathf.Abs(dx) < 1.8f && target.Center.y - p.Center.y < 2.8f) { input.Attack(); attackCd = 0.22f; }
+                    return;
+                }
+                if (target.Center.y > p.Center.y + 1.7f)
+                {
+                    // it is above us: get up there instead of swinging at its feet
+                    brainState = "get-above";
+                    input.Horizontal = dirTo;
+                    if (p.IsGrounded) DoJump();
                     return;
                 }
                 if (dist > 1.75f)

@@ -147,7 +147,7 @@ namespace AshenSol.Player
                 hitThisSwing.Add(d);
                 var info = new AttackInfo
                 {
-                    Source = c.gameObject, Team = Team.Player, Damage = h.Damage, Origin = c.Center,
+                    Source = c.gameObject, Team = Team.Player, Damage = Mathf.RoundToInt(h.Damage * Progression.DamageMul), Origin = c.Center,
                     HitPoint = Vector2.Lerp(c.Center, d.Center, 0.6f), Kind = AttackKind.Parryable,
                     Knockback = h.Knockback, IsProjectile = false, Payload = null, Tag = "player_combo" + (idx + 1)
                 };
@@ -288,7 +288,7 @@ namespace AshenSol.Player
                 Services.Audio.PlaySfx("execute");
                 var info = new AttackInfo
                 {
-                    Source = c.gameObject, Team = Team.Player, Damage = victim.ExecuteDamage, Origin = c.Center,
+                    Source = c.gameObject, Team = Team.Player, Damage = Mathf.RoundToInt(victim.ExecuteDamage * Progression.DamageMul), Origin = c.Center,
                     HitPoint = at, Kind = AttackKind.Unblockable, Knockback = 4f, Tag = "execute"
                 };
                 victim.ReceiveAttack(info);
@@ -327,7 +327,7 @@ namespace AshenSol.Player
                 seen.Add(d);
                 var info = new AttackInfo
                 {
-                    Source = c.gameObject, Team = Team.Player, Damage = PlayerTuning.QiBlastDamage, Origin = c.Center,
+                    Source = c.gameObject, Team = Team.Player, Damage = Mathf.RoundToInt(PlayerTuning.QiBlastDamage * Progression.DamageMul), Origin = c.Center,
                     HitPoint = d.Center, Kind = AttackKind.Unblockable, Knockback = PlayerTuning.QiBlastKnockback, Tag = "qi_blast"
                 };
                 d.ReceiveAttack(info);

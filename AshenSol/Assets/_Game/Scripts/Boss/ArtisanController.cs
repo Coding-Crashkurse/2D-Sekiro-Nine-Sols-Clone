@@ -47,6 +47,7 @@ namespace AshenSol.Boss
         public override int ExecuteDamage { get { return ArtisanTuning.ExecuteDamage; } }
         protected override string DeathSfx { get { return "boss_death"; } }
         public override string DisplayName { get { return ArtisanName; } }
+        public override int AshValue { get { return 190; } }
 
         Vector2 hoverTarget;
         float bobT, teleMul = 1f;

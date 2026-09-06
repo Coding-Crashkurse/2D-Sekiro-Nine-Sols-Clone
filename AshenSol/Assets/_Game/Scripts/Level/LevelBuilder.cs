@@ -164,7 +164,7 @@ namespace AshenSol.Level
             // ---------- floor 0 ----------
             GeometryBuilder.Ground(new Rect(0f, -12f, 18f, 12f), geo);            // start, top 0
             // a 12 unit chasm: no jump and no dash clears this, the mover is the only way over
-            GeometryBuilder.Ground(new Rect(30f, -12f, 14f, 12f), geo);            // top 0, holds the vent
+            GeometryBuilder.Ground(new Rect(30f, -12f, 16f, 12f), geo);            // top 0, holds the vent (runs to the ledge so a missed lift is not fatal)
 
             // ---------- floor 8: casting ledges ----------
             GeometryBuilder.Ground(new Rect(46f, -12f, 12f, 20f), geo);            // top 8
@@ -260,6 +260,137 @@ namespace AshenSol.Level
             VfxManager.CreateMist(new Rect(0f, -2f, 146f, 10f), new Color(1f, 0.8f, 0.68f), 24, deco);
 
             return info;
+        }
+
+        // ==================================================================
+        //  LEVEL III — THE PILGRIM STAIR
+        //  The road above the forge: an exposed processional climb toward the sealed gate. Fewer
+        //  gimmicks, more fighting — this is where the ash you took off the Artisan gets spent.
+        // ==================================================================
+        public static LevelInfo BuildStair(Transform root)
+        {
+            var info = new LevelInfo
+            {
+                Id = LevelId.Stair, Title = "THE PILGRIM STAIR", Subtitle = "Level III",
+                Bounds = new Rect(0f, -12f, 150f, 54f), PlayerSpawn = new Vector2(3f, 0.05f),
+                MusicTrack = "music_stair", Ambience = "ambience_wind",
+                AmbientColor = new Color(0.78f, 0.8f, 1f), AmbientIntensity = 0.55f
+            };
+            var geo = new GameObject("Geometry").transform; geo.SetParent(root, false);
+            var deco = new GameObject("Decor").transform; deco.SetParent(root, false);
+            var bg = new GameObject("Background").transform; bg.SetParent(root, false);
+            var ens = new GameObject("Enemies").transform; ens.SetParent(root, false);
+
+            LevelDecor.ParallaxStack(bg, "bg_sky", "bg_far", "bg_mid", "bg_near", 0f,
+                new Color(0.5f, 0.55f, 0.75f), new Color(0.45f, 0.48f, 0.66f), new Color(0.38f, 0.4f, 0.55f));
+
+            GeometryBuilder.Wall(new Rect(-1f, -12f, 1f, 54f), geo);
+            GeometryBuilder.Wall(new Rect(150f, -12f, 1f, 54f), geo);
+            GeometryBuilder.KillZone(new Rect(0f, -16f, 150f, 4f), geo);
+
+            // the stair proper: a run of broad steps climbing to the right
+            GeometryBuilder.Ground(new Rect(0f, -12f, 22f, 12f), geo);          // landing, top 0
+            for (int i = 0; i < 12; i++)                                         // twelve shallow risers, +1.5 each
+                GeometryBuilder.Ground(new Rect(22f + i * 3f, -12f, 3f, 12f + (i + 1) * 1.5f), geo);
+            GeometryBuilder.Ground(new Rect(58f, -12f, 16f, 30f), geo);         // terrace, top 18
+
+            // the broken span: spikes below, one-way stones above
+            Pit(geo, 74f, 3.2f);
+            GeometryBuilder.Ground(new Rect(77.2f, -12f, 8f, 30f), geo);        // top 18
+            Pit(geo, 85.2f, 3.4f);
+            GeometryBuilder.Ground(new Rect(88.6f, -12f, 13.4f, 30f), geo);     // top 18
+
+            // the upper shelf
+            GeometryBuilder.Ground(new Rect(106f, -12f, 44f, 38f), geo);        // top 26
+
+            GeometryBuilder.Platform(60f, 22f, 3.5f, geo);
+            GeometryBuilder.Platform(80f, 22.5f, 3f, geo);
+            GeometryBuilder.Platform(96f, 22f, 3.5f, geo);
+            GeometryBuilder.Platform(118f, 30f, 4f, geo);
+
+            // traversal: one climb up to the shelf, one shuttle over the last gap, one vent for height
+            ClimbSurface.Create(new Vector2(105.7f, 18f), 8.2f, geo, 1.1f);
+            MovingPlatform.Create(new Vector2(102.5f, 18.6f), new Vector2(105.2f, 18.6f), 2.6f, 2f, geo, 0.6f);
+            QiVent.Create(new Vector2(66f, 18f), 2.4f, 7f, QiVent.Mode.Column, geo, 11f);
+            QiVent.Create(new Vector2(126f, 26f), 2.2f, 1.8f, QiVent.Mode.Pad, geo, 17f);
+
+            // ---------- shrines ----------
+            var s0 = Checkpoint.Create(new Vector2(2f, 0f), "S0", root);
+            var s1 = Checkpoint.Create(new Vector2(59.5f, 18f), "S1", root);
+            var s2 = Checkpoint.Create(new Vector2(108f, 26f), "S2", root);
+            info.Checkpoints.Add(s0); info.Checkpoints.Add(s1); info.Checkpoints.Add(s2);
+            s0.Activate(true);
+
+            TutorialSign.Create(new Vector2(8f, 0f), "Ash buys levels at a shrine.\nDie and you drop what you carry.", root);
+            TutorialSign.Create(new Vector2(62.5f, 18f), "The gate is above.\nSo is what is left of him.", root);
+
+            // ---------- the gauntlet ----------
+            var g1 = EncounterZone.Create("S-A", new Rect(4f, 0f, 18f, 8f), root);
+            g1.Add(Spawn(info, EnemyType.Grunt, new Vector2(12f, 0.1f), ens));
+            g1.Add(Spawn(info, EnemyType.Grunt, new Vector2(18f, 0.1f), ens));
+            var g2 = EncounterZone.Create("S-B", new Rect(22f, 0f, 36f, 22f), root);
+            g2.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(31.5f, 6.1f), ens));
+            g2.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(40f, 12.4f), ens));
+            g2.Add(Spawn(info, EnemyType.Grunt, new Vector2(46.5f, 13.6f), ens));
+            var g3 = EncounterZone.Create("S-C", new Rect(58f, 18f, 16f, 10f), root);
+            g3.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(68f, 18.1f), ens));
+            g3.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(64f, 21.4f), ens));
+            var g4 = EncounterZone.Create("S-D", new Rect(88.6f, 18f, 14f, 10f), root);
+            g4.Add(Spawn(info, EnemyType.Grunt, new Vector2(93f, 18.1f), ens));
+            g4.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(99f, 18.1f), ens));
+            var g5 = EncounterZone.Create("S-E", new Rect(106f, 26f, 34f, 12f), root);
+            g5.Add(Spawn(info, EnemyType.Grunt, new Vector2(114f, 26.1f), ens));
+            g5.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(122f, 26.1f), ens));
+            g5.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(118f, 29.4f), ens));
+            g5.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(131f, 29.4f), ens));
+            g5.Add(Spawn(info, EnemyType.Grunt, new Vector2(136f, 26.1f), ens));
+            info.Zones.Add(g1); info.Zones.Add(g2); info.Zones.Add(g3); info.Zones.Add(g4); info.Zones.Add(g5);
+
+            // ---------- the gate to the sanctum ----------
+            var gate = Gate.Create(new Vector2(146f, 26f), root, false);
+            gate.SealedPrompt = "The last of his guard still stand.";
+            info.ExitGate = gate;
+            g5.OnCleared += z =>
+            {
+                gate.Open();
+                Services.Ui.ShowPrompt("The stair is clear. The gate waits.", 2.5f);
+                GameEvents.RaiseGateOpened();
+            };
+
+            // ---------- decor ----------
+            for (int i = 0; i < 6; i++)
+            {
+                float x = 23.5f + i * 6f, y = (i * 2 + 1) * 1.5f;
+                LevelDecor.Lantern(new Vector2(x, y + 2.6f), deco);
+                if (i % 2 == 0) LevelDecor.Statue(new Vector2(x + 1.4f, y), deco);
+            }
+            foreach (var v in new[] { new Vector2(4f, 0f), new Vector2(16f, 0f), new Vector2(60f, 18f), new Vector2(70f, 18f),
+                                      new Vector2(80f, 18f), new Vector2(92f, 18f), new Vector2(110f, 26f), new Vector2(124f, 26f),
+                                      new Vector2(140f, 26f) })
+                LevelDecor.Lantern(v + new Vector2(0f, 2.6f), deco);
+            foreach (var v in new[] { new Vector2(6f, 0f), new Vector2(20f, 0f), new Vector2(59f, 18f), new Vector2(73f, 18f),
+                                      new Vector2(90f, 18f), new Vector2(107f, 26f), new Vector2(133f, 26f), new Vector2(148f, 26f) })
+                LevelDecor.Pillar(v, (v.x % 3f) < 1f, deco);
+            foreach (var v in new[] { new Vector2(62f, 18f), new Vector2(96f, 18f), new Vector2(128f, 26f), new Vector2(142f, 26f) })
+                LevelDecor.Statue(v, deco);
+            foreach (var x in new[] { 10f, 30f, 48f, 66f, 82f, 100f, 120f, 138f })
+                LevelDecor.Banner(new Vector2(x, GroundTopStair(x) + 4.6f), deco);
+            foreach (var x in new[] { 26f, 52f, 78f, 112f, 144f })
+                LevelDecor.Bamboo(new Vector2(x, GroundTopStair(x)), 1.1f, deco);
+            LevelDecor.WallPanel(new Rect(106f, 26f, 44f, 12f), deco, "prop_lattice", 0.45f);
+            VfxManager.CreateAmbientEmbers(new Rect(0f, -2f, 150f, 44f), Palette.Bone, 16f, deco);
+            VfxManager.CreateMist(new Rect(0f, -2f, 150f, 8f), Palette.Bone, 30, deco);
+
+            return info;
+        }
+
+        /// <summary>Ground height at x on the stair, for decor placement.</summary>
+        static float GroundTopStair(float x)
+        {
+            if (x < 22f) return 0f;
+            if (x < 58f) return Mathf.Floor((x - 22f) / 3f + 1f) * 1.5f;
+            if (x < 106f) return 18f;
+            return 26f;
         }
 
         // ------------------------------------------------------------------

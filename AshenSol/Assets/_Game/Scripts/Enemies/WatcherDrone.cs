@@ -14,6 +14,7 @@ namespace AshenSol.Enemies
         protected override float KnockbackResist { get { return 1f; } }
         protected override string DeathSfx { get { return "drone_death"; } }
         public override string DisplayName { get { return "Watcher Drone"; } }
+        public override int AshValue { get { return 16; } }
 
         Vector2 hoverTarget;
         float bobT;

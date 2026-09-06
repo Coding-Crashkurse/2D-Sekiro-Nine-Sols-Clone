@@ -43,9 +43,9 @@ namespace AshenSol.Player
 
         // ---- public state ----
         public int Hp { get; private set; }
-        public int MaxHp { get { return PlayerTuning.MaxHp; } }
+        public int MaxHp { get { return PlayerTuning.MaxHp + Progression.BonusHp; } }
         public int Qi { get; private set; }
-        public int MaxQi { get { return PlayerTuning.MaxQi; } }
+        public int MaxQi { get { return PlayerTuning.MaxQi + Progression.BonusQi; } }
         public int Facing { get; private set; } = 1;
         public bool IsGrounded { get; private set; }
         public bool IsDashing { get { return dashTimer > 0f; } }
@@ -441,6 +441,15 @@ namespace AshenSol.Player
                 }
                 else if (canAct && climbSurface != null)
                 {
+                    // hug the rungs: without this the player hangs in the air beside the ladder
+                    float sx = climbSurface.transform.position.x;
+                    float side = Position.x <= sx ? -1f : 1f;
+                    float targetX = sx + side * PlayerTuning.ClimbHugOffset;
+                    var pos = transform.position;
+                    pos.x = Mathf.MoveTowards(pos.x, targetX, 10f * dt);
+                    transform.position = pos;
+                    Facing = side < 0f ? 1 : -1;          // look at the wall
+
                     float v = inp.Vertical;
                     Body.linearVelocity = new Vector2(0f, v * PlayerTuning.ClimbSpeed);
                     if (Mathf.Abs(v) > 0.3f)
@@ -449,7 +458,7 @@ namespace AshenSol.Player
                         if (climbStepTimer <= 0f)
                         {
                             climbStepTimer = 0.3f;
-                            Services.Audio.PlaySfx("climb", 0.55f, 0.18f);
+                            Services.Audio.PlaySfx("climb", 0.32f, 0.22f);
                         }
                     }
                     else climbStepTimer = 0.08f;

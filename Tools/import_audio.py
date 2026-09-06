@@ -31,7 +31,14 @@ VOICE_ORDER = ["intro_1", "intro_2", "intro_3", "intro_4", "intro_5"]
 MUSIC_ORDER = ["music_title", "music_level1", "music_boss", "music_victory"]
 
 # folder in AudioRaw/ -> Resources name
-EXTRA_MUSIC = [("music_intro", "music_intro"), ("music_works", "music_works"), ("music_artisan", "music_artisan")]
+EXTRA_MUSIC = [("music_intro", "music_intro"), ("music_works", "music_works"), ("music_artisan", "music_artisan"), ("music_stair", "music_stair")]
+
+# boss barks: a normal deep voice pitched down and doubled into something inhuman
+BOSS_VOICE = [("tts_You_s", "warden_1"), ("tts_Now_h", "warden_2")]
+MONSTER_FILTER = ("asplit=2[a][b];[a]asetrate=44100*0.80,aresample=44100,atempo=1.12[a1];"
+                  "[b]asetrate=44100*0.74,aresample=44100,atempo=1.12,adelay=40|40,volume=0.5[b1];"
+                  "[a1][b1]amix=inputs=2:normalize=0,aecho=0.8:0.85:120:0.25,"
+                  "acompressor=threshold=-18dB:ratio=3,volume=3dB")
 
 # these keep their silence/tails: they loop or are meant to breathe
 NO_TRIM = {"ambience_wind", "ambience_arena", "drone_hover"}
