@@ -86,11 +86,11 @@ Das Spiel ist soulslike aufgebaut:
 
 Bei 55 % Leben spielt eine **rund 20-sekündige Zwischensequenz** (mit jeder Taste überspringbar):
 der Warden geht zu Boden, die Leiste leert sich, die Musik verstummt — und die Asche in ihm nimmt
-den Körper zurück. Brennende Hörner wachsen durch die Maske, er steht als **ASH UNBOUND** wieder
-auf, brennt fortan in einer Korona aus Ringen und Glut, und bekommt zwei neue Angriffe:
+den Körper zurück. Hinter der Maske entzündet sich die Krone der neunten Sonne, er steht als **ASH UNBOUND**
+wieder auf, glimmt fortan in Glut und Nachbildern, und bekommt zwei neue Angriffe:
 
-* **GORE CHARGE** — Sturmangriff mit den Hörnern, endet in einer Bodenwelle.
-* **SOLAR COLLAPSE** — er rammt die Glefe in den Boden und zieht eine kleine Sonne aus den Hörnern.
+* **GORE CHARGE** — Sturmangriff mit gesenktem Kopf, endet in einer Bodenwelle.
+* **SOLAR COLLAPSE** — er rammt die Glefe in den Boden und zieht eine kleine Sonne aus der Krone.
   Der Angriff eröffnet die zweite Form und kommt danach alle 17 Sekunden wieder.
   **Weglaufen geht nicht — die Explosion füllt die ganze Arena.**
   Perfekt pariert kostet sie nichts; zu spät geblockt trotzdem noch 60 %;
@@ -147,6 +147,7 @@ Der Autopilot (`-autopilot`) ersetzt die Eingabe durch einen Bot, der pariert, d
 durchquert, am Schrein levelt und den Boss besiegt. Am Ende schreibt er eine Zeile
 `AUTOPILOT RESULT: reachedGate=… bossDefeated=… exceptions=…` — der schnellste Regressionstest.
 Nützliche Flags: `-skipTitle -startLevel works|stair|boss` springt direkt in einen Abschnitt,
+`-bossPhase 2` lässt den Warden-Kampf sofort mit der Verwandlung beginnen (`Builds/AnimReview/AshUnbound.bat`),
 `-victoryHold <sek>` legt fest, wie lange der Bot nach dem Sieg noch mitläuft (für den Abspann),
 `-mute` schaltet den Ton ab (bei automatischen Läufen immer gesetzt).
 
@@ -157,3 +158,5 @@ Nützliche Flags: `-skipTitle -startLevel works|stair|boss` springt direkt in ei
   Build automatisch.
 * Die Paketextraktion schlägt gelegentlich mit `EPERM` fehl; die Skripte wiederholen es automatisch.
 * `GUI/Text Shader` darf **nie** in „Always Included Shaders" — das bricht den Player-Build.
+#   2 D - S e k i r o - N i n e - S o l s - C l o n e  
+ 
