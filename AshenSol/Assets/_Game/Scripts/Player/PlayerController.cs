@@ -92,6 +92,7 @@ namespace AshenSol.Player
         float updraftTimer, updraftLift, updraftAccel, climbCooldown;
         Vector2 carriedVel;          // velocity contributed by the platform under our feet
         float climbStepTimer;
+        float dashBuffer;
 
         void Awake()
         {
@@ -116,17 +117,27 @@ namespace AshenSol.Player
         public void SetControlEnabled(bool enabled)
         {
             ControlEnabled = enabled;
-            if (!enabled) HorizontalInput = 0f;
+            if (!enabled)
+            {
+                HorizontalInput = 0f;
+                jumpBuffer = dashBuffer = 0f;
+                Combat?.CancelAll();
+            }
         }
 
         public void Respawn(Vector2 pos)
         {
+            StopAllCoroutines();
             IsDead = false;
             Hp = MaxHp; Qi = 0;
             Facing = 1;
             coyote = jumpBuffer = stunTimer = dashTimer = dashCooldown = dropThroughTimer = 0f;
             invulnTimer = PlayerTuning.SpawnInvuln;
             airDashUsed = false; jumpCut = false; hazardRecovering = false;
+            IsGrounded = wasGrounded = groundIsSolid = false;
+            carriedVel = Vector2.zero;
+            dashBuffer = safeTimer = lastVy = 0f;
+            LastJumpTime = -10f;
             IsClimbing = false; climbSurface = null; updraftTimer = 0f; climbCooldown = 0f;
             transform.position = pos;
             LastSafeGroundPosition = pos;
@@ -220,7 +231,8 @@ namespace AshenSol.Player
 
         public void LeaveClimb(AshenSol.Level.ClimbSurface surface)
         {
-            if (climbSurface == surface) climbSurface = null;
+            if (climbSurface != surface) return;
+            climbSurface = null;
             if (IsClimbing) StopClimb();
         }
 
@@ -317,7 +329,8 @@ namespace AshenSol.Player
                 }
                 if (Combat.BlockWindow)
                 {
-                    int chip = Mathf.CeilToInt(info.Damage * PlayerTuning.BlockChipFraction);
+                    int chip = Mathf.CeilToInt(info.Damage *
+                        (info.PierceGuard ? PlayerTuning.PierceChipFraction : PlayerTuning.BlockChipFraction));
                     Combat.OnParrySuccess(false);
                     HitStop.Request(0.04f);
                     Services.Vfx.ParrySpark(hitPoint, false);
@@ -348,6 +361,7 @@ namespace AshenSol.Player
             Hp -= damage;
             GameEvents.RaisePlayerHealthChanged(Hp, MaxHp);
             Combat.OnHurt();
+            StopClimb();
             invulnTimer = PlayerTuning.HurtInvuln;
             stunTimer = PlayerTuning.HurtStun;
             dashTimer = 0f;
@@ -388,7 +402,14 @@ namespace AshenSol.Player
         void Update()
         {
             if (IsDead) return;
+            if (TimeController.Instance != null && (TimeController.Instance.IsPaused || TimeController.Instance.PauseChangedFrame == Time.frameCount))
+            {
+                jumpBuffer = dashBuffer = 0f;
+                Combat.ClearInputBuffers();
+                return;
+            }
             float dt = Time.deltaTime;
+            dashBuffer = Mathf.Max(0f, dashBuffer - dt);
             if (invulnTimer > 0f) invulnTimer -= dt;
             if (stunTimer > 0f) stunTimer -= dt;
             if (dashCooldown > 0f) dashCooldown -= dt;
@@ -404,12 +425,18 @@ namespace AshenSol.Player
 
             var inp = Services.Input;
             bool paused = TimeController.Instance != null && TimeController.Instance.IsPaused;
-            bool canAct = ControlEnabled && !IsStunned && !hazardRecovering && !paused && inp != null;
+            bool canReadInput = ControlEnabled && !hazardRecovering && !paused && inp != null;
+            bool canAct = canReadInput && !IsStunned;
+            bool grabbedClimb = false;
 
             // grab a climb surface by pushing up (or down, when stepping off a ledge onto it)
             if (canAct && climbSurface != null && !IsClimbing && !IsDashing && climbCooldown <= 0f
                 && Mathf.Abs(inp.Vertical) > 0.5f && !InUpdraft)
+            {
                 StartClimb();
+                grabbedClimb = true;
+                jumpBuffer = 0f;
+            }
             if (IsClimbing && (climbSurface == null || IsDead || IsDashing)) StopClimb();
             HorizontalInput = canAct ? inp.Horizontal : 0f;
             if (Mathf.Abs(HorizontalInput) < 0.2f) HorizontalInput = 0f;
@@ -418,23 +445,25 @@ namespace AshenSol.Player
             if (canAct && HorizontalInput != 0f && !Combat.LocksFacing && !IsDashing)
                 Facing = HorizontalInput > 0f ? 1 : -1;
 
-            if (canAct)
+            if (canReadInput)
             {
-                if (inp.JumpPressed) jumpBuffer = PlayerTuning.JumpBuffer;
-                if (inp.DashPressed) TryDash();
+                if (inp.JumpPressed && !grabbedClimb) jumpBuffer = PlayerTuning.JumpBuffer;
+                if (inp.DashPressed) dashBuffer = PlayerTuning.ActionBuffer;
+                if (canAct && dashBuffer > 0f) TryDash();
                 Combat.Tick(dt);
             }
 
             // climbing: W/S move, jump kicks off the wall
             if (IsClimbing)
             {
-                if (canAct && inp.JumpPressed)
+                if (canAct && inp.JumpPressed && !grabbedClimb)
                 {
                     StopClimb();
                     float away = climbSurface != null && climbSurface.transform.position.x > Position.x ? -1f : 1f;
                     Body.linearVelocity = new Vector2(away * PlayerTuning.ClimbJumpX, PlayerTuning.JumpVelocity * 0.85f);
                     Facing = away > 0f ? 1 : -1;
                     jumpBuffer = 0f;
+                    jumpCut = false;
                     LastJumpTime = Time.time;
                     Services.Audio.PlaySfx("jump", 0.8f);
                     Rig.Stretch();
@@ -480,6 +509,9 @@ namespace AshenSol.Player
                     dropThroughTimer = PlayerTuning.DropThroughTime;
                     Physics2D.IgnoreLayerCollision(Layers.Player, Layers.OneWay, true);
                     jumpBuffer = 0f;
+                    coyote = 0f;
+                    IsGrounded = false;
+                    Body.linearVelocity = new Vector2(Body.linearVelocity.x, -2f);
                 }
                 else DoJump();
             }
@@ -541,7 +573,11 @@ namespace AshenSol.Player
             if (IsDashing || dashCooldown > 0f || IsHealing || Combat.IsQiBlasting || hazardRecovering) return;
             if (!IsGrounded && airDashUsed) return;
             if (Combat.IsParrying) return;
-            dashDir = HorizontalInput != 0f ? (HorizontalInput > 0f ? 1 : -1) : Facing;
+            dashBuffer = 0f;
+            StopClimb();
+            // Attack stance locks locomotion, but a defensive dash still follows the stick.
+            float direction = Services.Input != null ? Services.Input.Horizontal : HorizontalInput;
+            dashDir = Mathf.Abs(direction) >= 0.2f ? (direction > 0f ? 1 : -1) : Facing;
             Facing = dashDir;
             dashTimer = PlayerTuning.DashDuration;
             dashCooldown = PlayerTuning.DashCooldown;
@@ -564,7 +600,8 @@ namespace AshenSol.Player
             // ground check — measured RELATIVE to a moving platform, otherwise riding one upward
             // reads as "flying" and the player can neither be grounded nor jump
             Vector2 feet = (Vector2)transform.position + new Vector2(0f, 0.04f);
-            var hit = Physics2D.OverlapBox(feet, new Vector2(0.48f, 0.12f), 0f, Layers.GroundMask);
+            int groundMask = dropThroughTimer > 0f ? 1 << Layers.Ground : Layers.GroundMask;
+            var hit = Physics2D.OverlapBox(feet, new Vector2(0.48f, 0.12f), 0f, groundMask);
             var platform = hit != null ? hit.GetComponent<AshenSol.Level.MovingPlatform>() : null;
             float platVy = platform != null ? platform.Velocity.y : 0f;
             bool grounded = hit != null && (v.y - platVy) <= 0.5f;

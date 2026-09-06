@@ -260,7 +260,7 @@ namespace AshenSol.Enemies
         {
             if (!IsAlive) return HitOutcome.Ignored;
             bool execute = info.Tag == "execute";
-            int dmg = execute ? ExecuteDamage : info.Damage;
+            int dmg = info.Damage;
             if (!execute && PostureBroken) dmg = Mathf.RoundToInt(dmg * EnemyTuning.BrokenDamageMul);
             dmg = Mathf.Max(1, Mathf.RoundToInt(dmg * DamageTakenMultiplier));
             Hp -= dmg;

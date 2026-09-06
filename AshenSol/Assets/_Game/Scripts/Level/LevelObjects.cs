@@ -17,7 +17,7 @@ namespace AshenSol.Level
         public bool IsActive { get; private set; }
         public event Action<Checkpoint> Activated;
 
-        Light2D light; SpriteRenderer glow; float targetIntensity = 0.5f; float t;
+        Light2D light; SpriteRenderer glow; float targetIntensity = 0.5f; float t; bool resting;
 
         public static Checkpoint Create(Vector2 groundPos, string id, Transform parent)
         {
@@ -45,34 +45,88 @@ namespace AshenSol.Level
         {
             if (other.gameObject.layer != Layers.Player) return;
             Activate(false);
-            OfferUpgrade();
         }
 
+        /// <summary>Standing at a lit shrine offers the rest. It never opens by itself — the player asks.</summary>
         void OnTriggerStay2D(Collider2D other)
         {
-            if (other.gameObject.layer != Layers.Player) return;
-            OfferUpgrade();
+            if (other.gameObject.layer != Layers.Player || !CanRest) return;
+            Services.Ui.ShowPrompt(Progression.CanAffordLevel
+                ? "E   rest at the shrine      " + Progression.Ash + " ash carried"
+                : "E   rest at the shrine      " + Progression.Ash + " / " + Progression.LevelCost + " ash", 0.3f);
+            if (Services.Input != null && Services.Input.InteractPressed) StartCoroutine(Rest());
         }
 
-        /// <summary>A shrine is where ash becomes levels.</summary>
-        void OfferUpgrade()
+        bool CanRest
         {
-            if (!Progression.CanAffordLevel || Services.Ui.UpgradePanelOpen) return;
-            if (GameFlow.Instance != null && (GameFlow.Instance.Busy || GameFlow.Instance.IsPaused)) return;
-            Services.Ui.ShowUpgradePanel(kind =>
+            get
             {
-                if (!Progression.Buy(kind)) return;
+                if (resting || Services.Ui == null || Services.Ui.UpgradePanelOpen) return false;
+                if (GameFlow.Instance != null && (GameFlow.Instance.Busy || GameFlow.Instance.IsPaused)) return false;
                 var p = PlayerController.Instance;
-                if (p != null && kind == UpgradeKind.Vigor) p.Heal(Progression.VigorHp);
-                Services.Audio.PlaySfx("qi_gain", 1f);
-                Services.Vfx.Embers((Vector2)transform.position + new Vector2(0f, 1.2f), 26, Palette.Gold);
-                Services.Vfx.FlashLight((Vector2)transform.position + new Vector2(0f, 1.2f), Palette.Gold, 3f, 5f, 0.5f);
-                if (p != null)
+                return p != null && p.IsAlive;
+            }
+        }
+
+        /// <summary>The rest: the world quiets and pulls in around the shrine, then ash becomes levels.</summary>
+        IEnumerator Rest()
+        {
+            resting = true;
+            Vector2 focus = (Vector2)transform.position + new Vector2(0f, 1.2f);
+            var player = PlayerController.Instance;
+            if (player != null) player.SetControlEnabled(false);
+
+            float zoomBack = Services.Cam.Camera != null ? Services.Cam.Camera.orthographicSize : 6f;
+            Services.Audio.PlaySfx("shrine_open", 0.95f, 0.02f);
+            Services.Audio.SetMusicDuck(0.25f, 0.5f);
+            Services.Cam.Focus(focus, 0.7f);
+            Services.Cam.SetZoom(4.8f, 0.7f);
+            Services.Ui.ShowPrompt(null, 0f);
+            targetIntensity = 3.4f;
+
+            // the shrine breathes in: embers climb while the camera settles
+            float t = 0f;
+            while (t < 0.85f)
+            {
+                if (t % 0.2f < Time.unscaledDeltaTime)
+                    Services.Vfx.Embers(focus + new Vector2(UnityEngine.Random.Range(-0.5f, 0.5f), 0f), 5, Palette.Teal);
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            Services.Vfx.FlashLight(focus, Palette.Teal, 3.5f, 6f, 0.6f);
+
+            if (Progression.CanAffordLevel)
+            {
+                Services.Ui.ShowUpgradePanel(kind =>
                 {
-                    GameEvents.RaisePlayerHealthChanged(p.Hp, p.MaxHp);
-                    GameEvents.RaisePlayerQiChanged(p.Qi, p.MaxQi);
-                }
-            });
+                    if (!Progression.Buy(kind)) return;
+                    var pc = PlayerController.Instance;
+                    if (pc != null && kind == UpgradeKind.Vigor) pc.Heal(Progression.VigorHp);
+                    Services.Audio.PlaySfx("qi_gain", 1f);
+                    Services.Vfx.Embers(focus, 26, Palette.Gold);
+                    Services.Vfx.FlashLight(focus, Palette.Gold, 3f, 5f, 0.5f);
+                    if (pc != null)
+                    {
+                        GameEvents.RaisePlayerHealthChanged(pc.Hp, pc.MaxHp);
+                        GameEvents.RaisePlayerQiChanged(pc.Qi, pc.MaxQi);
+                    }
+                });
+                yield return null;
+                while (Services.Ui.UpgradePanelOpen) yield return null;
+            }
+            else
+            {
+                Services.Ui.ShowPrompt("Not enough ash. " + (Progression.LevelCost - Progression.Ash) + " more to temper.", 2f);
+                yield return new WaitForSecondsRealtime(0.9f);
+            }
+
+            targetIntensity = 1.4f;
+            Services.Audio.SetMusicDuck(1f, 0.6f);
+            Services.Cam.SetZoom(zoomBack, 0.6f);
+            Services.Cam.ReleaseFocus(0.6f);
+            if (player != null && player.IsAlive) player.SetControlEnabled(true);
+            yield return new WaitForSecondsRealtime(0.35f);   // do not re-trigger on the same key press
+            resting = false;
         }
 
         public void Activate(bool silent)

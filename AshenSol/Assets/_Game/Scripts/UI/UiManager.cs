@@ -31,6 +31,7 @@ namespace AshenSol.UI
         RectTransform barTop, barBottom; float letterbox, letterboxTarget, letterboxSpeed = 1f;
         CanvasGroup skipGroup;
         UpgradePanel upgradePanel;
+        CreditsRoll credits;
         Text levelText; Image ashFill;
 
         void Awake()
@@ -76,6 +77,7 @@ namespace AshenSol.UI
             BuildPause();
             BuildCutscene();
             upgradePanel = new UpgradePanel(rootRt);
+            credits = new CreditsRoll(rootRt);
             var fadeRt = UiKit.Panel(rootRt, "Fade", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             fadeImg = fadeRt.gameObject.AddComponent<Image>();
             fadeImg.color = new Color(0f, 0f, 0f, 1f);
@@ -150,8 +152,8 @@ namespace AshenSol.UI
         {
             var rt = UiKit.Panel(rootRt, "Title", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             titleGroup = UiKit.Group(rt);
-            var bg = UiKit.Fill(rt, "bg", Palette.Ink.WithAlpha(0.55f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            var skyImg = UiKit.Image(rt, "sky", Res.Sprite("bg_boss_sky"), new Color(0.6f, 0.55f, 0.6f, 1f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2200f, 2200f), false);
+            var bg = UiKit.Fill(rt, "bg", Palette.Ink.WithAlpha(0.3f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            var skyImg = UiKit.Image(rt, "sky", Res.Sprite("bg_title"), Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2240f, 1260f), false);
             skyImg.transform.SetAsFirstSibling();
             skyImg.preserveAspect = false;
             bg.transform.SetSiblingIndex(1);
@@ -311,6 +313,7 @@ namespace AshenSol.UI
                 ashFill.rectTransform.sizeDelta = new Vector2(240f * Progression.Progress01, 7f);
             }
             if (upgradePanel != null) upgradePanel.Tick();
+            if (credits != null) credits.Tick();
 
             // cutscene furniture
             letterbox = Mathf.MoveTowards(letterbox, letterboxTarget, letterboxSpeed * dt);
@@ -504,6 +507,15 @@ namespace AshenSol.UI
         public void ShowSkipHint(bool visible) { skipWanted = visible; }
 
         public bool UpgradePanelOpen { get { return upgradePanel != null && upgradePanel.IsOpen; } }
+        public bool CreditsRolling { get { return credits != null && credits.IsRunning; } }
+
+        public void ShowCredits(Action onDone)
+        {
+            victoryShown = false;
+            SetHudVisible(false);
+            if (credits != null) credits.Play(onDone);
+            else if (onDone != null) onDone();
+        }
 
         public void ShowUpgradePanel(Action<UpgradeKind> onPick)
         {

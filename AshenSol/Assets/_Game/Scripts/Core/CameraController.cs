@@ -112,7 +112,7 @@ namespace AshenSol.Core
 
         // ---- ICameraService ----
         public void Shake(float t) { trauma = Mathf.Clamp01(trauma + t * Settings.ShakeMul); }
-        public void Kick(Vector2 dir, float amount) { kick += dir.normalized * amount; }
+        public void Kick(Vector2 dir, float amount) { kick += dir.normalized * amount * Settings.ShakeMul; }
         public void SetTarget(Transform t)
         {
             target = t;
@@ -217,13 +217,13 @@ namespace AshenSol.Core
         void ApplyTransform()
         {
             if (Camera == null) return;
-            float mag = trauma * trauma;
+            float mag = trauma * trauma * Settings.ShakeMul;
             float t = Time.unscaledTime * 22f;
             Vector2 shake = new Vector2(
                 (Mathf.PerlinNoise(noiseSeed, t) - 0.5f) * 2f,
                 (Mathf.PerlinNoise(noiseSeed + 5.1f, t) - 0.5f) * 2f) * (0.55f * mag);
             float rot = (Mathf.PerlinNoise(noiseSeed + 9.7f, t) - 0.5f) * 2f * 2.2f * mag;
-            Vector2 p = pos + shake + kick;
+            Vector2 p = pos + shake + kick * Settings.ShakeMul;
             Camera.transform.position = new Vector3(p.x, p.y, -10f);
             Camera.transform.rotation = Quaternion.Euler(0f, 0f, rot);
         }

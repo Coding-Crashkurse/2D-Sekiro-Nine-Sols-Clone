@@ -78,7 +78,7 @@ namespace AshenSol.Core
             if (busy || !InLevel) return;
             if (!IsPaused && !deathScreenShowing && !victoryPending) Stats.PlayTime += Time.unscaledDeltaTime;
             if (Services.Input == null) return;
-            if (Services.Ui.UpgradePanelOpen) return;      // the shrine menu owns input while it is up
+            if (Services.Ui.UpgradePanelOpen || Services.Ui.CreditsRolling) return;   // these own input while they are up
             if (Services.Input.PausePressed && !deathScreenShowing && !victoryPending) TogglePause();
             else if (IsPaused && Services.Input.QuitPressed) { Unpause(); GoToTitle(); }
         }
@@ -255,6 +255,12 @@ namespace AshenSol.Core
         /// <summary>Put the dropped ash back into the world if it belongs to this level.</summary>
         void SpawnAshPile()
         {
+            if (LevelRoot != null)
+                foreach (var pile in LevelRoot.GetComponentsInChildren<AshPile>())
+                {
+                    pile.gameObject.SetActive(false);
+                    Destroy(pile.gameObject);
+                }
             if (Progression.DroppedAsh <= 0 || Progression.DropLevel != CurrentLevel || LevelRoot == null) return;
             AshPile.Create(Progression.DropPoint, LevelRoot);
         }
@@ -278,7 +284,7 @@ namespace AshenSol.Core
             if (!InLevel || deathScreenShowing || victoryPending) return;
             Stats.Deaths++;
             // souls rule: everything carried stays where you fell
-            if (player != null) Progression.DropOnDeath(player.Position, CurrentLevel);
+            if (player != null) Progression.DropOnDeath(player.LastSafeGroundPosition, CurrentLevel);
             GameEvents.RaiseLog("player died (deaths=" + Stats.Deaths + ")");
             StartCoroutine(DeathRoutine());
         }
@@ -339,7 +345,14 @@ namespace AshenSol.Core
             Services.Ui.SetHudVisible(false);
             Services.Ui.HideBossBar();
             Services.Audio.PlayMusic("music_victory", 1f);
-            Services.Ui.ShowVictoryScreen(Stats, GoToTitle);
+            Services.Ui.ShowVictoryScreen(Stats, RollCredits);
+        }
+
+        /// <summary>The run is over: the credits roll, and the title comes back after them.</summary>
+        void RollCredits()
+        {
+            if (player != null) player.SetControlEnabled(false);
+            Services.Ui.ShowCredits(GoToTitle);
         }
 
         // ---------------- Stats ----------------

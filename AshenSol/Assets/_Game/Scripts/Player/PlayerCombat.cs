@@ -36,6 +36,7 @@ namespace AshenSol.Player
         Coroutine attackCo, parryCo, healCo, qiCo;
         bool comboQueued, inRecovery, parrySuccess, parryPerfect, healInterrupted;
         float comboResetTimer, parryRecoveryTimer, attackInputLock;
+        float attackBuffer, parryBuffer;
 
         public PlayerCombat(PlayerController controller) { c = controller; }
 
@@ -43,16 +44,21 @@ namespace AshenSol.Player
         {
             CancelAll();
             ComboIndex = 0; comboQueued = false; comboResetTimer = 0f; parryRecoveryTimer = 0f;
+            attackInputLock = 0f;
         }
 
         public void CancelAll()
         {
+            ClearInputBuffers();
             CancelAttack();
             if (parryCo != null) { c.StopCoroutine(parryCo); parryCo = null; }
             if (healCo != null) { c.StopCoroutine(healCo); healCo = null; }
             if (qiCo != null) { c.StopCoroutine(qiCo); qiCo = null; }
             IsParrying = PerfectWindow = BlockWindow = IsHealing = IsQiBlasting = false;
             c.Rig.HideParryGlyph();
+            c.Rig.EndParry();
+            c.Rig.EndHeal();
+            c.Rig.EndQiBlast();
         }
 
         public void CancelAttack()
@@ -69,21 +75,30 @@ namespace AshenSol.Player
             if (parryRecoveryTimer > 0f) parryRecoveryTimer -= dt;
             if (attackInputLock > 0f) attackInputLock -= dt;
 
-            if (inp.ParryPressed) TryParry();
-            if (inp.AttackPressed) TryAttack();
+            attackBuffer = Mathf.Max(0f, attackBuffer - dt);
+            parryBuffer = Mathf.Max(0f, parryBuffer - dt);
+            if (inp.AttackPressed) attackBuffer = PlayerTuning.ActionBuffer;
+            if (inp.ParryPressed) parryBuffer = PlayerTuning.ActionBuffer;
+            if (c.IsStunned) return;
+
+            if (parryBuffer > 0f && TryParry()) ClearInputBuffers();
+            if (attackBuffer > 0f && TryAttack()) attackBuffer = 0f;
             if (inp.QiBlastPressed) TryQiBlast();
             if (inp.HealPressed) TryHeal();
         }
 
+        public void ClearInputBuffers() { attackBuffer = parryBuffer = 0f; }
+
         // ---------------- attack ----------------
-        void TryAttack()
+        bool TryAttack()
         {
-            if (IsParrying || IsHealing || IsQiBlasting || c.IsDashing) return;
-            if (IsAttacking) { comboQueued = true; return; }
-            if (attackInputLock > 0f) return;
+            if (IsParrying || IsHealing || IsQiBlasting || c.IsDashing) return false;
+            if (IsAttacking) { comboQueued = true; return true; }
+            if (attackInputLock > 0f) return false;
             int idx = c.IsGrounded ? ComboIndex : 0;
             if (idx >= Hits.Length) idx = 0;
             attackCo = c.StartCoroutine(AttackRoutine(idx));
+            return true;
         }
 
         IEnumerator AttackRoutine(int idx)
@@ -162,11 +177,12 @@ namespace AshenSol.Player
         }
 
         // ---------------- parry ----------------
-        void TryParry()
+        bool TryParry()
         {
-            if (IsParrying || IsHealing || IsQiBlasting || c.IsDashing || parryRecoveryTimer > 0f) return;
+            if (IsParrying || IsHealing || IsQiBlasting || c.IsDashing || parryRecoveryTimer > 0f) return false;
             CancelAttack();
             parryCo = c.StartCoroutine(ParryRoutine());
+            return true;
         }
 
         IEnumerator ParryRoutine()
@@ -271,7 +287,8 @@ namespace AshenSol.Player
             TimeController.Instance.SlowMo(0.35f, 0.35f);
 
             float t = 0f;
-            while (t < 0.22f) { t += Time.unscaledDeltaTime; yield return null; }
+            while (t < 0.22f) { t += ExecutionDelta; yield return null; }
+            while (TimeController.Instance != null && TimeController.Instance.IsPaused) yield return null;
 
             if (victim != null && victim.IsAlive)
             {
@@ -295,12 +312,16 @@ namespace AshenSol.Player
                 GameEvents.RaiseLog("execution on " + victim.DisplayName + " for " + victim.ExecuteDamage);
             }
 
-            while (t < PlayerTuning.ExecuteDuration) { t += Time.unscaledDeltaTime; yield return null; }
+            while (t < PlayerTuning.ExecuteDuration) { t += ExecutionDelta; yield return null; }
+            while (TimeController.Instance != null && TimeController.Instance.IsPaused) yield return null;
             c.Rig.EndAttack();
             c.Rig.EndQiBlast();
             IsQiBlasting = false;
             qiCo = null;
         }
+
+        // The cinematic ignores slow motion, but must still freeze in menus.
+        static float ExecutionDelta { get { return TimeController.Instance != null && TimeController.Instance.IsPaused ? 0f : Time.unscaledDeltaTime; } }
 
         IEnumerator QiBlastRoutine()
         {
@@ -377,6 +398,7 @@ namespace AshenSol.Player
         /// <summary>Damage interrupts channels and attacks.</summary>
         public void OnHurt()
         {
+            ClearInputBuffers();
             healInterrupted = true;
             if (IsHealing) { if (healCo != null) c.StopCoroutine(healCo); healCo = null; IsHealing = false; c.Rig.EndHeal(); }
             CancelAttack();

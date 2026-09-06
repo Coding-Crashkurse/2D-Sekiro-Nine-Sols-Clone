@@ -42,6 +42,7 @@ namespace AshenSol.Core
         public bool DashPressed { get; private set; }
         public bool QiBlastPressed { get; private set; }
         public bool HealPressed { get; private set; }
+        public bool InteractPressed { get; private set; }
         public bool PausePressed { get; private set; }
         public bool ConfirmPressed { get; private set; }
         public bool QuitPressed { get; private set; }
@@ -84,6 +85,7 @@ namespace AshenSol.Core
             DashPressed = Down(k?.lKey) || Down(k?.leftShiftKey) || Down(g?.rightShoulder) || Down(g?.rightTrigger);
             QiBlastPressed = Down(k?.iKey) || Down(g?.buttonNorth);
             HealPressed = Down(k?.hKey) || Down(g?.leftShoulder);
+            InteractPressed = Down(k?.eKey) || Down(k?.fKey) || Down(g?.leftTrigger);
             PausePressed = Down(k?.escapeKey) || Down(g?.startButton);
             ConfirmPressed = Down(k?.enterKey) || Down(k?.numpadEnterKey) || Down(k?.spaceKey) || Down(g?.buttonSouth) || Down(g?.startButton);
             QuitPressed = Down(k?.qKey) || Down(g?.buttonNorth);
@@ -107,12 +109,13 @@ namespace AshenSol.Core
         public bool DashPressed { get; private set; }
         public bool QiBlastPressed { get; private set; }
         public bool HealPressed { get; private set; }
+        public bool InteractPressed { get; private set; }
         public bool PausePressed { get; private set; }
         public bool ConfirmPressed { get; private set; }
         public bool QuitPressed { get { return false; } }
         public bool AnyPressed { get; private set; }
 
-        bool qJump, qAttack, qParry, qDash, qQi, qHeal, qPause, qConfirm;
+        bool qJump, qAttack, qParry, qDash, qQi, qHeal, qPause, qConfirm, qInteract;
 
         public void Jump() { qJump = true; }
         public void Attack() { qAttack = true; }
@@ -120,6 +123,7 @@ namespace AshenSol.Core
         public void Dash() { qDash = true; }
         public void QiBlast() { qQi = true; }
         public void Heal() { qHeal = true; }
+        public void Interact() { qInteract = true; }
         public void Pause() { qPause = true; }
         public void Confirm() { qConfirm = true; }
 
@@ -127,8 +131,9 @@ namespace AshenSol.Core
         {
             JumpPressed = qJump; AttackPressed = qAttack; ParryPressed = qParry; DashPressed = qDash;
             QiBlastPressed = qQi; HealPressed = qHeal; PausePressed = qPause; ConfirmPressed = qConfirm;
+            InteractPressed = qInteract;
             AnyPressed = qJump || qAttack || qParry || qDash || qQi || qHeal || qConfirm;
-            qJump = qAttack = qParry = qDash = qQi = qHeal = qPause = qConfirm = false;
+            qJump = qAttack = qParry = qDash = qQi = qHeal = qPause = qConfirm = qInteract = false;
         }
     }
 }

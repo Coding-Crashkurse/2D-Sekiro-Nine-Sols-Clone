@@ -22,6 +22,11 @@ namespace AshenSol.Boss
         public const float SlamTelegraph = 0.7f, SlamLeapHeight = 4.5f, SlamLeapTime = 0.35f, SlamDropSpeed = 40f, SlamRecovery = 1.0f;
         public const int SlamDamage = 30; public const float SlamKnockback = 10f;
         public const float ShockwaveSpeed = 9f, ShockwaveLife = 1.6f; public const int ShockwaveDamage = 15;
+        // SolarCollapse (phase two: he pulls a sun out of the horns and drops it)
+        public const float SolarTelegraph = 2.1f, SolarRecovery = 2.2f, SolarCooldown = 17f;
+        /// <summary>Fraction of the player's MAX health it takes. Parry it or lose three quarters.</summary>
+        public const float SolarDamageFraction = 0.75f;
+
         // GoreCharge (phase two, the horns)
         public const float GoreTelegraph = 0.7f, GoreSpeed = 21f, GoreDuration = 1.1f, GoreRecovery = 1.2f;
         public const int GoreDamage = 32;

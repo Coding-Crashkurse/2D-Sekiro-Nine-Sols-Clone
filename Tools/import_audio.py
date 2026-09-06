@@ -31,7 +31,8 @@ VOICE_ORDER = ["intro_1", "intro_2", "intro_3", "intro_4", "intro_5"]
 MUSIC_ORDER = ["music_title", "music_level1", "music_boss", "music_victory"]
 
 # folder in AudioRaw/ -> Resources name
-EXTRA_MUSIC = [("music_intro", "music_intro"), ("music_works", "music_works"), ("music_artisan", "music_artisan"), ("music_stair", "music_stair")]
+EXTRA_MUSIC = [("music_intro", "music_intro"), ("music_works", "music_works"), ("music_artisan", "music_artisan"),
+               ("music_stair", "music_stair"), ("music_credits", "music_credits")]
 
 # boss barks: a normal deep voice pitched down and doubled into something inhuman
 BOSS_VOICE = [("tts_You_s", "warden_1"), ("tts_Now_h", "warden_2")]

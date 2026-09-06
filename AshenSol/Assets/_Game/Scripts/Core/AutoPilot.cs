@@ -24,12 +24,13 @@ namespace AshenSol.Core
         int deaths, parries, perfect;
         bool firstParryShot;
 
-        float attackCd, parryCd, dashCd, qiCd, healCd, confirmCd;
+        float attackCd, parryCd, dashCd, qiCd, healCd, confirmCd, interactCd;
         float stuckTime; float lastX;
         float pendingShotAt = -1f; string pendingLabel;
         float statusTimer; string brainState = "-";
         int climbShots; float climbShotTimer;   // -climbShots N captures the climb cycle frame by frame
         float introSeenUntil;   // watch a slice of the intro, then skip so runs stay short
+        float creditsTime, victoryHold;   // how much of the end roll to sit through before skipping
         float jumpHold;   // the bot must HOLD jump — tapping triggers the variable-height jump cut
 
         void Awake()
@@ -43,6 +44,7 @@ namespace AshenSol.Core
             catch (System.Exception e) { Debug.LogWarning("[AutoPilot] cannot open log: " + e.Message); }
             quitAfter = CmdArgs.GetFloat("-quitAfter", 240f);
             introSeenUntil = CmdArgs.GetFloat("-introSeconds", 12f);
+            victoryHold = CmdArgs.GetFloat("-victoryHold", 6f);
             input = new ScriptedInput();
             if (InputRouter.Instance != null) InputRouter.Instance.SetProvider(input);
 
@@ -127,7 +129,7 @@ namespace AshenSol.Core
             if (finished) return;
             float dt = Time.unscaledDeltaTime;
             elapsed += dt; shotTimer += dt;
-            attackCd -= dt; parryCd -= dt; dashCd -= dt; qiCd -= dt; healCd -= dt; confirmCd -= dt;
+            attackCd -= dt; parryCd -= dt; dashCd -= dt; qiCd -= dt; healCd -= dt; confirmCd -= dt; interactCd -= dt;
 
             if (pendingShotAt >= 0f && elapsed >= pendingShotAt) { Shot(pendingLabel); pendingShotAt = -1f; }
             else if (shotTimer >= 6f) Shot("t" + Mathf.RoundToInt(elapsed));
@@ -158,11 +160,21 @@ namespace AshenSol.Core
                         pp.HazardRecovering, pp.IsDead, pp.Hp, pp.Qi, brainState, input.Horizontal, AliveEnemyCount()));
             }
 
-            if (elapsed >= quitAfter || (victoryAt >= 0f && elapsed >= victoryAt + 6f)) { Finish(); return; }
+            if (elapsed >= quitAfter || (victoryAt >= 0f && elapsed >= victoryAt + victoryHold)) { Finish(); return; }
 
             input.Horizontal = 0f; input.Vertical = 0f; input.ParryHeld = false;
             jumpHold -= dt;
             input.JumpHeld = jumpHold > 0f;
+            // the end roll owns the screen; watch a slice of it, then skip
+            if (Services.Ui != null && Services.Ui.CreditsRolling)
+            {
+                brainState = "credits";
+                creditsTime += dt;
+                if (creditsTime > 22f && confirmCd <= 0f) { input.Confirm(); confirmCd = 1.5f; }
+                return;
+            }
+            // shrines no longer open by themselves: ask for the rest whenever a level is affordable
+            if (Progression.CanAffordLevel && interactCd <= 0f) { input.Interact(); interactCd = 0.4f; }
             // the shrine menu pauses the world and owns input until something is bought
             if (Services.Ui != null && Services.Ui.UpgradePanelOpen)
             {
@@ -183,6 +195,10 @@ namespace AshenSol.Core
                     break;
                 case GameState.Title:
                     if (confirmCd <= 0f) { input.Confirm(); confirmCd = 1f; }
+                    break;
+                case GameState.Victory:
+                    // sit on the stats card for a beat, then roll the credits
+                    if (victoryAt >= 0f && elapsed > victoryAt + 3.5f && confirmCd <= 0f) { input.Confirm(); confirmCd = 1.5f; }
                     break;
                 case GameState.Level1:
                 case GameState.Works:

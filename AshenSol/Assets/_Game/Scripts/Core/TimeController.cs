@@ -8,6 +8,7 @@ namespace AshenSol.Core
     {
         public static TimeController Instance { get; private set; }
         public bool IsPaused { get; private set; }
+        public int PauseChangedFrame { get; private set; } = -1;
         public float CurrentScale { get; private set; } = 1f;
 
         const float BaseFixedDelta = 1f / 60f;
@@ -25,6 +26,7 @@ namespace AshenSol.Core
 
         public void SetPaused(bool paused)
         {
+            if (IsPaused != paused) PauseChangedFrame = Time.frameCount;
             IsPaused = paused;
             Apply();
         }
@@ -32,8 +34,11 @@ namespace AshenSol.Core
         void Update()
         {
             float dt = Time.unscaledDeltaTime;
-            if (HitStop.Remaining > 0f) HitStop.Remaining -= dt;
-            if (slowRemaining > 0f) slowRemaining -= dt;
+            if (!IsPaused)
+            {
+                if (HitStop.Remaining > 0f) HitStop.Remaining -= dt;
+                if (slowRemaining > 0f) slowRemaining -= dt;
+            }
             Apply();
         }
 

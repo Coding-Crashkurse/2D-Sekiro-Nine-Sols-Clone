@@ -15,6 +15,7 @@ namespace AshenSol.Player
         public const float JumpCutMultiplier = 0.45f;
         public const float CoyoteTime = 0.10f;
         public const float JumpBuffer = 0.12f;
+        public const float ActionBuffer = 0.12f;
         public const float ApexGravityScale = 0.75f;
         public const float ApexThreshold = 2.5f;
         public const float MaxFallSpeed = 22f;
@@ -34,6 +35,8 @@ namespace AshenSol.Player
         public const float ParryPerfectWindow = 0.18f;
         public const float ParryBlockWindow = 0.22f;
         public const float ParryRecovery = 0.12f;
+        /// <summary>Chip taken when a guard-piercing attack is merely blocked instead of parried.</summary>
+        public const float PierceChipFraction = 0.6f;
         public const float BlockChipFraction = 0.3f;
         public const float BlockKnockback = 4f;
 

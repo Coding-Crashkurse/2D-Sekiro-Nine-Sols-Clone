@@ -57,6 +57,10 @@ namespace AshenSol.Boss
         SashChain cape;
         SpriteRenderer core; Light2D coreLight;
         SpriteRenderer hornL, hornR; Light2D hornLight;
+        Transform sun; SpriteRenderer sunGlow, sunBody, sunRing, sunRing2; Light2D sunLight;
+        Transform aura; SpriteRenderer auraGlow, auraRing, auraRing2; Light2D auraLight;
+        float auraAmount, auraEmber, auraTrail;
+        bool solarPending; float solarCd;
         float lastDustX;
 
         // ---------------- build ----------------
@@ -123,7 +127,77 @@ namespace AshenSol.Boss
             hornLight.color = Palette.Red;
             hornLight.intensity = 0f;
             hornLight.pointLightOuterRadius = 5f;
+
+            // the sun he drags out of the horns in phase two; dormant until then
+            var sgo = new GameObject("sun");
+            sgo.transform.SetParent(transform, false);
+            sgo.transform.localPosition = new Vector3(0f, 5.8f, 0f);
+            sun = sgo.transform;
+            sunGlow = Additive(sun, "fx_glow", Palette.Amber, SortOrder.Boss + 3, 17f);
+            sunRing2 = Additive(sun, "fx_ring", Palette.Red, SortOrder.Boss + 4, 13f);
+            sunRing = Additive(sun, "fx_ring", Palette.Gold, SortOrder.Boss + 5, 9f);
+            sunBody = Additive(sun, "fx_flare", Color.white, SortOrder.Boss + 6, 6f);
+            var sl = new GameObject("sunLight");
+            sl.transform.SetParent(sun, false);
+            sunLight = sl.AddComponent<Light2D>();
+            sunLight.lightType = Light2D.LightType.Point;
+            sunLight.color = Palette.Amber;
+            sunLight.intensity = 0f;
+            sunLight.pointLightOuterRadius = 30f;
+            SetSun(0f);
+
+            // the corona he burns inside once the ash takes the body back
+            var ago = new GameObject("aura");
+            ago.transform.SetParent(transform, false);
+            ago.transform.localPosition = new Vector3(0f, 1.7f, 0f);
+            aura = ago.transform;
+            auraGlow = Additive(aura, "fx_glow", Palette.Red, SortOrder.Boss - 4, 11f);
+            auraRing2 = Additive(aura, "fx_ring", Palette.Red, SortOrder.Boss - 3, 9f);
+            auraRing = Additive(aura, "fx_ring", Palette.Amber, SortOrder.Boss - 2, 6.5f);
+            var al = new GameObject("auraLight");
+            al.transform.SetParent(aura, false);
+            auraLight = al.AddComponent<Light2D>();
+            auraLight.lightType = Light2D.LightType.Point;
+            auraLight.color = Palette.Red;
+            auraLight.intensity = 0f;
+            auraLight.pointLightOuterRadius = 11f;
+            SetAura(0f);
             return rig;
+        }
+
+        static SpriteRenderer Additive(Transform parent, string sprite, Color color, int sort, float scale)
+        {
+            var go = new GameObject(sprite);
+            go.transform.SetParent(parent, false);
+            go.transform.localScale = Vector3.one * scale;
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = Res.Sprite(sprite);
+            sr.material = MaterialLibrary.Additive;
+            sr.color = color.WithAlpha(0f);
+            sr.sortingOrder = sort;
+            return sr;
+        }
+
+        /// <summary>0 = gone, 1 = a small sun burning over his head.</summary>
+        void SetSun(float grow)
+        {
+            float g = Mathf.Clamp01(grow);
+            if (sun != null) sun.localScale = Vector3.one * (0.2f + 1.5f * g);
+            if (sunGlow != null) sunGlow.color = Palette.Amber.WithAlpha(0.8f * g);
+            if (sunRing2 != null) sunRing2.color = Palette.Red.WithAlpha(0.5f * g);
+            if (sunRing != null) sunRing.color = Palette.Gold.WithAlpha(0.65f * g);
+            if (sunBody != null) sunBody.color = Color.Lerp(Palette.Gold, Color.white, g).WithAlpha(0.95f * g);
+            if (sunLight != null) sunLight.intensity = 9f * g;
+        }
+
+        /// <summary>0 = a man in armour, 1 = a man standing inside a small fire.</summary>
+        void SetAura(float amount)
+        {
+            auraAmount = Mathf.Clamp01(amount);
+            if (auraGlow != null) auraGlow.color = Palette.Red.WithAlpha(0.5f * auraAmount);
+            if (auraRing != null) auraRing.color = Palette.Amber.WithAlpha(0.3f * auraAmount);
+            if (auraRing2 != null) auraRing2.color = Palette.Red.WithAlpha(0.24f * auraAmount);
+            if (auraLight != null) auraLight.intensity = 2.6f * auraAmount;
         }
 
         static SpriteRenderer Horn(Transform parent, Vector2 pos, float angle)
@@ -155,7 +229,7 @@ namespace AshenSol.Boss
             float g = Mathf.Clamp01(grow);
             if (hornL != null) hornL.transform.localScale = new Vector3(g, g, 1f);
             if (hornR != null) hornR.transform.localScale = new Vector3(g, g, 1f);
-            if (hornLight != null) hornLight.intensity = 3.4f * g;
+            if (hornLight != null) { hornLight.intensity = 5.2f * g; hornLight.pointLightOuterRadius = 5f + 2.5f * g; }
         }
 
         protected override void OnReset()
@@ -167,6 +241,9 @@ namespace AshenSol.Boss
             if (core != null) { core.enabled = true; coreLight.enabled = true; }
             transform.localScale = Vector3.one;
             SetHorns(0f);
+            SetSun(0f);
+            SetAura(0f);
+            solarPending = false; solarCd = 0f;
             if (hornL != null) hornL.enabled = true;
             if (hornR != null) hornR.enabled = true;
             if (hornLight != null) hornLight.enabled = true;
@@ -208,6 +285,11 @@ namespace AshenSol.Boss
             base.Update();
             if (!IsAlive) return;
             float dt = Time.deltaTime;
+            if (solarCd > 0f) solarCd -= dt;
+            if (sun != null) sun.localRotation = Quaternion.Euler(0f, 0f, Time.time * 34f);
+            if (sunRing != null) sunRing.transform.localRotation = Quaternion.Euler(0f, 0f, Time.time * -78f);
+            if (sunRing2 != null) sunRing2.transform.localRotation = Quaternion.Euler(0f, 0f, Time.time * 46f);
+            if (auraAmount > 0.001f) TickAura(dt);
             if (cape != null) cape.Tick(dt, Facing, Body.linearVelocity);
             if (core != null)
             {
@@ -219,6 +301,42 @@ namespace AshenSol.Boss
             {
                 lastDustX = transform.position.x;
                 Services.Vfx.DustPuff(transform.position, 1.1f);
+            }
+        }
+
+        /// <summary>The second form never stops burning: a pulsing corona, drifting embers, and a smear
+        /// of afterimages whenever he moves fast enough to leave one.</summary>
+        void TickAura(float dt)
+        {
+            float pulse = 0.78f + 0.22f * Mathf.Sin(Time.time * 5.2f);
+            if (auraGlow != null) auraGlow.color = Palette.Red.WithAlpha(0.5f * auraAmount * pulse);
+            if (auraRing != null)
+            {
+                auraRing.color = Palette.Amber.WithAlpha(0.3f * auraAmount * pulse);
+                auraRing.transform.localRotation = Quaternion.Euler(0f, 0f, Time.time * 27f);
+            }
+            if (auraRing2 != null)
+            {
+                auraRing2.color = Palette.Red.WithAlpha(0.24f * auraAmount * (1.8f - pulse));
+                auraRing2.transform.localRotation = Quaternion.Euler(0f, 0f, Time.time * -18f);
+            }
+            if (aura != null) aura.localScale = Vector3.one * (auraAmount * (1f + 0.07f * Mathf.Sin(Time.time * 3.3f)));
+            if (auraLight != null) auraLight.intensity = 2.6f * auraAmount * pulse;
+
+            auraEmber -= dt;
+            if (auraEmber <= 0f)
+            {
+                auraEmber = 0.2f;
+                Services.Vfx.Embers(Center + new Vector2(UnityEngine.Random.Range(-0.9f, 0.9f), UnityEngine.Random.Range(-0.8f, 1.4f)), 3, Palette.Amber);
+            }
+            if (Mathf.Abs(Body.linearVelocity.x) > 5f)
+            {
+                auraTrail -= dt;
+                if (auraTrail <= 0f)
+                {
+                    auraTrail = 0.06f;
+                    Services.Vfx.Afterimage(Renderers, Palette.Red.WithAlpha(0.35f), 0.28f);
+                }
             }
         }
 
@@ -344,6 +462,8 @@ namespace AshenSol.Boss
             core.enabled = false; coreLight.enabled = false;
             // the horns live outside the rig, so hide them explicitly or they hang in the air
             SetHorns(0f);
+            SetSun(0f);
+            SetAura(0f);
             if (hornL != null) hornL.enabled = false;
             if (hornR != null) hornR.enabled = false;
             if (hornLight != null) hornLight.enabled = false;
@@ -365,6 +485,12 @@ namespace AshenSol.Boss
                     continue;
                 }
                 if (phasePending) { yield return PhaseTransition(); continue; }
+                if (solarPending)
+                {
+                    solarPending = false;
+                    yield return SolarCollapse();
+                    continue;
+                }
 
                 yield return Approach(UnityEngine.Random.Range(0.35f, 0.9f));
                 if (!PlayerAlive) continue;
@@ -379,6 +505,7 @@ namespace AshenSol.Boss
                     case "Whirl": yield return Whirl(); break;
                     case "Gore": yield return GoreCharge(); break;
                     case "RedThrust": yield return RedThrust(); break;
+                    case "Solar": yield return SolarCollapse(); break;
                 }
                 CurrentAttack = "";
             }
@@ -399,6 +526,7 @@ namespace AshenSol.Boss
             {
                 Add("Whirl", d <= 4.5f ? 3f : 0f);
                 Add("RedThrust", d > 3f ? 2f : 0f);
+                Add("Solar", solarCd <= 0f ? 2.2f : 0f);
             }
             if (names.Count == 0) return d <= 3.6f ? "TripleSlash" : "DashSlash";
             float total = 0f; foreach (var w in weights) total += w;
@@ -562,21 +690,23 @@ namespace AshenSol.Boss
             invulnerable = false;
             GameEvents.RaiseBossPhaseChanged(2);
             CurrentAttack = "";
+            solarPending = true;   // the new form opens with the sun
         }
 
         /// <summary>Ash-lit second form: hotter palette, brighter core, slightly larger silhouette.</summary>
         void ApplySecondForm()
         {
-            var hot = new Color(0.62f, 0.34f, 0.32f);   // charred: the glow comes from the core and horns
+            var hot = new Color(0.72f, 0.38f, 0.34f);   // charred, but lit from inside by the corona
             foreach (var r in Renderers) if (r != null) r.color = hot;
             if (core != null) core.color = Palette.Red;
-            if (coreLight != null) { coreLight.intensity = 2.6f; coreLight.pointLightOuterRadius = 4.5f; }
-            if (Rig.Light != null) { Rig.Light.color = Palette.Red; Rig.Light.intensity = 2f; Rig.Light.pointLightOuterRadius = 5f; }
+            if (coreLight != null) { coreLight.intensity = 3.6f; coreLight.pointLightOuterRadius = 6.5f; }
+            if (Rig.Light != null) { Rig.Light.color = Palette.Red; Rig.Light.intensity = 2.8f; Rig.Light.pointLightOuterRadius = 7f; }
             Rig.Cfg.LightColor = Palette.Red;
-            Rig.Cfg.LightIntensity = 1.8f;
-            transform.localScale = Vector3.one * 1.08f;
-            if (cape != null) cape.Wind = 0.3f;
-            Services.Vfx.Embers(Center, 30, Palette.Red);
+            Rig.Cfg.LightIntensity = 2.4f;
+            transform.localScale = Vector3.one * 1.24f;
+            if (cape != null) cape.Wind = 0.5f;
+            SetAura(1f);
+            Services.Vfx.Embers(Center, 40, Palette.Red);
         }
 
         IEnumerator TripleSlash()
@@ -776,6 +906,106 @@ namespace AshenSol.Boss
             }
             Move(0f);
             yield return Wait(BossTuning.ThrustRecovery);
+        }
+
+        /// <summary>
+        /// SOLAR COLLAPSE. He plants the glaive, drags a small sun out of the horns and drops it on the
+        /// arena. There is no outrunning it — the blast fills the room. It is parryable, and if it is
+        /// not parried it takes three quarters of the health pool, so it is the attack the fight is about.
+        /// </summary>
+        IEnumerator SolarCollapse()
+        {
+            CurrentAttack = "Solar";
+            solarCd = BossTuning.SolarCooldown;
+            FacePlayer();
+            Move(0f);
+            Body.linearVelocity = new Vector2(0f, Body.linearVelocity.y);
+
+            // --- 1. he plants and reaches up; the white telegraph says this one can be met
+            float tel = BossTuning.SolarTelegraph * Tele;
+            BeginTelegraph(AttackKind.Parryable, tel);
+            float charge = tel * Settings.TelegraphMul;
+            Rig.SetPose(true, -105f, 180f, -105f);   // both arms up, blade overhead
+            Services.Audio.PlaySfxAt("solar_charge", Center, 1f, 0.02f);
+            Services.Ui.ShowPrompt("SOLAR COLLAPSE", 1.6f);
+
+            Vector2 sunAt = sun != null ? (Vector2)sun.position : Center + new Vector2(0f, 5.2f);
+            float t = 0f, ember = 0f, shake = 0f;
+            while (t < charge)
+            {
+                float k = Mathf.Clamp01(t / Mathf.Max(0.01f, charge));
+                SetSun(Ease.InCubic(k) * 0.9f + 0.1f * k);
+                sunAt = sun != null ? (Vector2)sun.position : Center + new Vector2(0f, 5.2f);
+                Services.Vfx.FlashLight(sunAt, Palette.Amber, 2f * k, 9f + 16f * k, 0.12f);
+
+                ember -= Time.deltaTime;
+                if (ember <= 0f)
+                {
+                    ember = 0.07f;
+                    float a = UnityEngine.Random.value * Mathf.PI * 2f, r = 9f - 6f * k;
+                    Services.Vfx.HitSpark(sunAt + new Vector2(Mathf.Cos(a) * r, Mathf.Sin(a) * r * 0.6f),
+                                          -new Vector2(Mathf.Cos(a), Mathf.Sin(a)), Palette.Gold, 0.6f + 0.6f * k);
+                }
+                shake -= Time.deltaTime;
+                if (shake <= 0f) { shake = 0.12f; Services.Cam.Shake(0.05f + 0.18f * k); }
+                if (k > 0.5f) Services.Vfx.ChromaticPulse((k - 0.5f) * 1.6f, 0.15f);
+
+                t += Time.deltaTime;
+                yield return null;
+            }
+            EndTelegraph();
+
+            // --- 2. the sun folds inward: the one beat you parry on
+            Services.Vfx.ScreenFlash(Palette.Gold.WithAlpha(0.35f), 0.18f);
+            float c = 0f;
+            while (c < 0.14f)
+            {
+                SetSun(1f - c / 0.14f * 0.75f);
+                c += Time.deltaTime;
+                yield return null;
+            }
+            SetSun(0f);
+
+            // --- 3. it goes off, and the whole arena is inside it
+            var pc = AshenSol.Player.PlayerController.Instance;
+            int dmg = pc != null
+                ? Mathf.Max(1, Mathf.RoundToInt(pc.MaxHp * BossTuning.SolarDamageFraction))
+                : 75;
+            var info = new AttackInfo
+            {
+                Damage = dmg, Knockback = 15f, Kind = AttackKind.Parryable, PierceGuard = true,
+                Tag = "boss_solar", Origin = Center, HitPoint = pc != null ? pc.Center : Center
+            };
+            StrikePlayer(info, Center, new Vector2(80f, 44f));
+
+            Services.Audio.PlaySfxAt("solar_burst", Center, 1f, 0.02f);
+            Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.9f), 0.55f);
+            Services.Vfx.FlashLight(sunAt, Color.white, 12f, 34f, 0.9f);
+            Services.Vfx.ChromaticPulse(1f, 1.4f);
+            Services.Vfx.Embers(sunAt, 140, Palette.Gold);
+            Services.Vfx.InkSplatter(sunAt, Vector2.up, Palette.Amber, 30);
+            Services.Cam.Shake(1f);
+            Services.Cam.Kick(Vector2.up, 0.5f);
+            HitStop.Request(0.12f);
+            if (TimeController.Instance != null) TimeController.Instance.SlowMo(0.35f, 0.6f);
+            GameEvents.RaiseLog("solar collapse (" + dmg + " dmg)");
+
+            // rings rolling out of the blast
+            for (int i = 0; i < 5; i++)
+            {
+                Services.Vfx.Shockwave(sunAt, 10f + i * 11f, i < 2 ? Color.white : Palette.Amber);
+                Services.Cam.Shake(0.38f - i * 0.06f);
+                yield return new WaitForSeconds(0.08f);
+            }
+            Services.Vfx.Shockwave(transform.position, 16f, Palette.Gold);
+            GroundShockwave.Spawn((Vector2)transform.position + new Vector2(2f, 0f), 1, 11f, BossTuning.ShockwaveDamage, 1.6f, transform.parent);
+            GroundShockwave.Spawn((Vector2)transform.position + new Vector2(-2f, 0f), -1, 11f, BossTuning.ShockwaveDamage, 1.6f, transform.parent);
+
+            // --- 4. it costs him: a long opening while the horns cool
+            Rig.SetPose(true, 30f, 180f, -18f);
+            yield return Wait(BossTuning.SolarRecovery * 0.6f);
+            Rig.SetPose(false);
+            yield return Wait(BossTuning.SolarRecovery * 0.4f);
         }
 
         /// <summary>Phase two only: he puts his head down and runs the arena with the new horns.</summary>

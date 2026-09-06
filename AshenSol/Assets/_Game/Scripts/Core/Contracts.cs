@@ -20,6 +20,7 @@ namespace AshenSol.Core
         public GameObject Source;     // attacker root object (may be a projectile)
         public Team Team;             // team of the attacker
         public int Damage;
+        public bool PierceGuard;      // a late block barely helps; only a perfect parry stops it clean
         public Vector2 Origin;        // where the attack comes from (knockback direction, spark placement)
         public Vector2 HitPoint;      // estimated contact point (world)
         public AttackKind Kind;       // Parryable (white flash) or Unblockable (red flash)
@@ -58,6 +59,7 @@ namespace AshenSol.Core
         bool DashPressed { get; }
         bool QiBlastPressed { get; }
         bool HealPressed { get; }
+        bool InteractPressed { get; }   // E / gamepad LT — rest at a shrine
         bool PausePressed { get; }
         bool ConfirmPressed { get; }  // Enter / gamepad South — menus
         bool QuitPressed { get; }     // Q / gamepad North while paused — abandon the run
@@ -151,6 +153,9 @@ namespace AshenSol.Core
         /// <summary>Shrine upgrade menu. The callback fires once with the chosen upgrade.</summary>
         void ShowUpgradePanel(Action<UpgradeKind> onPick);
         bool UpgradePanelOpen { get; }
+        /// <summary>Roll the end credits, then call back. Any key skips.</summary>
+        void ShowCredits(Action onDone);
+        bool CreditsRolling { get; }
     }
 
     /// <summary>Service locator. Each manager registers itself in Awake (GameBootstrap creates them in order).</summary>
