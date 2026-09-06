@@ -7,7 +7,7 @@ namespace AshenSol.Player
     /// <summary>Procedural puppet: joint pivots + sprites, posed every frame from the controller state.</summary>
     public class PlayerRig
     {
-        enum Pose { None, Idle, Run, Jump, Fall, Dash, Parry, ParrySuccess, Hurt, Heal, QiBlast, Climb }
+        enum Pose { None, Idle, Run, Jump, Fall, Dash, Parry, ParrySuccess, Hurt, Heal, QiBlast, Climb, Charge }
 
         public SpriteRenderer[] Renderers { get; private set; }
         public Transform Root { get; private set; }
@@ -157,6 +157,8 @@ namespace AshenSol.Player
         public void EndAttack() { attackActive = false; }
 
         public void PlayParry() { forced = Pose.Parry; forcedTimer = 99f; }
+        /// <summary>Held wind-up for the charged strike: blade drawn back past the shoulder.</summary>
+        public void PlayCharge() { forced = Pose.Charge; forcedTimer = 99f; attackActive = false; }
         public void ParrySuccessPose(bool perfect)
         {
             forced = Pose.ParrySuccess; forcedTimer = 0.12f;
@@ -279,6 +281,16 @@ namespace AshenSol.Player
                     tBob = Mathf.Abs(swing) * 0.05f;
                     tTorsoY = -0.04f;
                     rate = 22f;
+                    break;
+                case Pose.Charge:
+                    // coiled away from the target, both hands taking the hilt back over the shoulder
+                    tTorso = 14f; tHead = -6f;
+                    tArmF = -64f; tArmB = -78f;
+                    tBlade = 42f;                        // tip up and behind, ready to come over
+                    tLegF = -16f; tLegB = 14f;
+                    tTorsoY = -0.05f;
+                    tBob = Mathf.Sin(t * 38f) * 0.012f;  // the strain of holding it
+                    rate = 16f;
                     break;
                 case Pose.QiBlast:
                     tTorso = -12f; tArmF = 88f; tArmB = 82f; tBlade = -95f; tLegF = 24f; tLegB = -18f; tHead = -6f;

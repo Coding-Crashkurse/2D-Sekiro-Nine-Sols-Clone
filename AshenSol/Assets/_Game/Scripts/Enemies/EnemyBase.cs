@@ -291,6 +291,7 @@ namespace AshenSol.Enemies
 
             if (execute) RecoverPosture();                       // the break is consumed by the finisher
             else if (info.Tag == "qi_blast") AddPosture(MaxPosture * EnemyTuning.PostureFromQiBlast);
+            else if (info.Tag == "player_heavy") AddPosture(MaxPosture * EnemyTuning.PostureFromHeavy);
             else if (info.Team == Team.Player) AddPosture(MaxPosture * EnemyTuning.PostureFromHit);
             return HitOutcome.Hit;
         }

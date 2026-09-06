@@ -54,6 +54,7 @@ namespace AshenSol.Core
         bool JumpPressed { get; }     // true only on the frame the button went down
         bool JumpHeld { get; }
         bool AttackPressed { get; }
+        bool HeavyPressed { get; }    // R2 / U — the charged strike
         bool ParryPressed { get; }
         bool ParryHeld { get; }
         bool DashPressed { get; }

@@ -18,17 +18,23 @@ Fertiger Build: **`Builds/Windows/AshenSol.exe`** — einfach doppelklicken.
 
 ### Steuerung
 
-| Aktion | Tastatur | Gamepad |
-|---|---|---|
-| Bewegen | A / D | Linker Stick |
-| Springen | Leertaste / W | A (Süd) |
-| Angreifen | J / Linksklick | X (West) |
-| **Parieren** | K / Rechtsklick | B (Ost) |
-| Dash | L / Shift | RB / RT |
-| Qi-Blast | I | Y (Nord) |
-| Heilen | H | LB |
-| **Am Schrein rasten** | E / F | LT |
-| Pause | Esc | Start |
+| Aktion | Tastatur | Gamepad (Xbox) | PlayStation |
+|---|---|---|---|
+| Bewegen | A / D | Linker Stick, D-Pad ←→ | Linker Stick, D-Pad ←→ |
+| Springen | Leertaste / W | **A** | Kreuz |
+| Angreifen | J / Linksklick | **R1** | R1 |
+| **Aufgeladene Attacke** | U | **R2** | R2 |
+| **Parieren** | K / Rechtsklick | **B** | Kreis |
+| Dash | L / Shift | **X** | Quadrat |
+| Qi-Blast / **Hinrichtung** | I | **LB** | L1 |
+| Heilen | H | **D-Pad ↑** | D-Pad ↑ |
+| **Am Schrein rasten** / Zwischensequenz überspringen | E / F | **Y** | Dreieck |
+| Pause | Esc | Start | Options |
+| Bestätigen (Menüs) | Enter / Leertaste | **A** | Kreuz |
+| Lauf aufgeben (in Pause) | Q | **X** | Quadrat |
+
+Klettern und die Menü-Auswahl oben/unten laufen über den **linken Stick** — das D-Pad hoch ist mit
+Heilen belegt, sonst würde eine Leiter dauernd Heiltränke auslösen.
 
 ### Die Kampfregel
 
@@ -47,6 +53,10 @@ Fertiger Build: **`Builds/Windows/AshenSol.exe`** — einfach doppelklicken.
 * Ohne Ziel in Reichweite bleibt `I` der **Qi Blast**: 12 Schaden im Umkreis plus kräftiger
   Haltungsschaden — gut, um eine Gruppe gleichzeitig aufzubrechen.
 * Gegnerprojektile lassen sich mit einer perfekten Parade **zurückschleudern** (30 Schaden).
+* **Aufgeladene Attacke (`U` / R2):** 0,46 s Ausholen, dann ein einzelner Überkopfschlag mit
+  **34 Schaden** (statt 10/10/18), breiterem Trefferfeld, kräftigem Rückstoß und **22 % Haltungsschaden
+  auf einen Schlag** — dreimal so viel wie ein normaler Treffer. Sie lässt sich nicht in die Combo
+  einbauen und du bist während des Ausholens festgelegt: wer dich dabei trifft, unterbricht sie.
 
 **Qi** (max. 3, goldene Sechsecke): +1 pro perfekter Parade und pro Kill. Ausgeben kannst du es für
 die **Hinrichtung (I)**, den **Qi Blast (I ohne Ziel)** oder **Heilen (H)**.

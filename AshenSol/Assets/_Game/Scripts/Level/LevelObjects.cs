@@ -420,7 +420,8 @@ namespace AshenSol.Level
                     }
                 }
             }
-            mr.enabled = focused == this;
+            bool nameCard = AshenSol.UI.UiManager.Instance != null && AshenSol.UI.UiManager.Instance.NameCardVisible;
+            mr.enabled = focused == this && !nameCard;
             mesh.color = baseColor;
         }
     }

@@ -37,6 +37,7 @@ namespace AshenSol.Core
         public bool JumpPressed { get; private set; }
         public bool JumpHeld { get; private set; }
         public bool AttackPressed { get; private set; }
+        public bool HeavyPressed { get; private set; }
         public bool ParryPressed { get; private set; }
         public bool ParryHeld { get; private set; }
         public bool DashPressed { get; private set; }
@@ -70,7 +71,7 @@ namespace AshenSol.Core
                 Vector2 ls = g.leftStick.ReadValue();
                 Vector2 dp = g.dpad.ReadValue();
                 float gh = Mathf.Abs(ls.x) > 0.3f ? ls.x : dp.x;
-                float gv = Mathf.Abs(ls.y) > 0.3f ? ls.y : dp.y;
+                float gv = ls.y;      // NOT the d-pad: up is heal, and a ladder would spam it
                 if (Mathf.Abs(gh) > 0.3f) h = gh;
                 if (Mathf.Abs(gv) > 0.3f) v = gv;
             }
@@ -79,19 +80,21 @@ namespace AshenSol.Core
 
             JumpPressed = Down(k?.spaceKey) || Down(k?.wKey) || Down(k?.upArrowKey) || Down(g?.buttonSouth);
             JumpHeld = Held(k?.spaceKey) || Held(k?.wKey) || Held(k?.upArrowKey) || Held(g?.buttonSouth);
-            AttackPressed = Down(k?.jKey) || Down(m?.leftButton) || Down(g?.buttonWest);
+            AttackPressed = Down(k?.jKey) || Down(m?.leftButton) || Down(g?.rightShoulder);
+            HeavyPressed = Down(k?.uKey) || Down(g?.rightTrigger);
             ParryPressed = Down(k?.kKey) || Down(m?.rightButton) || Down(g?.buttonEast);
             ParryHeld = Held(k?.kKey) || Held(m?.rightButton) || Held(g?.buttonEast);
-            DashPressed = Down(k?.lKey) || Down(k?.leftShiftKey) || Down(g?.rightShoulder) || Down(g?.rightTrigger);
-            QiBlastPressed = Down(k?.iKey) || Down(g?.buttonNorth);
-            HealPressed = Down(k?.hKey) || Down(g?.leftShoulder);
-            InteractPressed = Down(k?.eKey) || Down(k?.fKey) || Down(g?.leftTrigger);
+            DashPressed = Down(k?.lKey) || Down(k?.leftShiftKey) || Down(g?.buttonWest);
+            QiBlastPressed = Down(k?.iKey) || Down(g?.leftShoulder);
+            HealPressed = Down(k?.hKey) || Down(g?.dpad.up);
+            InteractPressed = Down(k?.eKey) || Down(k?.fKey) || Down(g?.buttonNorth);
             PausePressed = Down(k?.escapeKey) || Down(g?.startButton);
             ConfirmPressed = Down(k?.enterKey) || Down(k?.numpadEnterKey) || Down(k?.spaceKey) || Down(g?.buttonSouth) || Down(g?.startButton);
-            QuitPressed = Down(k?.qKey) || Down(g?.buttonNorth);
+            QuitPressed = Down(k?.qKey) || Down(g?.buttonWest);   // only read while paused
             AnyPressed = (k != null && k.anyKey.wasPressedThisFrame)
                          || (m != null && (m.leftButton.wasPressedThisFrame || m.rightButton.wasPressedThisFrame))
-                         || (g != null && (g.buttonSouth.wasPressedThisFrame || g.buttonEast.wasPressedThisFrame || g.buttonWest.wasPressedThisFrame || g.buttonNorth.wasPressedThisFrame || g.startButton.wasPressedThisFrame));
+                         || (g != null && (g.buttonSouth.wasPressedThisFrame || g.buttonEast.wasPressedThisFrame || g.buttonWest.wasPressedThisFrame || g.buttonNorth.wasPressedThisFrame || g.startButton.wasPressedThisFrame
+                                           || g.rightShoulder.wasPressedThisFrame || g.rightTrigger.wasPressedThisFrame || g.leftShoulder.wasPressedThisFrame));
         }
     }
 
@@ -105,6 +108,7 @@ namespace AshenSol.Core
         public bool ParryHeld { get; set; }
         public bool JumpPressed { get; private set; }
         public bool AttackPressed { get; private set; }
+        public bool HeavyPressed { get; private set; }
         public bool ParryPressed { get; private set; }
         public bool DashPressed { get; private set; }
         public bool QiBlastPressed { get; private set; }
@@ -115,10 +119,11 @@ namespace AshenSol.Core
         public bool QuitPressed { get { return false; } }
         public bool AnyPressed { get; private set; }
 
-        bool qJump, qAttack, qParry, qDash, qQi, qHeal, qPause, qConfirm, qInteract;
+        bool qJump, qAttack, qParry, qDash, qQi, qHeal, qPause, qConfirm, qInteract, qHeavy;
 
         public void Jump() { qJump = true; }
         public void Attack() { qAttack = true; }
+        public void Heavy() { qHeavy = true; }
         public void Parry() { qParry = true; }
         public void Dash() { qDash = true; }
         public void QiBlast() { qQi = true; }
@@ -129,11 +134,11 @@ namespace AshenSol.Core
 
         public void Tick()
         {
-            JumpPressed = qJump; AttackPressed = qAttack; ParryPressed = qParry; DashPressed = qDash;
+            JumpPressed = qJump; AttackPressed = qAttack; HeavyPressed = qHeavy; ParryPressed = qParry; DashPressed = qDash;
             QiBlastPressed = qQi; HealPressed = qHeal; PausePressed = qPause; ConfirmPressed = qConfirm;
             InteractPressed = qInteract;
-            AnyPressed = qJump || qAttack || qParry || qDash || qQi || qHeal || qConfirm;
-            qJump = qAttack = qParry = qDash = qQi = qHeal = qPause = qConfirm = qInteract = false;
+            AnyPressed = qJump || qAttack || qParry || qDash || qQi || qHeal || qConfirm || qHeavy;
+            qJump = qAttack = qParry = qDash = qQi = qHeal = qPause = qConfirm = qInteract = qHeavy = false;
         }
     }
 }

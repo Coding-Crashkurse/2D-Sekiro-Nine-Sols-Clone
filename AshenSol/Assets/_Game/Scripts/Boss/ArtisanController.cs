@@ -11,7 +11,7 @@ namespace AshenSol.Boss
 {
     /// <summary>
     /// THE SEVENTH ARTISAN — the forge machine that still tends a dead sun. An aerial boss: it holds the
-    /// high ground with bolts, beams and drones, and only comes down to swing its hammers. Those melee
+    /// high ground with bolts, beams and drones, and only comes down to swing its blades. Those melee
     /// swings are the player's parry window, so the fight teaches "wait for it to land".
     /// </summary>
     public class ArtisanController : EnemyBase, IBossFight
@@ -55,6 +55,11 @@ namespace AshenSol.Boss
         string lastAttack = "";
         Transform rigRoot;
         SpriteRenderer core, hammerL, hammerR;
+        Transform bladePivotL, bladePivotR;
+        TrailRenderer bladeTrailL, bladeTrailR;
+        Vector2 bladeAngles = new Vector2(-18f, 18f);
+        bool bladesPosed;
+        static readonly Color BladeRest = new Color(0.75f, 0.7f, 0.72f);
         Light2D coreLight;
         Rect arena;
         readonly List<EnemyBase> spawned = new List<EnemyBase>();
@@ -86,9 +91,13 @@ namespace AshenSol.Boss
             rigRoot = holder;
             var rig = EnemyRig.BuildDrone(holder, SortOrder.Boss);
 
-            // hammer arms hanging off the frame
+            // Each blade rotates around its grip, rather than around the sprite's centre.
             hammerL = Limb(holder, new Vector2(-0.62f, -0.22f), -18f, SortOrder.Boss - 2);
             hammerR = Limb(holder, new Vector2(0.62f, -0.22f), 18f, SortOrder.Boss + 6);
+            bladePivotL = hammerL.transform.parent;
+            bladePivotR = hammerR.transform.parent;
+            bladeTrailL = BladeTrail(hammerL);
+            bladeTrailR = BladeTrail(hammerR);
 
             var coreGo = new GameObject("core");
             coreGo.transform.SetParent(holder, false);
@@ -108,16 +117,83 @@ namespace AshenSol.Boss
 
         static SpriteRenderer Limb(Transform parent, Vector2 pos, float angle, int sort)
         {
-            var go = new GameObject("hammer");
-            go.transform.SetParent(parent, false);
-            go.transform.localPosition = new Vector3(pos.x, pos.y, 0f);
-            go.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+            var grip = new GameObject("BladeGrip").transform;
+            grip.SetParent(parent, false);
+            grip.localPosition = new Vector3(pos.x, pos.y, 0f);
+            grip.localRotation = Quaternion.Euler(0f, 0f, angle);
+            var go = new GameObject("blade");
+            go.transform.SetParent(grip, false);
+            go.transform.localPosition = new Vector3(0f, 0.3f, 0f);
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = Res.Sprite("grunt_blade");
             sr.sortingOrder = sort;
-            sr.color = new Color(0.75f, 0.7f, 0.72f);
+            sr.color = BladeRest;
             go.transform.localScale = new Vector3(1.3f, 1.5f, 1f);
             return sr;
+        }
+
+        static TrailRenderer BladeTrail(SpriteRenderer blade)
+        {
+            var go = new GameObject("BladeTipTrail");
+            go.transform.SetParent(blade.transform, false);
+            go.transform.localPosition = new Vector3(0f, blade.sprite.bounds.max.y * 0.95f, 0f);
+            var trail = go.AddComponent<TrailRenderer>();
+            trail.sharedMaterial = AshenSol.VFX.VfxManager.AdditiveFor(Res.Sprite("fx_glow"));
+            trail.time = 0.12f;
+            trail.minVertexDistance = 0.025f;
+            trail.widthMultiplier = 0.13f;
+            trail.widthCurve = AnimationCurve.Linear(0f, 1f, 1f, 0f);
+            trail.numCornerVertices = 6;
+            trail.numCapVertices = 6;
+            trail.sortingOrder = SortOrder.Fx + 7;
+            trail.startColor = Palette.Gold.WithAlpha(0.75f);
+            trail.endColor = Palette.Amber.WithAlpha(0f);
+            trail.emitting = false;
+            return trail;
+        }
+
+        void PoseBlades(Vector2 angles)
+        {
+            // Sample the curved tip path between frames so fast cuts don't leave polygonal trails.
+            int steps = Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(Mathf.Abs(angles.x - bladeAngles.x), Mathf.Abs(angles.y - bladeAngles.y)) / 4f));
+            for (int i = 1; i <= steps; i++)
+            {
+                Vector2 pose = Vector2.Lerp(bladeAngles, angles, (float)i / steps);
+                bladePivotL.localRotation = Quaternion.Euler(0f, 0f, pose.x);
+                bladePivotR.localRotation = Quaternion.Euler(0f, 0f, pose.y);
+                if (bladeTrailL.emitting && Time.deltaTime > 0f) bladeTrailL.AddPosition(bladeTrailL.transform.position);
+                if (bladeTrailR.emitting && Time.deltaTime > 0f) bladeTrailR.AddPosition(bladeTrailR.transform.position);
+            }
+            bladeAngles = angles;
+        }
+
+        Vector2 FacingPose(Vector2 rightFacing)
+        {
+            return Facing > 0 ? rightFacing : new Vector2(-rightFacing.y, -rightFacing.x);
+        }
+
+        IEnumerator WindUpBlades(Vector2 target, float seconds, Color cue)
+        {
+            bladesPosed = true;
+            Vector2 start = bladeAngles;
+            float t = 0f;
+            while (t < seconds)
+            {
+                t += Time.deltaTime;
+                float p = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / seconds));
+                PoseBlades(Vector2.Lerp(start, target, p));
+                hammerL.color = hammerR.color = Color.Lerp(BladeRest, cue, p * 0.8f);
+                yield return null;
+            }
+            PoseBlades(target);
+        }
+
+        void ReleaseBlades(bool clearTrails = false)
+        {
+            bladesPosed = false;
+            hammerL.color = hammerR.color = BladeRest;
+            bladeTrailL.emitting = bladeTrailR.emitting = false;
+            if (clearTrails) { bladeTrailL.Clear(); bladeTrailR.Clear(); }
         }
 
         protected override void OnReset()
@@ -128,6 +204,9 @@ namespace AshenSol.Boss
             hoverTarget = SpawnPos;
             transform.position = SpawnPos;
             bobT = 0f;
+            ReleaseBlades(true);
+            PoseBlades(new Vector2(-18f, 18f));
+            hammerL.enabled = hammerR.enabled = true;
             if (core != null) { core.enabled = true; coreLight.enabled = true; }
             ClearSpawned();
             GroundShockwave.ClearAll();
@@ -175,9 +254,12 @@ namespace AshenSol.Boss
             }
             if (hammerL != null)
             {
-                float sway = Mathf.Sin(bobT * 1.6f) * 7f;
-                hammerL.transform.localRotation = Quaternion.Euler(0f, 0f, -18f + sway);
-                hammerR.transform.localRotation = Quaternion.Euler(0f, 0f, 18f - sway);
+                if (!bladesPosed)
+                {
+                    float sway = Mathf.Sin(bobT * 1.6f) * 7f;
+                    Vector2 rest = PostureBroken ? new Vector2(-165f, 165f) : new Vector2(-18f + sway, 18f - sway);
+                    PoseBlades(Vector2.Lerp(bladeAngles, rest, 1f - Mathf.Exp(-9f * dt)));
+                }
             }
         }
 
@@ -225,6 +307,7 @@ namespace AshenSol.Boss
         protected override void BreakPosture()
         {
             if (!IsAlive || PostureBroken) return;
+            ReleaseBlades(true);
             CurrentAttack = "";
             // it drops out of the sky — that is what makes the break readable and reachable
             hoverTarget = new Vector2(transform.position.x, arena.yMin + 1.3f);
@@ -246,6 +329,7 @@ namespace AshenSol.Boss
         {
             if (!IsAlive || dying) return;
             dying = true;
+            ReleaseBlades(true);
             IsAlive = false;
             IsFightActive = false;
             CurrentAttack = "";
@@ -367,16 +451,26 @@ namespace AshenSol.Boss
             {
                 if (!PlayerAlive) break;
                 FacePlayer();
+                Vector2 windup = FacingPose(i == 0 ? new Vector2(-25f, 65f)
+                    : i == 1 ? new Vector2(-125f, -25f) : new Vector2(-55f, 55f));
+                Vector2 followThrough = FacingPose(i == 0 ? new Vector2(-5f, -115f)
+                    : i == 1 ? new Vector2(45f, -15f) : new Vector2(115f, -115f));
                 BeginTelegraph(AttackKind.Parryable, ArtisanTuning.StrikeTelegraph * teleMul);
-                yield return Wait(ArtisanTuning.StrikeTelegraph * teleMul);
+                yield return WindUpBlades(windup, ArtisanTuning.StrikeTelegraph * teleMul * Settings.TelegraphMul, Color.white);
                 EndTelegraph();
+                bool swingRight = (i == 0) == (Facing > 0);
+                bladeTrailL.emitting = i == 2 || !swingRight;
+                bladeTrailR.emitting = i == 2 || swingRight;
                 Rig.Punch(1.2f, 0.82f);
                 Services.Audio.PlaySfxAt("boss_swing", Center, 0.95f, 0.08f);
                 Services.Vfx.SlashArc(Center + new Vector2(Facing * 1.4f, -0.4f), i % 2 == 0 ? -25f : 30f, Facing < 0, Palette.Amber, 2f);
                 float t = 0f; bool resolved = false;
                 while (t < ArtisanTuning.StrikeActive)
                 {
-                    if (!resolved)
+                    float swing = Mathf.Clamp01((t + Time.deltaTime) / ArtisanTuning.StrikeActive);
+                    PoseBlades(Vector2.Lerp(windup, followThrough, Ease.OutCubic(swing)));
+                    // Contact starts once the blade has visibly entered its cut.
+                    if (!resolved && swing >= 0.35f)
                     {
                         var info = new AttackInfo
                         {
@@ -389,6 +483,8 @@ namespace AshenSol.Boss
                     t += Time.deltaTime;
                     yield return null;
                 }
+                PoseBlades(followThrough);
+                ReleaseBlades();
                 yield return Wait(ArtisanTuning.StrikeGap);
             }
             hoverTarget = new Vector2(transform.position.x, arena.yMin + ArtisanTuning.HoverHeight);
@@ -401,9 +497,9 @@ namespace AshenSol.Boss
             CurrentAttack = "Bolts";
             FacePlayer();
             BeginTelegraph(AttackKind.Parryable, ArtisanTuning.BoltTelegraph * teleMul);
-            yield return Wait(ArtisanTuning.BoltTelegraph * teleMul);
+            yield return WindUpBlades(new Vector2(55f, -55f), ArtisanTuning.BoltTelegraph * teleMul * Settings.TelegraphMul, Color.white);
             EndTelegraph();
-            if (!PlayerAlive) yield break;
+            if (!PlayerAlive) { ReleaseBlades(); yield break; }
             Services.Audio.PlaySfxAt("boss_bolts", Center, 1f);
             Services.Vfx.FlashLight(Center, Palette.Amber, 3f, 5f, 0.2f);
             Vector2 baseDir = (Player.Center - Center).normalized;
@@ -416,6 +512,7 @@ namespace AshenSol.Boss
                     ArtisanTuning.BoltDamage, AttackKind.Parryable, Palette.Amber, "artisan_bolt", 5f, 0.22f);
                 yield return Wait(0.07f);
             }
+            ReleaseBlades();
             yield return Wait(ArtisanTuning.BoltRecovery);
         }
 
@@ -425,28 +522,38 @@ namespace AshenSol.Boss
             CurrentAttack = "Drop";
             if (!PlayerAlive) yield break;
             BeginTelegraph(AttackKind.Unblockable, ArtisanTuning.DropTelegraph * teleMul);
+            bladesPosed = true;
+            Vector2 startPose = bladeAngles;
+            Vector2 raised = new Vector2(-40f, 40f);
             float t = 0f;
-            float tele = ArtisanTuning.DropTelegraph * teleMul;
+            float tele = ArtisanTuning.DropTelegraph * teleMul * Settings.TelegraphMul;
             while (t < tele)
             {
                 // tracks the player until just before it commits
                 if (PlayerAlive && t < tele - 0.25f)
                     hoverTarget = new Vector2(Mathf.Clamp(Player.Center.x, arena.xMin + 2f, arena.xMax - 2f), arena.yMin + ArtisanTuning.HoverHeight + 2f);
                 t += Time.deltaTime;
+                PoseBlades(Vector2.Lerp(startPose, raised, Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t / tele))));
+                hammerL.color = hammerR.color = Color.Lerp(BladeRest, Palette.Red, Mathf.Clamp01(t / tele));
                 yield return null;
             }
             EndTelegraph();
 
             // drop
             float y = transform.position.y;
+            bladeTrailL.emitting = bladeTrailR.emitting = true;
             while (transform.position.y > arena.yMin + 1.1f)
             {
                 transform.position += Vector3.down * ArtisanTuning.DropSpeed * Time.deltaTime;
+                float fall = Mathf.Clamp01((y - transform.position.y) / Mathf.Max(0.1f, y - arena.yMin - 1.1f));
+                PoseBlades(Vector2.Lerp(raised, new Vector2(105f, -105f), Ease.OutCubic(fall)));
                 Services.Vfx.Afterimage(Renderers, Palette.Red.WithAlpha(0.4f), 0.18f);
                 yield return null;
             }
             Vector2 impact = new Vector2(transform.position.x, arena.yMin);
             hoverTarget = new Vector2(transform.position.x, arena.yMin + 1.1f);
+            PoseBlades(new Vector2(105f, -105f));
+            bladeTrailL.emitting = bladeTrailR.emitting = false;
             Services.Vfx.Shockwave(impact, 4.5f, Palette.Red);
             Services.Vfx.FlashLight(impact + new Vector2(0f, 1f), Palette.Red, 4f, 8f, 0.3f);
             Services.Cam.Shake(0.9f);
@@ -457,6 +564,7 @@ namespace AshenSol.Boss
             GroundShockwave.Spawn(impact + new Vector2(1.4f, 0f), 1, 9f, ArtisanTuning.WaveDamage, 1.7f, transform.parent);
             GroundShockwave.Spawn(impact + new Vector2(-1.4f, 0f), -1, 9f, ArtisanTuning.WaveDamage, 1.7f, transform.parent);
             yield return Wait(ArtisanTuning.DropRecovery);   // punish window
+            ReleaseBlades();
             hoverTarget = new Vector2(transform.position.x, arena.yMin + ArtisanTuning.HoverHeight);
         }
 
@@ -472,7 +580,7 @@ namespace AshenSol.Boss
 
             // telegraph line
             var warn = MakeBeam(beamY, 0.12f, Palette.Red.WithAlpha(0.35f));
-            yield return Wait(ArtisanTuning.BeamTelegraph * teleMul);
+            yield return WindUpBlades(new Vector2(-55f, 55f), ArtisanTuning.BeamTelegraph * teleMul * Settings.TelegraphMul, Palette.Red);
             EndTelegraph();
             if (warn != null) Destroy(warn.gameObject);
 
@@ -497,6 +605,7 @@ namespace AshenSol.Boss
                 yield return null;
             }
             if (beam != null) Destroy(beam.gameObject);
+            ReleaseBlades();
             hoverTarget = new Vector2(Mathf.Clamp(x, arena.xMin + 3f, arena.xMax - 3f), arena.yMin + ArtisanTuning.HoverHeight);
             yield return Wait(ArtisanTuning.BeamRecovery);
         }
@@ -519,7 +628,7 @@ namespace AshenSol.Boss
         {
             CurrentAttack = "Drones";
             BeginTelegraph(AttackKind.Parryable, 0.5f * teleMul);
-            yield return Wait(0.5f * teleMul);
+            yield return WindUpBlades(new Vector2(75f, -75f), 0.5f * teleMul * Settings.TelegraphMul, Color.white);
             EndTelegraph();
             Services.Audio.PlaySfxAt("drone_shot", Center, 0.9f);
             for (int i = 0; i < 2; i++)
@@ -530,11 +639,13 @@ namespace AshenSol.Boss
                 Services.Vfx.FlashLight(at, Palette.Amber, 2.5f, 3f, 0.3f);
                 Services.Vfx.Embers(at, 14, Palette.Amber);
             }
+            ReleaseBlades();
             yield return Wait(0.7f);
         }
 
         IEnumerator PhaseTransition()
         {
+            ReleaseBlades(true);
             phasePending = false;
             Phase = 2;
             CurrentAttack = "Phase";

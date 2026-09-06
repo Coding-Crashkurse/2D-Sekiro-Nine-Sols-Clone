@@ -11,7 +11,8 @@ namespace AshenSol.Enemies
         public const float BrokenDamageMul = 2.0f;        // damage taken while broken
         public const float PostureFromBlock = 0.25f;      // fraction of max posture for a late block
         public const float PostureFromHit = 0.07f;        // fraction of max posture for a sword hit
-        public const float PostureFromQiBlast = 0.45f;    // fraction of max posture for a Qi Blast
+        public const float PostureFromQiBlast = 0.45f;
+        public const float PostureFromHeavy = 0.22f;      // the charged strike leans on the guard    // fraction of max posture for a Qi Blast
 
         // Grunt
         public const int GruntHp = 45;

@@ -10,6 +10,7 @@ namespace AshenSol.UI
     public class UiManager : MonoBehaviour, IUiService
     {
         public static UiManager Instance { get; private set; }
+        public bool NameCardVisible { get { return cardGroup != null && cardGroup.alpha > 0.01f; } }
 
         Canvas canvas; RectTransform rootRt;
         // HUD
@@ -169,7 +170,7 @@ namespace AshenSol.UI
             titlePress = UiKit.Text(rt, "hint", UiKit.Spaced("W / S  select      A / D  change      ENTER  confirm"), 16,
                 Palette.Bone.WithAlpha(0.42f), c, new Vector2(0f, -330f), new Vector2(1200f, 30f));
             UiKit.Text(rt, "controls",
-                "A / D  move     SPACE  jump     J  attack     K  parry     L  dash     I  Qi Blast     H  heal\n" +
+                "A / D  move     SPACE  jump     J  attack     U  charged     K  parry     L  dash     I  Qi Blast     H  heal     E  shrine\n" +
                 "<color=#ffffff>WHITE</color> flash: parry it.     <color=#ff3a3a>RED</color> flash: dash away.     Break the <color=#ffcc55>guard bar</color>, then  I  to execute.",
                 18, Palette.Bone.WithAlpha(0.62f), c, new Vector2(0f, -392f), new Vector2(1500f, 70f));
             UiKit.Text(rt, "credit", "Ashen Sol  —  a Nine Sols-inspired prototype", 15, Palette.Bone.WithAlpha(0.35f), new Vector2(1f, 0f), new Vector2(-24f, 18f), new Vector2(700f, 24f), TextAnchor.MiddleRight);
@@ -214,7 +215,7 @@ namespace AshenSol.UI
             UiKit.Text(rt, "title", UiKit.Spaced("PAUSED", 2), 56, Palette.Bone, c, new Vector2(0f, 120f), new Vector2(900f, 80f));
             UiKit.Text(rt, "controls",
                 "A / D  move          SPACE  jump          J  attack          K  parry\n" +
-                "L / SHIFT  dash          I  Qi Blast          H  heal\n\n" +
+                "U  charged attack          L / SHIFT  dash          I  Qi Blast          H  heal\n\n" +
                 "Parry to fill the <color=#ffcc55>guard bar</color>. When it breaks the enemy is helpless for 3 s —\n" +
                 "stand next to it and press  I  to spend 1 Qi on an execution.\n\n" +
                 "Gamepad:  A jump   X attack   B parry   RB dash   Y Qi / execute   LB heal",

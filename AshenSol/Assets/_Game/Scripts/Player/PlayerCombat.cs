@@ -17,10 +17,16 @@ namespace AshenSol.Player
             new HitDef(0.10f, 0.10f, 0.26f, 18, 6f, 260f),
         };
 
+        /// <summary>The charged strike: a long committed wind-up for roughly three times a light hit,
+        /// a wider arc, real knockback, and a heavy lean on the guard bar. It never combos.</summary>
+        public static readonly HitDef Heavy = new HitDef(0.46f, 0.13f, 0.42f, 34, 12f, 300f);
+
         readonly PlayerController c;
         readonly HashSet<IDamageable> hitThisSwing = new HashSet<IDamageable>();
 
         public bool IsAttacking { get; private set; }
+        /// <summary>Winding up the charged strike — the rig holds the blade back and the sword glows.</summary>
+        public bool IsCharging { get; private set; }
         public bool LungeActive { get; private set; }
         public bool IsParrying { get; private set; }
         public bool PerfectWindow { get; private set; }
@@ -34,7 +40,7 @@ namespace AshenSol.Player
         public bool BlocksJump { get { return IsParrying || IsHealing || IsQiBlasting || (IsAttacking && !inRecovery); } }
 
         Coroutine attackCo, parryCo, healCo, qiCo;
-        bool comboQueued, inRecovery, parrySuccess, parryPerfect, healInterrupted;
+        bool comboQueued, inRecovery, parrySuccess, parryPerfect, healInterrupted, heavySwing;
         float comboResetTimer, parryRecoveryTimer, attackInputLock;
         float attackBuffer, parryBuffer;
 
@@ -83,6 +89,7 @@ namespace AshenSol.Player
 
             if (parryBuffer > 0f && TryParry()) ClearInputBuffers();
             if (attackBuffer > 0f && TryAttack()) attackBuffer = 0f;
+            if (inp.HeavyPressed) TryHeavy();
             if (inp.QiBlastPressed) TryQiBlast();
             if (inp.HealPressed) TryHeal();
         }
@@ -99,6 +106,62 @@ namespace AshenSol.Player
             if (idx >= Hits.Length) idx = 0;
             attackCo = c.StartCoroutine(AttackRoutine(idx));
             return true;
+        }
+
+        bool TryHeavy()
+        {
+            if (IsParrying || IsHealing || IsQiBlasting || c.IsDashing || IsAttacking) return false;
+            if (attackInputLock > 0f) return false;
+            attackCo = c.StartCoroutine(HeavyRoutine());
+            return true;
+        }
+
+        /// <summary>Charge, then one committed overhead. Getting hit during the wind-up loses it.</summary>
+        IEnumerator HeavyRoutine()
+        {
+            IsAttacking = true; IsCharging = true; inRecovery = false; comboQueued = false;
+            heavySwing = true;
+            hitThisSwing.Clear();
+            var h = Heavy;
+
+            c.Rig.PlayCharge();
+            c.Rig.PulseSwordLight(2.6f, h.Startup);
+            Services.Audio.PlaySfx("sword_heavy", 0.95f, 0.05f);
+
+            float t = 0f;
+            while (t < h.Startup)
+            {
+                // a tell the enemies' animations can be read against, and a rising sparkle on the edge
+                if (t > h.Startup * 0.45f && Mathf.Repeat(t, 0.09f) < Time.deltaTime)
+                    Services.Vfx.HitSpark(c.Center + new Vector2(-c.Facing * 0.5f, 0.9f), Vector2.up, Palette.PlayerSlash, 0.4f);
+                t += Time.deltaTime;
+                yield return null;
+            }
+
+            c.Rig.PlayAttack(2, h.Active + 0.1f);
+            LungeActive = true;
+            IsCharging = false;
+            Vector2 arcPos = c.Center + new Vector2(c.Facing * 1.15f, 0.15f);
+            Services.Vfx.SlashArc(arcPos, 0f, c.Facing < 0, Palette.PlayerSlash, 1.9f);
+            Services.Vfx.DustPuff(c.Position, 1.3f);
+            Services.Cam.Kick(new Vector2(c.Facing, 0f), 0.18f);
+
+            t = 0f;
+            while (t < h.Active)
+            {
+                DoHitScan(2, h);
+                t += Time.deltaTime;
+                yield return null;
+            }
+            LungeActive = false;
+            inRecovery = true;
+
+            t = 0f;
+            while (t < h.Recovery) { t += Time.deltaTime; yield return null; }
+
+            c.Rig.EndAttack();
+            IsAttacking = false; inRecovery = false; heavySwing = false;
+            ComboIndex = 0;
         }
 
         IEnumerator AttackRoutine(int idx)
@@ -153,8 +216,8 @@ namespace AshenSol.Player
 
         void DoHitScan(int idx, HitDef h)
         {
-            Vector2 center = c.Center + new Vector2(c.Facing * 1.0f, 0.1f);
-            var cols = Physics2D.OverlapBoxAll(center, new Vector2(1.9f, 1.5f), 0f, Layers.EnemyMask);
+            Vector2 center = c.Center + new Vector2(c.Facing * (heavySwing ? 1.2f : 1.0f), 0.1f);
+            var cols = Physics2D.OverlapBoxAll(center, heavySwing ? new Vector2(2.7f, 2.1f) : new Vector2(1.9f, 1.5f), 0f, Layers.EnemyMask);
             for (int i = 0; i < cols.Length; i++)
             {
                 var d = cols[i].GetComponentInParent<IDamageable>();
@@ -164,14 +227,21 @@ namespace AshenSol.Player
                 {
                     Source = c.gameObject, Team = Team.Player, Damage = Mathf.RoundToInt(h.Damage * Progression.DamageMul), Origin = c.Center,
                     HitPoint = Vector2.Lerp(c.Center, d.Center, 0.6f), Kind = AttackKind.Parryable,
-                    Knockback = h.Knockback, IsProjectile = false, Payload = null, Tag = "player_combo" + (idx + 1)
+                    Knockback = h.Knockback, IsProjectile = false, Payload = null,
+                    Tag = heavySwing ? "player_heavy" : "player_combo" + (idx + 1)
                 };
                 var outcome = d.ReceiveAttack(info);
                 if (outcome == HitOutcome.Hit)
                 {
-                    HitStop.Request(idx == 2 ? 0.07f : 0.045f);
-                    Services.Cam.Kick(new Vector2(c.Facing, 0f), idx == 2 ? 0.22f : 0.15f);
-                    Services.Audio.PlaySfx("sword_hit", 1f, 0.1f);
+                    HitStop.Request(heavySwing ? 0.13f : idx == 2 ? 0.07f : 0.045f);
+                    Services.Cam.Kick(new Vector2(c.Facing, 0f), heavySwing ? 0.45f : idx == 2 ? 0.22f : 0.15f);
+                    Services.Audio.PlaySfx("sword_hit", heavySwing ? 1f : 1f, 0.1f);
+                    if (heavySwing)
+                    {
+                        Services.Cam.Shake(0.32f);
+                        Services.Vfx.Shockwave(info.HitPoint, 2.6f, Palette.PlayerSlash);
+                        Services.Vfx.InkSplatter(info.HitPoint, new Vector2(c.Facing, 0.2f), Palette.PlayerSlash, 10);
+                    }
                 }
             }
         }

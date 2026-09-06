@@ -25,6 +25,7 @@ namespace AshenSol.Core
         bool firstParryShot;
 
         float attackCd, parryCd, dashCd, qiCd, healCd, confirmCd, interactCd;
+        int swings;   // every fourth swing is the charged one, so the move stays covered by runs
         float stuckTime; float lastX;
         // forward-progress watchdog: jumping at a wall keeps the bot ungrounded, so the grounded
         // stuck check never fires. Watch the furthest x instead and fall back to the nearest vent.
@@ -351,7 +352,12 @@ namespace AshenSol.Core
                 else
                 {
                     brainState = "attack";
-                    if (attackCd <= 0f) { input.Attack(); attackCd = 0.22f; }
+                    if (attackCd <= 0f)
+                    {
+                        // every fourth swing is the charged one so runs keep covering it
+                        if ((++swings & 3) == 0) { input.Heavy(); attackCd = 1.1f; brainState = "heavy"; Log("charged attack"); ScheduleShot("charge", 0.28f); }
+                        else { input.Attack(); attackCd = 0.22f; }
+                    }
                 }
                 return;
             }
