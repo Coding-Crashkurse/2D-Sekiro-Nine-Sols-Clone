@@ -172,7 +172,7 @@ namespace AshenSol.Level
             GeometryBuilder.Ground(new Rect(58f, -12f, 6f, 32f), geo);             // top 20
 
             // ---------- floor 20: the gallery ----------
-            GeometryBuilder.Ground(new Rect(64f, -12f, 16f, 32f), geo);            // top 20
+            GeometryBuilder.Ground(new Rect(64f, -12f, 18f, 32f), geo);            // top 20
 
             // ---------- floor 28: the forge deck ----------
             GeometryBuilder.Ground(new Rect(86f, -12f, 60f, 40f), geo);            // top 28
@@ -189,11 +189,12 @@ namespace AshenSol.Level
             // 2. a vent column from floor 0 up to the casting ledge
             QiVent.Create(new Vector2(42f, 0f), 2.6f, 13f, QiVent.Mode.Column, geo, 13f);
             // 3. the chains up the tower wall — 12 units, far past any jump
-            ClimbSurface.Create(new Vector2(57.4f, 8f), 12.2f, geo, 1.1f);
+            ClimbSurface.Create(new Vector2(57.72f, 8f), 12.2f, geo, 1.1f);
             // 4. a launch pad for the optional high platform
             QiVent.Create(new Vector2(54f, 8f), 2.2f, 1.8f, QiVent.Mode.Pad, geo, 18f);
             // 5. the lift to the deck: 8 units of height, nothing else reaches it
-            MovingPlatform.Create(new Vector2(82.5f, 21f), new Vector2(82.5f, 29f), 3.2f, 2.6f, geo, 1.2f);
+            // parks flush with the gallery lip so stepping on is natural, and rises to the deck
+            MovingPlatform.Create(new Vector2(84.4f, 20.2f), new Vector2(84.4f, 28.2f), 3.4f, 2.6f, geo, 1.4f);
             // 6. deck mobility for the boss fight
             QiVent.Create(new Vector2(95f, 28f), 2.6f, 8f, QiVent.Mode.Column, geo, 12f);
 

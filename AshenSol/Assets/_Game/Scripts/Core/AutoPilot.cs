@@ -290,6 +290,14 @@ namespace AshenSol.Core
                 return;
             }
 
+            // a gap with a shuttle over it: stand still until the ride is actually here
+            bool ready;
+            if (p.IsGrounded && !GroundAhead(p) && PlatformServing(p, out ready) && !ready)
+            {
+                brainState = "wait-lift";
+                return;
+            }
+
             // traverse: walk right, jump over gaps / walls / spikes
             brainState = "traverse";
             input.Horizontal = 1f;
@@ -323,6 +331,34 @@ namespace AshenSol.Core
             lastX = p.Position.x;
             if (stuckTime > 1.2f && p.IsGrounded) DoJump();
             if (stuckTime > 3f && dashCd <= 0f) { input.Dash(); dashCd = 0.6f; stuckTime = 0f; }
+        }
+
+        static bool GroundAhead(PlayerController p)
+        {
+            Vector2 feet = p.Position;
+            var g = Physics2D.Raycast(new Vector2(feet.x + 1.35f, feet.y + 0.3f), Vector2.down, 3.0f, Layers.GroundMask);
+            return g.collider != null;
+        }
+
+        /// <summary>Is a moving platform the intended way across the gap ahead — and is it here yet?</summary>
+        static bool PlatformServing(PlayerController p, out bool ready)
+        {
+            ready = false;
+            bool serving = false;
+            Vector2 feet = p.Position;
+            var all = AshenSol.Level.MovingPlatform.All;
+            for (int i = 0; i < all.Count; i++)
+            {
+                var mp = all[i];
+                if (mp == null) continue;
+                Vector2 top = mp.TopCenter;
+                if (top.x < feet.x - 1f || top.x > feet.x + 9f) continue;   // not the gap we are looking at
+                serving = true;
+                bool nearEnough = top.x - mp.HalfWidth < feet.x + 2.6f;
+                bool levelWithUs = top.y > feet.y - 0.6f && top.y < feet.y + 1.6f;
+                if (nearEnough && levelWithUs) ready = true;
+            }
+            return serving;
         }
 
         /// <summary>Press AND hold jump so the player reaches full jump height (a tap is cut to ~45%).</summary>

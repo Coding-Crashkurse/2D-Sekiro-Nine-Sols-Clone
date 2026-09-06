@@ -10,6 +10,9 @@ namespace AshenSol.Level
     /// <summary>A solid platform that shuttles between two points and carries whatever stands on it.</summary>
     public class MovingPlatform : MonoBehaviour
     {
+        /// <summary>Every live platform, so traversal logic can find one to wait for.</summary>
+        public static readonly List<MovingPlatform> All = new List<MovingPlatform>();
+
         public Vector2 A, B;
         public float Speed = 2f;
         public float WaitSeconds = 0.6f;
@@ -19,6 +22,20 @@ namespace AshenSol.Level
         float t, wait;
         int dir = 1;
         Vector2 lastPos;
+
+        /// <summary>Current world velocity. Riders add this to their own instead of being teleported,
+        /// which keeps the physics solver happy and keeps the ground check honest.</summary>
+        public Vector2 Velocity { get; private set; }
+
+        /// <summary>Middle of the surface you can stand on.</summary>
+        public Vector2 TopCenter
+        {
+            get { return (Vector2)transform.position + new Vector2(0f, box != null ? box.size.y * 0.5f : 0.17f); }
+        }
+        public float HalfWidth { get { return box != null ? box.size.x * 0.5f : 1.5f; } }
+
+        void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+        void OnDisable() { All.Remove(this); }
 
         public static MovingPlatform Create(Vector2 a, Vector2 b, float width, float speed, Transform parent, float waitSeconds = 0.6f)
         {
@@ -62,7 +79,7 @@ namespace AshenSol.Level
         void FixedUpdate()
         {
             float dt = Time.fixedDeltaTime;
-            if (wait > 0f) { wait -= dt; lastPos = body.position; return; }
+            if (wait > 0f) { wait -= dt; lastPos = body.position; Velocity = Vector2.zero; return; }
 
             float len = Vector2.Distance(A, B);
             if (len < 0.01f) return;
@@ -71,20 +88,8 @@ namespace AshenSol.Level
             else if (t <= 0f) { t = 0f; dir = 1; wait = WaitSeconds; }
 
             Vector2 next = Vector2.Lerp(A, B, t);
-            Vector2 delta = next - lastPos;
+            Velocity = (next - lastPos) / dt;
             body.MovePosition(next);
-
-            // carry riders: anything resting on the top surface moves with us
-            if (delta.sqrMagnitude > 0f)
-            {
-                Vector2 top = next + new Vector2(0f, box.size.y * 0.5f + 0.12f);
-                var hit = Physics2D.OverlapBox(top, new Vector2(box.size.x, 0.3f), 0f, Layers.PlayerMask);
-                if (hit != null)
-                {
-                    var p = hit.GetComponentInParent<PlayerController>();
-                    if (p != null && p.IsAlive && p.Body != null) p.Body.position += delta;
-                }
-            }
             lastPos = next;
         }
     }
@@ -216,7 +221,8 @@ namespace AshenSol.Level
             sr.sprite = Res.Sprite("prop_climb");
             sr.drawMode = SpriteDrawMode.Tiled;
             sr.tileMode = SpriteTileMode.Continuous;
-            sr.size = new Vector2(width, height);
+            // tile vertically ONLY: sizing wider than the sprite drew a second ladder next to it
+            sr.size = new Vector2(sr.sprite.bounds.size.x, height);
             sr.sortingOrder = SortOrder.GroundDecor + 1;
 
             var col = go.AddComponent<BoxCollider2D>();

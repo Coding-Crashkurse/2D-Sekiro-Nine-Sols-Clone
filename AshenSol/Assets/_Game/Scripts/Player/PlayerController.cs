@@ -90,6 +90,8 @@ namespace AshenSol.Player
         int flickerFrame;
         AshenSol.Level.ClimbSurface climbSurface;
         float updraftTimer, updraftLift, updraftAccel, climbCooldown;
+        Vector2 carriedVel;          // velocity contributed by the platform under our feet
+        float climbStepTimer;
 
         void Awake()
         {
@@ -441,6 +443,16 @@ namespace AshenSol.Player
                 {
                     float v = inp.Vertical;
                     Body.linearVelocity = new Vector2(0f, v * PlayerTuning.ClimbSpeed);
+                    if (Mathf.Abs(v) > 0.3f)
+                    {
+                        climbStepTimer -= dt;
+                        if (climbStepTimer <= 0f)
+                        {
+                            climbStepTimer = 0.3f;
+                            Services.Audio.PlaySfx("climb", 0.55f, 0.18f);
+                        }
+                    }
+                    else climbStepTimer = 0.08f;
                     // let go at the top so the player steps onto the ledge
                     if (v > 0.3f && Position.y >= climbSurface.Top - 0.4f)
                     {
@@ -540,10 +552,17 @@ namespace AshenSol.Player
             float dt = Time.fixedDeltaTime;
             Vector2 v = Body.linearVelocity;
 
-            // ground check
+            // ground check — measured RELATIVE to a moving platform, otherwise riding one upward
+            // reads as "flying" and the player can neither be grounded nor jump
             Vector2 feet = (Vector2)transform.position + new Vector2(0f, 0.04f);
             var hit = Physics2D.OverlapBox(feet, new Vector2(0.48f, 0.12f), 0f, Layers.GroundMask);
-            bool grounded = hit != null && v.y <= 0.5f;
+            var platform = hit != null ? hit.GetComponent<AshenSol.Level.MovingPlatform>() : null;
+            float platVy = platform != null ? platform.Velocity.y : 0f;
+            bool grounded = hit != null && (v.y - platVy) <= 0.5f;
+            bool riding = platform != null && grounded;
+            // keep whatever the platform gave us when we leave it (inherited momentum)
+            if (!riding) carriedVel = Vector2.zero;
+            v -= carriedVel;                       // work in platform-relative space
             groundIsSolid = hit != null && hit.gameObject.layer == Layers.Ground;
             if (grounded && !IsGrounded)
             {
@@ -600,7 +619,9 @@ namespace AshenSol.Player
                     if (v.y > PlayerTuning.UpdraftMax) v.y = PlayerTuning.UpdraftMax;
                 }
             }
-            Body.linearVelocity = v;
+            Vector2 platVel = riding ? platform.Velocity : Vector2.zero;
+            Body.linearVelocity = v + platVel;
+            carriedVel = platVel;
             lastVy = v.y;
 
             // safe ground bookkeeping

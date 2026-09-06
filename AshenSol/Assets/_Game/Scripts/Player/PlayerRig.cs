@@ -22,7 +22,7 @@ namespace AshenSol.Player
         // current joint state
         float torsoA, headA, armBackA, armFrontA, bladeA, legBackA, legFrontA, bobY, torsoY;
         Vector2 scale = Vector2.one, scaleVel;
-        float runPhase;
+        float runPhase, climbPhase;
         int facing = 1;
 
         // overrides
@@ -258,10 +258,18 @@ namespace AshenSol.Player
                     rate = 14f;
                     break;
                 case Pose.Climb:
-                    // hanging on the wall: arms up, legs tucked, sword held close
-                    tArmF = 150f; tArmB = 120f; tLegF = 30f; tLegB = -22f; tTorso = 4f; tBlade = -30f; tHead = -6f;
-                    tBob = Mathf.Sin(t * 5f) * 0.03f;
-                    rate = 16f;
+                    // hand over hand: the cycle is driven by how fast we are actually moving
+                    climbPhase += dt * 7f * Mathf.Clamp(Mathf.Abs(v.y) / 4f, 0f, 1.4f);
+                    float swing = Mathf.Sin(climbPhase);
+                    tArmF = 148f + swing * 34f;
+                    tArmB = 148f - swing * 34f;
+                    tLegF = 26f - swing * 22f;
+                    tLegB = -18f + swing * 22f;
+                    tTorso = 3f + swing * 3f;
+                    tBlade = -30f;
+                    tHead = -6f;
+                    tBob = Mathf.Abs(swing) * 0.05f;
+                    rate = 26f;
                     break;
                 case Pose.QiBlast:
                     tTorso = -12f; tArmF = 88f; tArmB = 82f; tBlade = -95f; tLegF = 24f; tLegB = -18f; tHead = -6f;
