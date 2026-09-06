@@ -10,7 +10,7 @@ namespace AshenSol.Core
     public enum Team { Player = 0, Enemy = 1 }
     public enum AttackKind { Parryable = 0, Unblockable = 1 }
     public enum HitOutcome { Ignored = 0, Dodged = 1, Parried = 2, Blocked = 3, Hit = 4 }
-    public enum GameState { Boot = 0, Title = 1, Level1 = 2, BossArena = 3, Victory = 4 }
+    public enum GameState { Boot = 0, Title = 1, Level1 = 2, BossArena = 3, Victory = 4, Intro = 5 }
     public enum LevelId { None = 0, Level1 = 1, BossArena = 2 }
     public enum EnemyType { Grunt = 0, SpearSentinel = 1, WatcherDrone = 2, Boss = 100 }
 
@@ -79,6 +79,10 @@ namespace AshenSol.Core
         void PlayAmbience(string name, float volume = 0.5f);
         /// <summary>0..1 music volume multiplier (ducking during death screen etc.).</summary>
         void SetMusicDuck(float multiplier, float seconds);
+        /// <summary>Play a narration line from "Resources/Audio/Voice/{name}". Returns its length in
+        /// seconds so a cutscene can time itself to the delivery (0 when the clip is missing).</summary>
+        float PlayVoice(string name, float volume = 1f);
+        void StopVoice();
     }
 
     public interface ICameraService
@@ -91,6 +95,9 @@ namespace AshenSol.Core
         /// <summary>Clamp the camera view inside these world bounds.</summary>
         void SetBounds(Rect worldBounds);
         void SetZoom(float orthoSize, float seconds);
+        /// <summary>Cutscene control: stop following the target and drive the position directly.</summary>
+        void SetManual(bool manual);
+        void SetPosition(Vector2 worldPos);
         /// <summary>Temporarily look at a world position (boss intro). ReleaseFocus returns to target.</summary>
         void Focus(Vector2 worldPos, float seconds);
         void ReleaseFocus(float seconds);
@@ -136,6 +143,11 @@ namespace AshenSol.Core
         void HideTitle();
         void SetPaused(bool paused);
         void SetHudVisible(bool visible);
+        /// <summary>Cutscene caption at the bottom of the screen. null or empty hides it.</summary>
+        void ShowSubtitle(string text);
+        /// <summary>Cinematic bars: 0 = none, 1 = full letterbox.</summary>
+        void SetLetterbox(float amount, float seconds);
+        void ShowSkipHint(bool visible);
     }
 
     /// <summary>Service locator. Each manager registers itself in Awake (GameBootstrap creates them in order).</summary>
@@ -306,6 +318,7 @@ namespace AshenSol.Core
     {
         public const string SpritesPath = "Sprites/";
         public const string SfxPath = "Audio/SFX/";
+        public const string VoicePath = "Audio/Voice/";
         public const string MusicPath = "Audio/Music/";
 
         static readonly Dictionary<string, Sprite> spriteCache = new Dictionary<string, Sprite>();

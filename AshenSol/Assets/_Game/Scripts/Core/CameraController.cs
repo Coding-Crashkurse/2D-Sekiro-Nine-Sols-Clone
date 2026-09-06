@@ -24,6 +24,7 @@ namespace AshenSol.Core
         Vector2 focusPos; float focusBlend, focusBlendTarget, focusSpeed = 1f;
         float noiseSeed;
         Light2D ambientLight;
+        bool manual;
 
         void Awake()
         {
@@ -118,6 +119,21 @@ namespace AshenSol.Core
             if (t != null) lastTargetPos = t.position;
         }
         public void SetBounds(Rect worldBounds) { bounds = worldBounds; hasBounds = true; }
+        /// <summary>Cutscenes drive the camera directly; follow, look-ahead and bounds are bypassed.</summary>
+        public void SetManual(bool m)
+        {
+            manual = m;
+            vel = Vector2.zero;
+            lookAhead = 0f;
+            if (m) { focusBlend = 0f; focusBlendTarget = 0f; }
+        }
+
+        public void SetPosition(Vector2 worldPos)
+        {
+            pos = worldPos;
+            if (manual) ApplyTransform();
+        }
+
         public void SetZoom(float orthoSize, float seconds)
         {
             zoomTarget = orthoSize;
@@ -164,6 +180,16 @@ namespace AshenSol.Core
         {
             float dt = Time.unscaledDeltaTime;
             if (dt <= 0f) return;
+
+            if (manual)
+            {
+                zoomCur = Mathf.SmoothDamp(zoomCur, zoomTarget, ref zoomVel, 0.35f, 100f, dt);
+                Camera.orthographicSize = zoomCur;
+                trauma = Mathf.Max(0f, trauma - 1.7f * dt);
+                kick = Vector2.Lerp(kick, Vector2.zero, 1f - Mathf.Exp(-14f * dt));
+                ApplyTransform();
+                return;
+            }
 
             // look-ahead from target motion
             if (target != null)

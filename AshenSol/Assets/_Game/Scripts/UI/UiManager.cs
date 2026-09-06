@@ -26,6 +26,10 @@ namespace AshenSol.UI
         Text titlePress, deathPress, victoryPress, victoryStats; Image titleLogo, titleGlow; TitleMenu titleMenu;
         Action titleCb, deathCb, victoryCb; bool titleShown, deathShown, victoryShown, pausedShown; float screenArmTime;
         Text victoryLines; Text pauseDifficulty;
+        // cutscene furniture
+        CanvasGroup subtitleGroup; Text subtitleText;
+        RectTransform barTop, barBottom; float letterbox, letterboxTarget, letterboxSpeed = 1f;
+        CanvasGroup skipGroup;
 
         void Awake()
         {
@@ -68,6 +72,7 @@ namespace AshenSol.UI
             BuildDeath();
             BuildVictory();
             BuildPause();
+            BuildCutscene();
             var fadeRt = UiKit.Panel(rootRt, "Fade", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             fadeImg = fadeRt.gameObject.AddComponent<Image>();
             fadeImg.color = new Color(0f, 0f, 0f, 1f);
@@ -209,6 +214,29 @@ namespace AshenSol.UI
             rt.gameObject.SetActive(false);
         }
 
+        void BuildCutscene()
+        {
+            // letterbox bars sit above everything but the fade
+            barTop = UiKit.Anchored(rootRt, "BarTop", new Vector2(0.5f, 1f), Vector2.zero, new Vector2(4000f, 0f));
+            var it = barTop.gameObject.AddComponent<Image>();
+            it.color = Color.black; it.raycastTarget = false;
+            barBottom = UiKit.Anchored(rootRt, "BarBottom", new Vector2(0.5f, 0f), Vector2.zero, new Vector2(4000f, 0f));
+            var ib = barBottom.gameObject.AddComponent<Image>();
+            ib.color = Color.black; ib.raycastTarget = false;
+
+            var st = UiKit.Anchored(rootRt, "Subtitle", new Vector2(0.5f, 0f), new Vector2(0f, 132f), new Vector2(1500f, 96f));
+            subtitleGroup = UiKit.Group(st);
+            subtitleText = UiKit.Text(st, "text", "", 30, Palette.Bone, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(1500f, 96f));
+            subtitleText.lineSpacing = 1.25f;
+            subtitleGroup.alpha = 0f;
+
+            var sk = UiKit.Anchored(rootRt, "SkipHint", new Vector2(1f, 0f), new Vector2(-40f, 56f), new Vector2(600f, 30f));
+            skipGroup = UiKit.Group(sk);
+            UiKit.Text(sk, "text", UiKit.Spaced("PRESS ANY KEY TO SKIP"), 15, Palette.Bone.WithAlpha(0.45f),
+                new Vector2(1f, 0.5f), Vector2.zero, new Vector2(600f, 30f), TextAnchor.MiddleRight);
+            skipGroup.alpha = 0f;
+        }
+
         // ------------------------------------------------------------ events
         void OnHealth(int hp, int max)
         {
@@ -269,6 +297,14 @@ namespace AshenSol.UI
             // prompt
             if (promptTimer > 0f) { promptTimer -= dt; promptGroup.alpha = Mathf.MoveTowards(promptGroup.alpha, 1f, dt * 5f); }
             else promptGroup.alpha = Mathf.MoveTowards(promptGroup.alpha, 0f, dt * 2.5f);
+            // cutscene furniture
+            letterbox = Mathf.MoveTowards(letterbox, letterboxTarget, letterboxSpeed * dt);
+            float barH = 108f * Ease.OutCubic(letterbox);
+            barTop.sizeDelta = new Vector2(4000f, barH);
+            barBottom.sizeDelta = new Vector2(4000f, barH);
+            subtitleGroup.alpha = Mathf.MoveTowards(subtitleGroup.alpha, string.IsNullOrEmpty(subtitleText.text) ? 0f : 1f, dt * 3.5f);
+            skipGroup.alpha = Mathf.MoveTowards(skipGroup.alpha, skipWanted ? 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 2f) : 0f, dt * 2f);
+
             // screens
             if (titleShown)
             {
@@ -435,5 +471,21 @@ namespace AshenSol.UI
         }
 
         public void SetHudVisible(bool visible) { hudGroup.alpha = visible ? 1f : 0f; }
+
+        // ------------------------------------------------------------ cutscene
+        bool skipWanted;
+
+        public void ShowSubtitle(string text)
+        {
+            subtitleText.text = text ?? "";
+        }
+
+        public void SetLetterbox(float amount, float seconds)
+        {
+            letterboxTarget = Mathf.Clamp01(amount);
+            letterboxSpeed = Mathf.Abs(letterboxTarget - letterbox) / Mathf.Max(0.05f, seconds);
+        }
+
+        public void ShowSkipHint(bool visible) { skipWanted = visible; }
     }
 }

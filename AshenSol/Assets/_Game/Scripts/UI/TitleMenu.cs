@@ -159,7 +159,8 @@ namespace AshenSol.UI
             m.rectTransform.localRotation = Quaternion.Euler(0f, 0f, -Time.unscaledTime * 40f);
 
             // ---- mouse: hover selects, click activates ----
-            var mouse = Mouse.current;
+            // never during automated runs: a stray cursor resting on a row would steer the menu
+            var mouse = CmdArgs.Has("-autopilot") ? null : Mouse.current;
             if (mouse != null)
             {
                 Vector2 mp = mouse.position.ReadValue();

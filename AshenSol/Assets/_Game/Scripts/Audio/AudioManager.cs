@@ -24,6 +24,7 @@ namespace AshenSol.Audio
         float duck = 1f, duckTarget = 1f, duckSpeed = 1f;
 
         AudioSource ambience; string ambienceName; float ambTarget, ambSpeed = 1f;
+        AudioSource voice;
 
         void Awake()
         {
@@ -35,6 +36,7 @@ namespace AshenSol.Audio
             mA = new MusicVoice { Src = MakeSource("MusicA", false) };
             mB = new MusicVoice { Src = MakeSource("MusicB", false) };
             ambience = MakeSource("Ambience", true);
+            voice = MakeSource("Voice", false);
         }
 
         AudioSource MakeSource(string name, bool loop)
@@ -114,6 +116,24 @@ namespace AshenSol.Audio
         {
             duckTarget = Mathf.Clamp01(multiplier);
             duckSpeed = Mathf.Abs(duckTarget - duck) / Mathf.Max(0.05f, seconds);
+        }
+
+        // ---------------- Narration ----------------
+        public float PlayVoice(string name, float volume = 1f)
+        {
+            StopVoice();
+            var clip = Res.Clip(Res.VoicePath + name);
+            if (clip == null) return 0f;
+            voice.clip = clip;
+            voice.pitch = 1f;
+            voice.volume = Mathf.Clamp01(volume) * Mathf.Max(0.35f, Settings.SfxVolume);
+            voice.Play();
+            return clip.length;
+        }
+
+        public void StopVoice()
+        {
+            if (voice != null && voice.isPlaying) voice.Stop();
         }
 
         // ---------------- Ambience ----------------

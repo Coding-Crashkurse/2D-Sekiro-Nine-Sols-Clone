@@ -140,6 +140,23 @@ namespace AshenSol.Core
             Stats = new GameStats();
             Services.Ui.HideTitle();
             Services.Audio.PlaySfx("ui_confirm");
+            StartCoroutine(IntroThenLevel());
+        }
+
+        /// <summary>The opening cutscene, then level 1. -skipIntro jumps straight in.</summary>
+        IEnumerator IntroThenLevel()
+        {
+            if (!CmdArgs.Has("-skipIntro"))
+            {
+                busy = true;
+                SetState(GameState.Intro);
+                Services.Ui.Fade(1f, 0.6f);
+                yield return new WaitForSecondsRealtime(0.65f);
+                if (titleFx != null) { Destroy(titleFx); titleFx = null; }
+                var intro = AshenSol.Intro.IntroSequence.Create();
+                yield return intro.Play();
+                busy = false;
+            }
             LoadLevel(LevelId.Level1);
         }
 

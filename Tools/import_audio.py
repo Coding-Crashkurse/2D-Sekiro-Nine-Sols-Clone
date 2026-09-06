@@ -16,9 +16,16 @@ import os, re, subprocess, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW_SFX = os.path.join(ROOT, "AudioRaw", "sfx")
 RAW_MUSIC = os.path.join(ROOT, "AudioRaw", "music")
+RAW_INTRO_MUSIC = os.path.join(ROOT, "AudioRaw", "music_intro")
+RAW_VOICE = os.path.join(ROOT, "AudioRaw", "voice")
 MAP = os.path.join(ROOT, "AudioRaw", "sfx_map.txt")
+VOICE_MAP = os.path.join(ROOT, "AudioRaw", "voice_map.txt")
 OUT_SFX = os.path.join(ROOT, "AshenSol", "Assets", "_Game", "Resources", "Audio", "SFX")
 OUT_MUSIC = os.path.join(ROOT, "AshenSol", "Assets", "_Game", "Resources", "Audio", "Music")
+OUT_VOICE = os.path.join(ROOT, "AshenSol", "Assets", "_Game", "Resources", "Audio", "Voice")
+
+# the intro narration, in panel order (files are used oldest-first)
+VOICE_ORDER = ["intro_1", "intro_2", "intro_3", "intro_4", "intro_5"]
 
 # music files are generated in this order (see the compose_music calls)
 MUSIC_ORDER = ["music_title", "music_level1", "music_boss", "music_victory"]
@@ -28,6 +35,7 @@ NO_TRIM = {"ambience_wind", "ambience_arena", "drone_hover"}
 
 os.makedirs(OUT_SFX, exist_ok=True)
 os.makedirs(OUT_MUSIC, exist_ok=True)
+os.makedirs(OUT_VOICE, exist_ok=True)
 
 
 def peak_db(path):
@@ -83,7 +91,29 @@ def main():
         gain = convert(os.path.join(RAW_MUSIC, f), dst, -1.5, trim=False)
         print(f"  music {MUSIC_ORDER[i]:22} {gain:+6.1f} dB   <- {f}")
 
-    print(f"\n{done} sfx + {min(len(music), len(MUSIC_ORDER))} music imported")
+    # the intro underscore lives in its own folder so it cannot shift the MUSIC_ORDER mapping
+    intro = sorted(f for f in os.listdir(RAW_INTRO_MUSIC) if f.endswith(".mp3")) if os.path.isdir(RAW_INTRO_MUSIC) else []
+    if intro:
+        gain = convert(os.path.join(RAW_INTRO_MUSIC, intro[-1]), os.path.join(OUT_MUSIC, "music_intro.mp3"), -1.5, trim=False)
+        print("  music %-22s %+6.1f dB   <- %s" % ("music_intro", gain, intro[-1]))
+
+    # narration is mapped explicitly: ElevenLabs names files after the first words, so neither
+    # alphabetical nor generation order matches the script
+    voice = []
+    if os.path.exists(VOICE_MAP):
+        for line in open(VOICE_MAP, encoding="utf8"):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = line.split()
+            src = os.path.join(RAW_VOICE, parts[0])
+            if not os.path.exists(src):
+                missing.append(parts[0]); continue
+            gain = convert(src, os.path.join(OUT_VOICE, parts[1] + ".mp3"), -1.0, trim=True)
+            voice.append(parts[1])
+            print("  voice %-22s %+6.1f dB   <- %s" % (parts[1], gain, parts[0]))
+
+    print(f"\n{done} sfx + {min(len(music), len(MUSIC_ORDER))} music + {len(voice)} voice lines imported")
     if missing:
         print("MISSING SOURCES:", ", ".join(missing))
 

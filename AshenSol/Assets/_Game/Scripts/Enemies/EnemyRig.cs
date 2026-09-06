@@ -241,11 +241,17 @@ namespace AshenSol.Enemies
         // ---------------- per frame ----------------
         public void Animate(EnemyBase e, float dt)
         {
+            Animate(e != null && e.Body != null ? e.Body.linearVelocity.x : 0f, dt);
+        }
+
+        /// <summary>Pose the rig from a bare horizontal speed — lets cutscenes drive a rig with no enemy behind it.</summary>
+        public void Animate(float velocityX, float dt)
+        {
             float udt = Time.unscaledDeltaTime;
             float t = Time.time;
-            if (RigStyle == Style.Drone) { AnimateDrone(e, dt); return; }
+            if (RigStyle == Style.Drone) { AnimateDrone(null, dt); return; }
 
-            float vx = e.Body != null ? e.Body.linearVelocity.x : 0f;
+            float vx = velocityX;
             bool walking = Mathf.Abs(vx) > 0.4f;
             float tTorso = 0f, tHead = 0f, tArm = Cfg.ArmIdle, tArmB = -10f, tLegB = 0f, tLegF = 0f, tBob = 0f, tRootX = 0f;
             float tWeapon = Cfg.WeaponVerticalIdle ? -tArm : Cfg.WeaponIdleLocal;

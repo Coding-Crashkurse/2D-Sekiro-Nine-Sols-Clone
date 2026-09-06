@@ -28,6 +28,7 @@ namespace AshenSol.Core
         float stuckTime; float lastX;
         float pendingShotAt = -1f; string pendingLabel;
         float statusTimer; string brainState = "-";
+        float introSeenUntil;   // watch a slice of the intro, then skip so runs stay short
         float jumpHold;   // the bot must HOLD jump — tapping triggers the variable-height jump cut
 
         void Awake()
@@ -40,6 +41,7 @@ namespace AshenSol.Core
             }
             catch (System.Exception e) { Debug.LogWarning("[AutoPilot] cannot open log: " + e.Message); }
             quitAfter = CmdArgs.GetFloat("-quitAfter", 240f);
+            introSeenUntil = CmdArgs.GetFloat("-introSeconds", 12f);
             input = new ScriptedInput();
             if (InputRouter.Instance != null) InputRouter.Instance.SetProvider(input);
 
@@ -83,6 +85,7 @@ namespace AshenSol.Core
         {
             Log(s);
             if (s.StartsWith("guard broken")) ScheduleShot("guard_break", 0.25f);
+            else if (s.StartsWith("intro panel")) ScheduleShot("intro" + s.Substring(12).Trim(), 2.2f);
         }
         void OnParried(Vector2 p, bool perf)
         {
@@ -145,10 +148,15 @@ namespace AshenSol.Core
             jumpHold -= dt;
             input.JumpHeld = jumpHold > 0f;
             var flow = GameFlow.Instance;
-            if (flow == null || flow.Busy) return;
+            // the intro runs while the flow is busy, and the bot still has to be able to skip it
+            if (flow == null || (flow.Busy && flow.State != GameState.Intro)) return;
 
             switch (flow.State)
             {
+                case GameState.Intro:
+                    // let a few seconds of the cutscene actually run, then use the skip path
+                    if (elapsed > introSeenUntil && confirmCd <= 0f) { input.Confirm(); confirmCd = 1f; }
+                    break;
                 case GameState.Title:
                     if (confirmCd <= 0f) { input.Confirm(); confirmCd = 1f; }
                     break;
