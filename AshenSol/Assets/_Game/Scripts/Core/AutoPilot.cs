@@ -27,6 +27,8 @@ namespace AshenSol.Core
         float attackCd, parryCd, dashCd, qiCd, healCd, confirmCd;
         float stuckTime; float lastX;
         float pendingShotAt = -1f; string pendingLabel;
+        float statusTimer; string brainState = "-";
+        float jumpHold;   // the bot must HOLD jump — tapping triggers the variable-height jump cut
 
         void Awake()
         {
@@ -120,9 +122,22 @@ namespace AshenSol.Core
             if (pendingShotAt >= 0f && elapsed >= pendingShotAt) { Shot(pendingLabel); pendingShotAt = -1f; }
             else if (shotTimer >= 6f) Shot("t" + Mathf.RoundToInt(elapsed));
 
+            statusTimer -= dt;
+            if (statusTimer <= 0f)
+            {
+                statusTimer = 2f;
+                var pp = PlayerController.Instance;
+                if (pp != null)
+                    Log(string.Format("pos=({0:F1},{1:F1}) vel=({2:F1},{3:F1}) grounded={4} ctrl={5} stun={6} hazard={7} dead={8} hp={9} qi={10} brain={11} in=({12:F1}) enemies={13}",
+                        pp.Position.x, pp.Position.y, pp.Velocity.x, pp.Velocity.y, pp.IsGrounded, pp.ControlEnabled, pp.IsStunned,
+                        pp.HazardRecovering, pp.IsDead, pp.Hp, pp.Qi, brainState, input.Horizontal, AliveEnemyCount()));
+            }
+
             if (elapsed >= quitAfter || (victoryAt >= 0f && elapsed >= victoryAt + 6f)) { Finish(); return; }
 
-            input.Horizontal = 0f; input.Vertical = 0f; input.JumpHeld = false; input.ParryHeld = false;
+            input.Horizontal = 0f; input.Vertical = 0f; input.ParryHeld = false;
+            jumpHold -= dt;
+            input.JumpHeld = jumpHold > 0f;
             var flow = GameFlow.Instance;
             if (flow == null || flow.Busy) return;
 
@@ -142,10 +157,18 @@ namespace AshenSol.Core
             }
         }
 
+        int AliveEnemyCount()
+        {
+            int n = 0;
+            for (int i = 0; i < EnemyBase.All.Count; i++)
+                if (EnemyBase.All[i] != null && EnemyBase.All[i].IsAlive) n++;
+            return n;
+        }
+
         void Brain()
         {
             var p = PlayerController.Instance;
-            if (p == null || p.IsDead || !p.ControlEnabled) return;
+            if (p == null || p.IsDead || !p.ControlEnabled) { brainState = "no-control"; return; }
 
             // threats: enemy projectiles heading at us
             Projectile threat = null;
@@ -156,9 +179,9 @@ namespace AshenSol.Core
                 Vector2 d = (Vector2)pr.transform.position - p.Center;
                 if (d.magnitude < 1.7f && Vector2.Dot(pr.Velocity, -d) > 0f) { threat = pr; break; }
             }
-            if (threat != null && parryCd <= 0f) { input.Parry(); parryCd = 0.45f; return; }
+            if (threat != null && parryCd <= 0f) { brainState = "parry-bolt"; input.Parry(); parryCd = 0.45f; return; }
 
-            if (GroundShockwave.AnyApproaching(p.Center, 1.9f) && p.IsGrounded) { input.Jump(); return; }
+            if (GroundShockwave.AnyApproaching(p.Center, 1.9f) && p.IsGrounded) { brainState = "jump-wave"; DoJump(); return; }
 
             // nearest enemy within engagement box
             EnemyBase target = null; float best = 999f;
@@ -167,7 +190,7 @@ namespace AshenSol.Core
                 var e = EnemyBase.All[i];
                 if (e == null || !e.IsAlive || !e.gameObject.activeInHierarchy) continue;
                 Vector2 d = e.Center - p.Center;
-                if (Mathf.Abs(d.x) <= 4.8f && Mathf.Abs(d.y) <= 3.2f && Mathf.Abs(d.x) < best) { best = Mathf.Abs(d.x); target = e; }
+                if (Mathf.Abs(d.x) <= 5.5f && Mathf.Abs(d.y) <= 4.6f && Mathf.Abs(d.x) < best) { best = Mathf.Abs(d.x); target = e; }
             }
 
             if (target != null)
@@ -178,6 +201,7 @@ namespace AshenSol.Core
 
                 if (target.IsTelegraphing)
                 {
+                    brainState = "telegraph:" + target.TelegraphKind;
                     if (target.TelegraphKind == AttackKind.Parryable)
                     {
                         if (target.TimeUntilStrike <= 0.14f && parryCd <= 0f) { input.Parry(); parryCd = 0.3f; }
@@ -192,39 +216,81 @@ namespace AshenSol.Core
                 }
                 if (boss != null && boss.CurrentAttack == "Slam")
                 {
+                    brainState = "evade-slam";
                     input.Horizontal = -dirTo;
                     if (dashCd <= 0f) { input.Dash(); dashCd = 0.6f; }
                     return;
                 }
-                if (p.Qi > 0 && target.InternalDamage >= 20 && dist < 2.6f && qiCd <= 0f) { input.QiBlast(); qiCd = 1.2f; return; }
-                if (p.Hp < 40 && p.Qi > 0 && dist > 3.2f && healCd <= 0f) { input.Heal(); healCd = 2.5f; return; }
+                if (p.Qi > 0 && target.InternalDamage >= 20 && dist < 2.6f && qiCd <= 0f) { brainState = "qi-blast"; input.QiBlast(); qiCd = 1.2f; return; }
+                if (p.Hp < 40 && p.Qi > 0 && dist > 3.2f && healCd <= 0f) { brainState = "heal"; input.Heal(); healCd = 2.5f; return; }
 
-                if (target.Type == EnemyType.WatcherDrone && target.Center.y > p.Center.y + 2.2f)
+                if (target.Type == EnemyType.WatcherDrone && target.Center.y > p.Center.y + 1.2f)
                 {
-                    // can't reach a hovering drone: hold position and let the bolt-parry logic reflect its shots
+                    // get underneath it, then jump-attack; its bolts are handled by the parry check above
+                    brainState = "hunt-drone";
+                    float dx = target.Center.x - p.Center.x;
+                    if (Mathf.Abs(dx) > 0.5f) input.Horizontal = dirTo;
+                    if (p.IsGrounded && Mathf.Abs(dx) < 1.3f) DoJump();
+                    if (attackCd <= 0f && Mathf.Abs(dx) < 1.8f && target.Center.y - p.Center.y < 2.8f) { input.Attack(); attackCd = 0.22f; }
                     return;
                 }
                 if (dist > 1.75f)
                 {
+                    brainState = "approach";
                     input.Horizontal = dirTo;
-                    if (target.Center.y > p.Center.y + 1.4f && p.IsGrounded) input.Jump();
+                    if (target.Center.y > p.Center.y + 1.4f && p.IsGrounded) DoJump();
                 }
                 else
                 {
+                    brainState = "attack";
                     if (attackCd <= 0f) { input.Attack(); attackCd = 0.22f; }
                 }
                 return;
             }
 
+            // out of combat: top up health while it is safe
+            if (p.Hp < 60 && p.Qi > 0 && p.IsGrounded && healCd <= 0f) { brainState = "heal"; input.Heal(); healCd = 3f; return; }
+
             // traverse: walk right, jump over gaps / walls / spikes
+            brainState = "traverse";
             input.Horizontal = 1f;
-            if (p.IsGrounded && ShouldJump(p)) input.Jump();
+
+            // if the exit gate is still sealed, go back and finish the stragglers instead of
+            // grinding against the level's far wall
+            var info = GameFlow.Instance != null ? GameFlow.Instance.CurrentLevelInfo : null;
+            if (info != null && info.ExitGate != null && !info.ExitGate.IsOpen
+                && p.Position.x > info.ExitGate.transform.position.x - 3f)
+            {
+                EnemyBase straggler = null; float bestD = 9999f;
+                for (int i = 0; i < EnemyBase.All.Count; i++)
+                {
+                    var e = EnemyBase.All[i];
+                    if (e == null || !e.IsAlive || !e.gameObject.activeInHierarchy) continue;
+                    float dd = Mathf.Abs(e.Center.x - p.Center.x);
+                    if (dd < bestD) { bestD = dd; straggler = e; }
+                }
+                if (straggler != null)
+                {
+                    brainState = "hunt";
+                    input.Horizontal = straggler.Center.x > p.Center.x ? 1f : -1f;
+                    if (p.IsGrounded && bestD < 1.5f && straggler.Center.y > p.Center.y + 1.2f) DoJump();
+                    return;
+                }
+            }
+            if (p.IsGrounded && ShouldJump(p)) DoJump();
 
             // stuck detection
             if (p.IsGrounded && Mathf.Abs(p.Position.x - lastX) < 0.02f) stuckTime += Time.unscaledDeltaTime; else stuckTime = 0f;
             lastX = p.Position.x;
-            if (stuckTime > 1.2f && p.IsGrounded) input.Jump();
+            if (stuckTime > 1.2f && p.IsGrounded) DoJump();
             if (stuckTime > 3f && dashCd <= 0f) { input.Dash(); dashCd = 0.6f; stuckTime = 0f; }
+        }
+
+        /// <summary>Press AND hold jump so the player reaches full jump height (a tap is cut to ~45%).</summary>
+        void DoJump()
+        {
+            input.Jump();
+            jumpHold = 0.35f;
         }
 
         bool ShouldJump(PlayerController p)

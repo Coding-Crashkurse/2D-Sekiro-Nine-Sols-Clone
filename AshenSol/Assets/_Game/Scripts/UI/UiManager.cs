@@ -108,7 +108,7 @@ namespace AshenSol.UI
             bossFill.rectTransform.pivot = new Vector2(0f, 0f);
             bossInternal = UiKit.Image(bossRt, "internal", null, Palette.InternalDamage, new Vector2(0f, 0f), new Vector2(3f, 3f), new Vector2(0f, 12f));
             bossInternal.rectTransform.pivot = new Vector2(0f, 0f);
-            UiKit.Image(bossRt, "frame", Res.Sprite("ui_bar_frame"), Palette.Bone.WithAlpha(0.7f), new Vector2(0.5f, 0f), new Vector2(0f, 0f), new Vector2(900f, 18f));
+            UiKit.Image(bossRt, "frame", Res.Sprite("ui_bar_frame"), Palette.Bone.WithAlpha(0.7f), new Vector2(0.5f, 0f), new Vector2(0f, 0f), new Vector2(900f, 18f), false);
             bossGroup.alpha = 0f;
         }
 
@@ -139,7 +139,7 @@ namespace AshenSol.UI
             var rt = UiKit.Panel(rootRt, "Title", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             titleGroup = UiKit.Group(rt);
             var bg = UiKit.Fill(rt, "bg", Palette.Ink.WithAlpha(0.55f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            var skyImg = UiKit.Image(rt, "sky", Res.Sprite("bg_boss_sky"), new Color(0.6f, 0.55f, 0.6f, 1f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2200f, 2200f));
+            var skyImg = UiKit.Image(rt, "sky", Res.Sprite("bg_boss_sky"), new Color(0.6f, 0.55f, 0.6f, 1f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2200f, 2200f), false);
             skyImg.transform.SetAsFirstSibling();
             skyImg.preserveAspect = false;
             bg.transform.SetSiblingIndex(1);

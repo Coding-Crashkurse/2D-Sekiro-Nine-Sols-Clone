@@ -57,6 +57,7 @@ namespace AshenSol.Player
         public bool IsDead { get; private set; }
         public bool IsStunned { get { return stunTimer > 0f; } }
         public bool ControlEnabled { get; private set; } = true;
+        public bool HazardRecovering { get { return hazardRecovering; } }
         public Vector2 Position { get { return transform.position; } }
         public Vector2 Center { get { return (Vector2)transform.position + new Vector2(0f, 0.85f); } }
         public Vector2 Velocity { get { return Body != null ? Body.linearVelocity : Vector2.zero; } }

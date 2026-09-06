@@ -82,7 +82,7 @@ namespace AshenSol.Boss
             capeAnchor.SetParent(rig.Torso, false);
             capeAnchor.localPosition = new Vector3(-0.32f, 1.25f, 0f);
             cape = SashChain.Build(transform, capeAnchor, 7, Palette.RedDeep, "boss_cape_seg", 0.3f, SortOrder.Boss - 5, 1.7f, 0.9f);
-            cape.Gravity = 5f; cape.Wind = 0.9f;
+            cape.Gravity = 16f; cape.Wind = 0.12f;
 
             var coreGo = new GameObject("core");
             coreGo.transform.SetParent(rig.Torso, false);

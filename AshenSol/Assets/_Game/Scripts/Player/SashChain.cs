@@ -16,9 +16,9 @@ namespace AshenSol.Player
         bool visible = true;
         float time;
 
-        public float Gravity = 6f;
-        public float Damping = 0.92f;
-        public float Wind = 0.6f;
+        public float Gravity = 10f;
+        public float Damping = 0.9f;
+        public float Wind = 0.18f;
 
         public static SashChain Build(Transform parent, Transform anchor, int segments, Color color, string sprite, float segLen, int sortOrder, float scaleStart, float scaleEnd)
         {
@@ -63,7 +63,7 @@ namespace AshenSol.Player
             time += dt;
             Vector2 a = anchor.position;
             pos[0] = a; prev[0] = a;
-            Vector2 wind = new Vector2(-facing * (Wind + Mathf.Sin(time * 5f) * 0.4f) - bodyVelocity.x * 0.15f, Mathf.Sin(time * 3.1f) * 0.3f);
+            Vector2 wind = new Vector2(-facing * (Wind + Mathf.Sin(time * 5f) * 0.12f) - bodyVelocity.x * 0.08f, Mathf.Sin(time * 3.1f) * 0.08f);
             float dt2 = dt * dt;
             for (int i = 1; i < pos.Length; i++)
             {

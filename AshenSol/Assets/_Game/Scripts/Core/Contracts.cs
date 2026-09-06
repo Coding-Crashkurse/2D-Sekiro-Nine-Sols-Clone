@@ -432,7 +432,7 @@ namespace AshenSol.Core
             {
                 if (silhouette == null)
                 {
-                    var sh = Shader.Find("GUI/Text Shader");
+                    var sh = Shader.Find("AshenSol/Silhouette");
                     silhouette = sh != null ? new Material(sh) : new Material(SpriteUnlit);
                     silhouette.renderQueue = 3000;
                 }
@@ -441,31 +441,17 @@ namespace AshenSol.Core
         }
         static Material silhouette;
 
-        /// <summary>Additive blended unlit material for glows/sparks (falls back to unlit alpha blend if shader is stripped).</summary>
+        /// <summary>Additive sprite material. Uses our own shader so SpriteRenderers keep their sprite texture
+        /// (URP's particle shader ignores it and paints solid quads).</summary>
         public static Material Additive
         {
             get
             {
                 if (additive == null)
                 {
-                    var sh = Shader.Find("Universal Render Pipeline/Particles/Unlit");
-                    if (sh != null)
-                    {
-                        additive = new Material(sh);
-                        additive.SetFloat("_Surface", 1f);
-                        additive.SetFloat("_Blend", 2f);
-                        additive.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
-                        additive.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.One);
-                        additive.SetFloat("_SrcBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
-                        additive.SetFloat("_DstBlendAlpha", (float)UnityEngine.Rendering.BlendMode.One);
-                        additive.SetFloat("_ZWrite", 0f);
-                        additive.SetFloat("_Cull", 0f);
-                        additive.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-                        additive.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                        additive.DisableKeyword("_ALPHAMODULATE_ON");
-                        additive.renderQueue = 3000;
-                    }
-                    else additive = new Material(SpriteUnlit);
+                    var sh = Shader.Find("AshenSol/SpriteAdditive");
+                    additive = sh != null ? new Material(sh) : new Material(SpriteUnlit);
+                    additive.renderQueue = 3000;
                 }
                 return additive;
             }

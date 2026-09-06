@@ -15,7 +15,9 @@ namespace AshenSol.EditorTools
         {
             try
             {
-                ProjectBootstrap.Run();
+                // NOTE: do NOT run ProjectBootstrap here — creating/saving assets in the same call
+                // leaves the AssetDatabase locked and BuildPipeline fails writing PlayerDataCache.
+                // Tools/build.sh bootstraps in a separate editor invocation.
                 Directory.CreateDirectory(OutputDir);
                 var options = BuildOptions.None;
                 if (AshenSol.Core.CmdArgs.Has("-dev")) options |= BuildOptions.Development;

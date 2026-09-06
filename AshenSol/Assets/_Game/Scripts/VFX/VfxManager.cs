@@ -347,7 +347,10 @@ namespace AshenSol.VFX
             var em = ps.emission; em.enabled = true; em.rateOverTime = rate;
             var sh = ps.shape; sh.enabled = true; sh.shapeType = ParticleSystemShapeType.Box; sh.scale = new Vector3(area.width, area.height, 1f);
             var vel = ps.velocityOverLifetime; vel.enabled = true; vel.space = ParticleSystemSimulationSpace.World;
-            vel.x = new ParticleSystem.MinMaxCurve(-0.35f, 0.35f); vel.y = new ParticleSystem.MinMaxCurve(0.1f, 0.4f);
+            // All three curves must use the same MinMaxCurve mode, otherwise Unity logs an error every frame.
+            vel.x = new ParticleSystem.MinMaxCurve(-0.35f, 0.35f);
+            vel.y = new ParticleSystem.MinMaxCurve(0.1f, 0.4f);
+            vel.z = new ParticleSystem.MinMaxCurve(0f, 0f);
             var noise = ps.noise; noise.enabled = true; noise.strength = 0.25f; noise.frequency = 0.4f; noise.scrollSpeed = 0.2f;
             var col = ps.colorOverLifetime; col.enabled = true;
             var g = new Gradient();

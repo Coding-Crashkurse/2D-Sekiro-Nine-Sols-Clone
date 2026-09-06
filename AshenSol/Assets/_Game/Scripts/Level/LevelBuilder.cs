@@ -67,15 +67,15 @@ namespace AshenSol.Level
             var z2 = EncounterZone.Create("Z2", new Rect(46f, 0f, 14f, 8f), root);
             z2.Add(Spawn(info, EnemyType.Grunt, new Vector2(51f, 0.1f), ens));
             z2.Add(Spawn(info, EnemyType.Grunt, new Vector2(56f, 0.1f), ens));
-            z2.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(53.5f, 4.2f), ens));
+            z2.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(53.5f, 3.3f), ens));
             var z3 = EncounterZone.Create("Z3", new Rect(74f, 0f, 16f, 12f), root);
             z3.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(85f, 6.1f), ens));
-            z3.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(79f, 8.5f), ens));
+            z3.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(79f, 7.3f), ens));
             var z4 = EncounterZone.Create("Z4", new Rect(108f, 0f, 32f, 10f), root);
             z4.Add(Spawn(info, EnemyType.Grunt, new Vector2(115f, 0.1f), ens));
             z4.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(127f, 0.1f), ens));
-            z4.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(118f, 4.6f), ens));
-            z4.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(133f, 4.6f), ens));
+            z4.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(118f, 3.3f), ens));
+            z4.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(133f, 3.3f), ens));
             info.Zones.Add(z1); info.Zones.Add(z2); info.Zones.Add(z3); info.Zones.Add(z4);
 
             // ---------- gate ----------
@@ -107,7 +107,7 @@ namespace AshenSol.Level
             LevelDecor.WallPanel(new Rect(140f, 0f, 10f, 9f), deco, "prop_lattice", 0.5f);
             foreach (var x in new[] { 110f, 118f, 126f, 134f }) LevelDecor.Chain(new Vector2(x, 9f), 4f + (x % 5f) * 0.4f, deco);
             VfxManager.CreateAmbientEmbers(new Rect(0f, -2f, 150f, 14f), Palette.Amber, 14f, deco);
-            VfxManager.CreateMist(new Rect(0f, -1.5f, 150f, 5f), Palette.Bone, 46, deco);
+            VfxManager.CreateMist(new Rect(0f, -1.5f, 150f, 5f), Palette.Bone, 34, deco);
 
             return info;
         }
@@ -179,7 +179,7 @@ namespace AshenSol.Level
             LevelDecor.WallPanel(new Rect(12f, 0f, 36f, 11f), deco, "prop_wall_panel", 0.6f);
             LevelDecor.WallPanel(new Rect(0f, 0f, 12f, 8f), deco, "prop_lattice", 0.5f);
             VfxManager.CreateAmbientEmbers(new Rect(0f, -2f, 50f, 14f), Palette.Red, 12f, deco);
-            VfxManager.CreateMist(new Rect(0f, -1.5f, 50f, 5f), new Color(1f, 0.85f, 0.85f), 30, deco);
+            VfxManager.CreateMist(new Rect(0f, -1.5f, 50f, 5f), new Color(1f, 0.85f, 0.85f), 16, deco);
 
             return info;
         }

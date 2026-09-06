@@ -30,8 +30,10 @@ namespace AshenSol.EditorTools
             "Universal Render Pipeline/Unlit",
             "Sprites/Default",
             "UI/Default",
-            "Legacy Shaders/Particles/Additive",
-            "GUI/Text Shader",
+            "AshenSol/Silhouette",
+            "AshenSol/SpriteAdditive",
+            // NOTE: never add editor-internal shaders such as "GUI/Text Shader" here — they live in
+            // "Library/unity default resources" with HideFlags.DontSave and break the player build.
         };
 
         [MenuItem("Ashen Sol/Bootstrap Project")]
@@ -79,6 +81,21 @@ namespace AshenSol.EditorTools
             if (assets == null || assets.Length == 0) { Debug.LogWarning("[Bootstrap] GraphicsSettings not found"); return; }
             var so = new SerializedObject(assets[0]);
             var arr = so.FindProperty("m_AlwaysIncludedShaders");
+
+            // Drop editor-internal shaders (HideFlags.DontSave, e.g. "GUI/Text Shader"): including them
+            // makes the player build fail with "An asset is marked with HideFlags.DontSave".
+            int removed = 0;
+            for (int i = arr.arraySize - 1; i >= 0; i--)
+            {
+                var s = arr.GetArrayElementAtIndex(i).objectReferenceValue as Shader;
+                if (s != null && (s.hideFlags & HideFlags.DontSave) != 0)
+                {
+                    arr.DeleteArrayElementAtIndex(i);
+                    removed++;
+                }
+            }
+            if (removed > 0) Debug.Log("[Bootstrap] removed " + removed + " editor-internal shader(s) from Always Included");
+
             var present = new HashSet<Shader>();
             for (int i = 0; i < arr.arraySize; i++)
             {

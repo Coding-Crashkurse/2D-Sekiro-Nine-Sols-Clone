@@ -42,14 +42,16 @@ namespace AshenSol.UI
             return rt;
         }
 
-        public static Image Image(Transform parent, string name, Sprite sprite, Color color, Vector2 anchor, Vector2 pos, Vector2 size)
+        public static Image Image(Transform parent, string name, Sprite sprite, Color color, Vector2 anchor, Vector2 pos, Vector2 size, bool preserveAspect = true)
         {
             var rt = Anchored(parent, name, anchor, pos, size);
             var img = rt.gameObject.AddComponent<Image>();
             img.sprite = sprite;
             img.color = color;
             img.raycastTarget = false;
-            if (sprite != null && sprite.name != "white") img.preserveAspect = true;
+            // NOTE: frames that are stretched to a different aspect (the boss bar) must NOT preserve aspect,
+            // otherwise Unity letterboxes them into a small centred box.
+            img.preserveAspect = preserveAspect && sprite != null && sprite.name != "white";
             return img;
         }
 
