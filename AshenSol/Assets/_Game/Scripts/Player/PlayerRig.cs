@@ -366,8 +366,7 @@ namespace AshenSol.Player
                     tLegB = -tLegF;
                     tArmF = -Mathf.Sin(runPhase) * 22f + 18f;
                     tArmB = Mathf.Sin(runPhase) * 26f - 6f;
-                    tTorso = -8f;
-                    tBob = Mathf.Abs(Mathf.Sin(runPhase)) * 0.05f;
+                    tTorso = -8f;                    // the bob comes from the planted feet below
                     tHead = 3f;
                     rate = 30f;
                     snapLegs = true;
@@ -406,7 +405,7 @@ namespace AshenSol.Player
                     rate = 30f;
                     break;
                 case Pose.Heal:
-                    tTorso = -12f; tLegF = 62f; tLegB = -74f; tTorsoY = -0.28f; tArmF = 42f; tArmB = 30f; tBlade = -175f; tHead = 10f;
+                    tTorso = -12f; tLegF = 62f; tLegB = -74f; tTorsoY = -0.08f; tArmF = 42f; tArmB = 30f; tBlade = -175f; tHead = 10f;   // the kneel itself comes from the planted feet
                     rate = 14f;
                     break;
                 case Pose.Climb:
@@ -441,6 +440,11 @@ namespace AshenSol.Player
                     rate = 40f;
                     break;
             }
+
+            // The legs rotate at the hip, so a spread or bent stance would lift the feet off the floor. Drop the
+            // hips by what the lower leg loses in height: the feet stay planted in every pose, and the run bob
+            // falls out of it for free (lowest when the legs are spread).
+            tBob -= 0.54f * (1f - Mathf.Cos(Mathf.Min(Mathf.Abs(tLegF), Mathf.Abs(tLegB)) * Mathf.Deg2Rad));
 
             float k = 1f - Mathf.Exp(-rate * dt);
             if (clipActive)

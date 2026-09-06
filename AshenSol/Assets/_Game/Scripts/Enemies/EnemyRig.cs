@@ -373,7 +373,7 @@ namespace AshenSol.Enemies
                 runPhase += speed * dt * (Mathf.PI * 2f / Stride);
                 tLegF = Mathf.Sin(runPhase) * 30f; tLegB = -tLegF;
                 tArmB = Mathf.Sin(runPhase) * 20f - 10f;
-                tTorso = -5f; tBob = Mathf.Abs(Mathf.Sin(runPhase)) * 0.04f;
+                tTorso = -5f;                        // the bob comes from the planted feet below
                 rate = 26f;
                 snapLegs = true;
             }
@@ -427,6 +427,11 @@ namespace AshenSol.Enemies
                     rate = Mathf.Max(rate, 26f);
                 }
             }
+
+            // The legs rotate at the hip, so a spread or bent stance would lift the feet off the floor. Drop
+            // the hips by what the lower leg loses in height: the feet stay planted in every pose, and the
+            // walk bob falls out of it for free (lowest when the legs are spread).
+            tBob -= Cfg.LegSpriteH * (1f - Mathf.Cos(Mathf.Min(Mathf.Abs(tLegF), Mathf.Abs(tLegB)) * Mathf.Deg2Rad));
 
             // telegraph presentation, whichever pose owns the limbs
             if (telegraphing)

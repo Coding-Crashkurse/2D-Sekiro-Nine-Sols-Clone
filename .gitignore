@@ -1,3 +1,4 @@
+# ---- Unity ----
 AshenSol/Library/
 AshenSol/Temp/
 AshenSol/Obj/
@@ -6,7 +7,46 @@ AshenSol/Builds/
 AshenSol/Logs/
 AshenSol/UserSettings/
 AshenSol/MemoryCaptures/
+AshenSol/Recordings/
+AshenSol/[Aa]ssets/AssetStoreTools*
+AshenSol/[Aa]ssets/Plugins/Editor/JetBrains*
+AshenSol/.vs/
+
+# Unity crash / autosave leftovers
+sysinfo.txt
+crashlytics-build.properties
+*.stackdump
+
+# ---- Generated project files ----
 AshenSol/*.csproj
 AshenSol/*.sln
+AshenSol/*.slnx
+AshenSol/*.user
+AshenSol/*.unityproj
+AshenSol/*.pidb
+AshenSol/*.booproj
+AshenSol/*.svd
+AshenSol/*.suo
+
+# ---- Builds & tooling output ----
 Builds/
 Tools/*.log
+Tools/__pycache__/
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# ---- Heavy generated media (kept on disk, out of git) ----
+# Autopilot verification captures - regenerate with Tools/autopilot.sh
+Screenshots/
+# Raw ElevenLabs output - the imported copies live in AshenSol/Assets/_Game/Resources/Audio
+AudioRaw/
+
+# docs/img holds the README screenshots and IS tracked on purpose
+!docs/img/
+
+# ---- OS noise ----
+.DS_Store
+Thumbs.db
+desktop.ini

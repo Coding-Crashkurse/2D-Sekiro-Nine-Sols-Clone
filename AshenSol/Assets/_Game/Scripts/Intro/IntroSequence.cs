@@ -226,7 +226,7 @@ namespace AshenSol.Intro
             {
                 var rig = IntroStage.Figure(t, IntroStage.HuskConfig(), new Vector2(xs[i], -4.2f), i % 2 == 0 ? 1 : -1,
                     new Color(0.17f, 0.16f, 0.21f), 0.95f + (i % 3) * 0.06f);
-                rig.SetPose(true, 20f, 200f, 62f, 26f, -34f);        // slumped over
+                rig.SetPose(true, 20f, 200f, 62f, 30f, -30f);        // slumped over, feet on the ground
                 husks.Add(rig);
             }
             IntroStage.Ash(t, new Rect(-16f, -5f, 32f, 16f), 90f);
@@ -333,7 +333,9 @@ namespace AshenSol.Intro
 
             var warden = IntroStage.Figure(t, IntroStage.WardenConfig(), new Vector2(-2.6f, -4f), 1,
                 new Color(0.12f, 0.11f, 0.15f), 1f);
-            warden.SetPose(true, 30f, 180f, -20f, 46f, -62f);   // kneeling before the gate
+            // standing watch before the gate, slumped over the glaive. Legs stay on the walk cycle: angling
+            // them at the hip without lowering the root lifts the feet off the ground and he floats.
+            warden.SetPose(true, 30f, 180f, -12f);
             IntroStage.Ash(t, new Rect(-14f, -5f, 28f, 14f), 55f);
 
             return new Panel

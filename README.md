@@ -1,16 +1,58 @@
-# ASHEN SOL
+<p align="center">
+  <img src="docs/img/01_title.jpg" width="820" alt="Ashen Sol – Titelbildschirm">
+</p>
 
-Ein kleines, parry-lastiges 2D-Action-Spiel im Stil von *Nine Sols* (Taopunk: Taoisten-Tempelruinen
-trifft Cyberpunk). Vier Abschnitte, zwei Bosse und ein Abspann:
+<h1 align="center">ASHEN SOL</h1>
+<p align="center"><em>The Sealed Gate</em></p>
+
+<p align="center">
+  <strong>Ein parry-lastiges 2D-Action-Spiel im Stil von <em>Nine Sols</em></strong><br>
+  Taopunk — Taoisten-Tempelruinen treffen Cyberpunk.<br>
+  Vier Abschnitte, zwei Bosse, ein Abspann. Alles zur Laufzeit aus Code gebaut.
+</p>
+
+<p align="center">
+  <img alt="Unity 6000.4.6f1" src="https://img.shields.io/badge/Unity-6000.4.6f1-000?style=flat-square&logo=unity">
+  <img alt="URP 2D" src="https://img.shields.io/badge/Render-URP%202D-1b8?style=flat-square">
+  <img alt="Plattform Windows" src="https://img.shields.io/badge/Build-Windows-0078d4?style=flat-square">
+  <img alt="Keine Prefabs" src="https://img.shields.io/badge/Prefabs-0-c33?style=flat-square">
+</p>
+
+---
+
+## Inhalt
+
+* [Der Lauf](#der-lauf) · [Spielen](#spielen) · [Steuerung](#steuerung)
+* [Die Kampfregel](#die-kampfregel) · [Asche, Tod und Leveln](#seelen-asche-tod-und-leveln)
+* [Der Endboss](#der-endboss-die-zweite-form) · [Schwierigkeitsgrade](#schwierigkeitsgrade)
+* [Projektaufbau](#projektaufbau) · [Werkzeuge](#werkzeuge) · [Umgebung](#bekannte-eigenheiten-der-umgebung)
+
+---
+
+## Der Lauf
+
+<p align="center">
+  <img src="docs/img/02_prolog.jpg" width="820" alt="Prolog unter der roten Sonne">
+</p>
+
+> *„Ein Tor ist nur ein Versprechen, vor das sich jemand gestellt hat.
+> Er hielt seines hundert Jahre lang, und niemand kam je, um ihn abzulösen."*
 
 | # | Level | Inhalt |
 |---|---|---|
 | I | **THE OUTER SANCTUM** | Korridor mit Gegnern, Plattforming, versiegeltes Tor |
 | II | **THE SUNKEN WORKS** | Qi-Fontänen, Fahrstuhl-Plattformen, Leitern, dann **THE SEVENTH ARTISAN** |
-| III | **THE PILGRIM STAIR** | Pflicht-Zwischenlevel: Treppe, Sprungpassage, Gauntlet, Schrein — und der neue **Foundry Brute** mit dem Hammer |
+| III | **THE PILGRIM STAIR** | Pflicht-Zwischenlevel: Treppe, Sprungpassage, Gauntlet, Schrein — und der **Foundry Brute** mit dem Hammer |
 | IV | **THE SEALED GATE** | **THE FORSAKEN WARDEN** — mit cineastischem Übergang in **ASH UNBOUND** |
 
 Danach läuft ein Abspann mit eigener Musik.
+
+<p align="center">
+  <img src="docs/img/03_intro.jpg" width="760" alt="Intro-Sequenz: der Meister und die Schülerin">
+</p>
+<p align="center"><sub>Das gesprochene Intro — vertont, überspringbar mit <code>E</code>.</sub></p>
+
+---
 
 ## Spielen
 
@@ -36,7 +78,20 @@ Fertiger Build: **`Builds/Windows/AshenSol.exe`** — einfach doppelklicken.
 Klettern und die Menü-Auswahl oben/unten laufen über den **linken Stick** — das D-Pad hoch ist mit
 Heilen belegt, sonst würde eine Leiter dauernd Heiltränke auslösen.
 
-### Die Kampfregel
+---
+
+## Die Kampfregel
+
+<table>
+<tr>
+<td width="50%"><img src="docs/img/05_parry.jpg" alt="Perfekte Parade am Foundry Brute"></td>
+<td width="50%"><img src="docs/img/06_unblockable.jpg" alt="Roter, unblockbarer Angriff"></td>
+</tr>
+<tr>
+<td><sub><strong>Weiß</strong> = parierbar. Der Brute braucht zwei perfekte Paraden — nach der ersten steht „ONE MORE" über ihm.</sub></td>
+<td><sub><strong>Rot</strong> = unblockbar. Parieren hilft nicht: wegdashen oder drüberspringen.</sub></td>
+</tr>
+</table>
 
 * **Weißes Aufblitzen** = parierbarer Angriff → im richtigen Moment **K** drücken.
   Perfekte Parade: kein Schaden, +1 Qi, und viel **Haltungsschaden** auf der gelben Leiste.
@@ -62,7 +117,18 @@ Heilen belegt, sonst würde eine Leiter dauernd Heiltränke auslösen.
 **Qi** (max. 3, goldene Sechsecke): +1 pro perfekter Parade und pro Kill. Ausgeben kannst du es für
 die **Hinrichtung (I)**, den **Qi Blast (I ohne Ziel)** oder **Heilen (H)**.
 
-### Seelen: Asche, Tod und Leveln
+<p align="center">
+  <img src="docs/img/10_guardbreak.jpg" width="760" alt="GUARD BROKEN – der Boss ist drei Sekunden wehrlos">
+</p>
+<p align="center"><sub>Gelbe Leiste voll → <strong>GUARD BROKEN</strong>. Drei Sekunden Fenster, doppelter Schaden, dann <code>I</code>.</sub></p>
+
+---
+
+## Seelen: Asche, Tod und Leveln
+
+<p align="center">
+  <img src="docs/img/04_shrine.jpg" width="820" alt="Schrein: rasten, leveln, Asche">
+</p>
 
 Das Spiel ist soulslike aufgebaut:
 
@@ -82,7 +148,20 @@ Das Spiel ist soulslike aufgebaut:
   | **EDGE** | +6 % Schwertschaden |
   | **FOCUS** | +1 maximales Qi (höchstens +2) |
 
-### Der Endboss: die zweite Form
+---
+
+## Der Endboss: die zweite Form
+
+<table>
+<tr>
+<td width="50%"><img src="docs/img/07_warden.jpg" alt="THE FORSAKEN WARDEN – Keeper of the Sealed Gate"></td>
+<td width="50%"><img src="docs/img/08_transform.jpg" alt="Zwischensequenz bei 55 % Leben"></td>
+</tr>
+<tr>
+<td><sub><strong>Phase 1</strong> — der Wärter vor dem Tor, das er hundert Jahre gehalten hat.</sub></td>
+<td><sub><em>„You still hold the blade… the way I taught you."</em> — bei 55 % Leben kippt der Kampf.</sub></td>
+</tr>
+</table>
 
 Bei 55 % Leben spielt eine **rund 20-sekündige Zwischensequenz** (mit jeder Taste überspringbar):
 der Warden geht zu Boden, die Leiste leert sich, die Musik verstummt — und die Asche in ihm nimmt
@@ -97,7 +176,14 @@ wieder auf, glimmt fortan in Glut und Nachbildern, und bekommt zwei neue Angriff
   gar nicht pariert **drei Viertel deiner gesamten Lebensleiste**. Der Moment zum Parieren ist,
   wenn die Sonne in sich zusammenfällt.
 
-### Schwierigkeitsgrade
+<p align="center">
+  <img src="docs/img/09_solar.jpg" width="820" alt="SOLAR COLLAPSE – die Explosion füllt die ganze Arena">
+</p>
+<p align="center"><sub><strong>SOLAR COLLAPSE.</strong> Es gibt kein Weglaufen — nur den einen Moment, in dem die Sonne kollabiert.</sub></p>
+
+---
+
+## Schwierigkeitsgrade
 
 Im Titelmenü umschaltbar (wird gespeichert):
 
@@ -109,6 +195,13 @@ Im Titelmenü umschaltbar (wird gespeichert):
 | Heilung | 40 HP | 30 HP |
 
 Außerdem im Menü: Musik- und Soundlautstärke, Screen-Shake an/aus.
+
+<p align="center">
+  <img src="docs/img/11_victory.jpg" width="820" alt="SOL VANQUISHED – Auswertung des Laufs">
+</p>
+<p align="center"><sub>Der Lauf wird ausgewertet: Zeit, Paraden, Tode, erlittener Schaden.</sub></p>
+
+---
 
 ## Projektaufbau
 
@@ -124,6 +217,7 @@ nine_sols/
 ├─ Tools/               SPEC.md + alle Skripte (siehe unten)
 ├─ AudioRaw/            unbearbeitete ElevenLabs-Ausgaben + sfx_map.txt
 ├─ Screenshots/         Autopilot-Aufnahmen
+├─ docs/img/            die Bilder in dieser README
 └─ Builds/Windows/      der gebaute Player
 ```
 
@@ -146,10 +240,16 @@ Schärpe und Umhang.
 Der Autopilot (`-autopilot`) ersetzt die Eingabe durch einen Bot, der pariert, dashed, das Level
 durchquert, am Schrein levelt und den Boss besiegt. Am Ende schreibt er eine Zeile
 `AUTOPILOT RESULT: reachedGate=… bossDefeated=… exceptions=…` — der schnellste Regressionstest.
-Nützliche Flags: `-skipTitle -startLevel works|stair|boss` springt direkt in einen Abschnitt,
-`-bossPhase 2` lässt den Warden-Kampf sofort mit der Verwandlung beginnen (`Builds/AnimReview/AshUnbound.bat`),
-`-victoryHold <sek>` legt fest, wie lange der Bot nach dem Sieg noch mitläuft (für den Abspann),
-`-mute` schaltet den Ton ab (bei automatischen Läufen immer gesetzt).
+**Sämtliche Bilder in dieser README stammen aus solchen Autopilot-Läufen.**
+
+Nützliche Flags:
+
+| Flag | Wirkung |
+|---|---|
+| `-skipTitle -startLevel works\|stair\|boss` | direkt in einen Abschnitt springen |
+| `-bossPhase 2` | den Warden-Kampf sofort mit der Verwandlung beginnen (`Builds/AnimReview/AshUnbound.bat`) |
+| `-victoryHold <sek>` | wie lange der Bot nach dem Sieg noch mitläuft (für den Abspann) |
+| `-mute` | Ton aus (bei automatischen Läufen immer gesetzt) |
 
 ## Bekannte Eigenheiten der Umgebung
 
@@ -158,5 +258,3 @@ Nützliche Flags: `-skipTitle -startLevel works|stair|boss` springt direkt in ei
   Build automatisch.
 * Die Paketextraktion schlägt gelegentlich mit `EPERM` fehl; die Skripte wiederholen es automatisch.
 * `GUI/Text Shader` darf **nie** in „Always Included Shaders" — das bricht den Player-Build.
-#   2 D - S e k i r o - N i n e - S o l s - C l o n e  
- 
