@@ -9,7 +9,8 @@ namespace AshenSol.Boss
     /// <summary>Owns the boss encounter: entry trigger, intro cinematic, music, reset on player death, victory hooks.</summary>
     public class BossArenaDirector : MonoBehaviour
     {
-        public static BossArenaDirector Create(Rect arenaBounds, Vector2 bossSpawn, Gate entranceGate, Transform parent)
+        public static BossArenaDirector Create(Rect arenaBounds, Vector2 bossSpawn, Gate entranceGate, Transform parent,
+                                               BossKind kind = BossKind.Warden)
         {
             var go = new GameObject("BossArenaDirector");
             go.layer = Layers.Trigger;
@@ -21,12 +22,25 @@ namespace AshenSol.Boss
             var d = go.AddComponent<BossArenaDirector>();
             d.arena = arenaBounds;
             d.gate = entranceGate;
-            d.Boss = BossController.Create(bossSpawn, parent);
+            if (kind == BossKind.Artisan)
+            {
+                var artisan = ArtisanController.Create(bossSpawn, parent);
+                artisan.SetArena(arenaBounds);
+                d.Boss = artisan;
+                d.BossEnemy = artisan;
+            }
+            else
+            {
+                var warden = BossController.Create(bossSpawn, parent);
+                d.Boss = warden;
+                d.BossEnemy = warden;
+            }
             d.Boss.Defeated += d.OnDefeated;
             return d;
         }
 
-        public BossController Boss { get; private set; }
+        public IBossFight Boss { get; private set; }
+        public AshenSol.Enemies.EnemyBase BossEnemy { get; private set; }
         public bool IntroPlayed { get; private set; }
         public bool FightActive { get; private set; }
 
@@ -76,11 +90,11 @@ namespace AshenSol.Boss
             Services.Vfx.ChromaticPulse(0.5f, 0.6f);
             yield return new WaitForSecondsRealtime(0.8f);
 
-            Services.Ui.ShowNameCard(BossController.BossName, BossController.BossSubtitle, 3f);
-            Services.Ui.ShowBossBar(BossController.BossName, BossController.BossSubtitle);
-            Services.Audio.PlayMusic("music_boss", 1f);
+            Services.Ui.ShowNameCard(Boss.BossName, Boss.BossSubtitle, 3f);
+            Services.Ui.ShowBossBar(Boss.BossName, Boss.BossSubtitle);
+            Services.Audio.PlayMusic(Boss.FightMusic, 1f);
             Services.Audio.SetMusicDuck(1f, 0.5f);
-            GameEvents.RaiseBossFightStarted(BossController.BossName, BossController.BossSubtitle);
+            GameEvents.RaiseBossFightStarted(Boss.BossName, Boss.BossSubtitle);
             yield return new WaitForSecondsRealtime(1.3f);
 
             Services.Cam.ReleaseFocus(0.8f);

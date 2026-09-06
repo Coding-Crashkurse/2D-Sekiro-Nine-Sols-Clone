@@ -863,6 +863,39 @@ def prop_lattice():
     img = over(img, grad_fill(m, (40, 48, 62), (18, 22, 32)), rim(m, mix(BONE, STONE, 0.4), -1, 1, 90))
     return noise(img, 6, seed=22)
 
+
+def prop_vent():
+    w, h = 72, 36
+    img = canvas(w, h)
+    m = mask_new(w, h)
+    poly(m, [(4, 36), (10, 8), (62, 8), (68, 36)])
+    img = over(img, glow(m, TEAL, 7, 0.35), grad_fill(m, (52, 62, 74), (20, 26, 36)),
+               rim(m, mix(BONE, TEAL, 0.3), -1.4, 1.4, 150))
+    for i in range(5):
+        x = 12 + i * 11
+        img = blob(img, (x, 11, x + 7, 32), (8, 12, 18), 255, kind="rrect", radius=2)
+        img = stroke(img, [(x + 3.5, 13), (x + 3.5, 30)], TEAL, 1.6, 230, glow_color=TEAL, glow_r=3.5, glow_s=0.9)
+    img = stroke(img, [(4, 34.5), (68, 34.5)], mix(BONE, TEAL, 0.4), 1.2, 190)
+    return noise(img, 5, seed=61)
+
+
+def prop_climb():
+    w, h = 48, 100
+    img = canvas(w, h)
+    # two chains with rungs between them: tileable vertically
+    m = mask_new(w, h)
+    rect(m, (9, 0, 14, h))
+    rect(m, (34, 0, 39, h))
+    for y in range(6, h, 20):
+        rect(m, (12, y, 36, y + 5))
+    img = over(img, grad_fill(m, (62, 70, 84), (24, 30, 40)), rim(m, mix(BONE, STONE, 0.5), -1.2, 1.2, 130))
+    for y in range(6, h, 20):
+        img = stroke(img, [(13, y + 2.5), (35, y + 2.5)], mix(BONE, TEAL, 0.2), 1.0, 120)
+    for y in range(0, h, 25):
+        img = blob(img, (10, y + 2, 13, y + 5), TEALD, 150, glow_color=TEAL, glow_r=2.5, glow_s=0.3)
+    return noise(img, 6, seed=62)
+
+
 # ================================================================ BACKGROUNDS
 def vgradient(w, h, stops):
     """stops: list of (t, color)."""
@@ -1388,6 +1421,8 @@ def main():
     save(prop_chain(), 20, 300, "prop_chain")
     save(prop_wall_panel(), 100, 100, "prop_wall_panel")
     save(prop_lattice(), 100, 100, "prop_lattice")
+    save(prop_vent(), 72, 36, "prop_vent")
+    save(prop_climb(), 48, 100, "prop_climb")
 
     print("[gen] backgrounds")
     save(bg_sky(), 1024, 1024, "bg_sky")

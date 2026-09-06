@@ -53,6 +53,12 @@ namespace AshenSol.Player
         public const float HealChannel = 0.55f;
         public const int HealAmount = 35;
 
+        // traversal
+        public const float ClimbSpeed = 5.5f;
+        public const float ClimbJumpX = 7f;
+        public const float UpdraftMax = 15f;
+        public const float LaunchRefreshDash = 1f;
+
         public const float FootstepInterval = 0.28f;
         public const float LandSoundFallSpeed = 6f;
         public const float SafeRecordInterval = 0.2f;

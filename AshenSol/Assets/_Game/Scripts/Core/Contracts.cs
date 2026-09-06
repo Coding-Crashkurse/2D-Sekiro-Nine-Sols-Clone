@@ -10,8 +10,8 @@ namespace AshenSol.Core
     public enum Team { Player = 0, Enemy = 1 }
     public enum AttackKind { Parryable = 0, Unblockable = 1 }
     public enum HitOutcome { Ignored = 0, Dodged = 1, Parried = 2, Blocked = 3, Hit = 4 }
-    public enum GameState { Boot = 0, Title = 1, Level1 = 2, BossArena = 3, Victory = 4, Intro = 5 }
-    public enum LevelId { None = 0, Level1 = 1, BossArena = 2 }
+    public enum GameState { Boot = 0, Title = 1, Level1 = 2, BossArena = 3, Victory = 4, Intro = 5, Works = 6 }
+    public enum LevelId { None = 0, Level1 = 1, Works = 2, BossArena = 3 }
     public enum EnemyType { Grunt = 0, SpearSentinel = 1, WatcherDrone = 2, Boss = 100 }
 
     /// <summary>Describes one attack instance delivered to an IDamageable.</summary>

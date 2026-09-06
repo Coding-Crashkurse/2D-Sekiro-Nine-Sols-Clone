@@ -30,6 +30,9 @@ VOICE_ORDER = ["intro_1", "intro_2", "intro_3", "intro_4", "intro_5"]
 # music files are generated in this order (see the compose_music calls)
 MUSIC_ORDER = ["music_title", "music_level1", "music_boss", "music_victory"]
 
+# folder in AudioRaw/ -> Resources name
+EXTRA_MUSIC = [("music_intro", "music_intro"), ("music_works", "music_works"), ("music_artisan", "music_artisan")]
+
 # these keep their silence/tails: they loop or are meant to breathe
 NO_TRIM = {"ambience_wind", "ambience_arena", "drone_hover"}
 
@@ -91,11 +94,14 @@ def main():
         gain = convert(os.path.join(RAW_MUSIC, f), dst, -1.5, trim=False)
         print(f"  music {MUSIC_ORDER[i]:22} {gain:+6.1f} dB   <- {f}")
 
-    # the intro underscore lives in its own folder so it cannot shift the MUSIC_ORDER mapping
-    intro = sorted(f for f in os.listdir(RAW_INTRO_MUSIC) if f.endswith(".mp3")) if os.path.isdir(RAW_INTRO_MUSIC) else []
-    if intro:
-        gain = convert(os.path.join(RAW_INTRO_MUSIC, intro[-1]), os.path.join(OUT_MUSIC, "music_intro.mp3"), -1.5, trim=False)
-        print("  music %-22s %+6.1f dB   <- %s" % ("music_intro", gain, intro[-1]))
+    # extra tracks each live in their own folder so they cannot shift the MUSIC_ORDER mapping
+    for folder, target in EXTRA_MUSIC:
+        d = os.path.join(ROOT, "AudioRaw", folder)
+        files = sorted(f for f in os.listdir(d) if f.endswith(".mp3")) if os.path.isdir(d) else []
+        if not files:
+            continue
+        gain = convert(os.path.join(d, files[-1]), os.path.join(OUT_MUSIC, target + ".mp3"), -1.5, trim=False)
+        print("  music %-22s %+6.1f dB   <- %s" % (target, gain, files[-1]))
 
     # narration is mapped explicitly: ElevenLabs names files after the first words, so neither
     # alphabetical nor generation order matches the script

@@ -161,6 +161,7 @@ namespace AshenSol.Core
                     if (confirmCd <= 0f) { input.Confirm(); confirmCd = 1f; }
                     break;
                 case GameState.Level1:
+                case GameState.Works:
                 case GameState.BossArena:
                     if (flow.DeathScreenShowing)
                     {
@@ -267,6 +268,27 @@ namespace AshenSol.Core
 
             // out of combat: top up health while it is safe
             if (p.Hp < 60 && p.Qi > 0 && p.IsGrounded && healCd <= 0f) { brainState = "heal"; input.Heal(); healCd = 3f; return; }
+
+            // climbing beats everything else: hold up until we top out
+            if (p.IsClimbing)
+            {
+                brainState = "climb";
+                input.Vertical = 1f;
+                return;
+            }
+            if (p.ClimbAvailable && p.Position.y < p.ClimbTop - 1.6f)
+            {
+                brainState = "grab-climb";
+                input.Vertical = 1f;
+                return;
+            }
+            // inside a qi vent: ride it and drift toward the next ledge
+            if (p.InUpdraft)
+            {
+                brainState = "updraft";
+                input.Horizontal = 1f;
+                return;
+            }
 
             // traverse: walk right, jump over gaps / walls / spikes
             brainState = "traverse";

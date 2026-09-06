@@ -7,7 +7,7 @@ namespace AshenSol.Player
     /// <summary>Procedural puppet: joint pivots + sprites, posed every frame from the controller state.</summary>
     public class PlayerRig
     {
-        enum Pose { None, Idle, Run, Jump, Fall, Dash, Parry, ParrySuccess, Hurt, Heal, QiBlast }
+        enum Pose { None, Idle, Run, Jump, Fall, Dash, Parry, ParrySuccess, Hurt, Heal, QiBlast, Climb }
 
         public SpriteRenderer[] Renderers { get; private set; }
         public Transform Root { get; private set; }
@@ -201,6 +201,7 @@ namespace AshenSol.Player
             Pose pose;
             if (c.IsDead) pose = Pose.Idle;
             else if (forced != Pose.None) pose = forced;
+            else if (c.IsClimbing) pose = Pose.Climb;
             else if (c.IsDashing) pose = Pose.Dash;
             else if (!grounded) pose = v.y > 0.5f ? Pose.Jump : Pose.Fall;
             else if (Mathf.Abs(v.x) > 0.6f && c.HorizontalInput != 0f) pose = Pose.Run;
@@ -255,6 +256,12 @@ namespace AshenSol.Player
                 case Pose.Heal:
                     tTorso = -12f; tLegF = 62f; tLegB = -74f; tTorsoY = -0.28f; tArmF = 42f; tArmB = 30f; tBlade = -175f; tHead = 10f;
                     rate = 14f;
+                    break;
+                case Pose.Climb:
+                    // hanging on the wall: arms up, legs tucked, sword held close
+                    tArmF = 150f; tArmB = 120f; tLegF = 30f; tLegB = -22f; tTorso = 4f; tBlade = -30f; tHead = -6f;
+                    tBob = Mathf.Sin(t * 5f) * 0.03f;
+                    rate = 16f;
                     break;
                 case Pose.QiBlast:
                     tTorso = -12f; tArmF = 88f; tArmB = 82f; tBlade = -95f; tLegF = 24f; tLegB = -18f; tHead = -6f;

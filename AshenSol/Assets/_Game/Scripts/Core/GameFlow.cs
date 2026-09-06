@@ -23,7 +23,7 @@ namespace AshenSol.Core
         public bool Busy { get { return busy; } }
         public bool DeathScreenShowing { get { return deathScreenShowing; } }
         public PlayerController Player { get { return player; } }
-        public bool InLevel { get { return State == GameState.Level1 || State == GameState.BossArena; } }
+        public bool InLevel { get { return State == GameState.Level1 || State == GameState.Works || State == GameState.BossArena; } }
 
         PlayerController player;
         bool busy, deathScreenShowing, victoryPending;
@@ -60,7 +60,7 @@ namespace AshenSol.Core
             {
                 string lvl = (CmdArgs.Get("-startLevel", "level1") ?? "level1").ToLowerInvariant();
                 Stats = new GameStats();
-                LoadLevel(lvl == "boss" ? LevelId.BossArena : LevelId.Level1);
+                LoadLevel(lvl == "boss" ? LevelId.BossArena : lvl == "works" ? LevelId.Works : LevelId.Level1);
             }
             else GoToTitle();
         }
@@ -184,7 +184,9 @@ namespace AshenSol.Core
             LevelInfo info = null;
             try
             {
-                info = id == LevelId.Level1 ? LevelBuilder.BuildLevel1(LevelRoot) : LevelBuilder.BuildBossArena(LevelRoot);
+                info = id == LevelId.Level1 ? LevelBuilder.BuildLevel1(LevelRoot)
+                     : id == LevelId.Works ? LevelBuilder.BuildWorks(LevelRoot)
+                     : LevelBuilder.BuildBossArena(LevelRoot);
             }
             catch (Exception e) { Debug.LogException(e); }
             if (info == null)
@@ -213,7 +215,9 @@ namespace AshenSol.Core
             Services.Ui.HideBossBar();
 
             if (info.ExitGate != null) info.ExitGate.PlayerEntered += OnGateEntered;
-            SetState(id == LevelId.Level1 ? GameState.Level1 : GameState.BossArena);
+            SetState(id == LevelId.Level1 ? GameState.Level1
+                   : id == LevelId.Works ? GameState.Works
+                   : GameState.BossArena);
             GameEvents.RaiseLevelBuilt(id);
             yield return null;
             Services.Ui.Fade(0f, 0.9f);
@@ -244,10 +248,14 @@ namespace AshenSol.Core
 
         void OnGateEntered()
         {
-            if (busy || State != GameState.Level1) return;
+            if (busy || !InLevel) return;
+            LevelId next = State == GameState.Level1 ? LevelId.Works
+                         : State == GameState.Works ? LevelId.BossArena
+                         : LevelId.None;
+            if (next == LevelId.None) return;
             Services.Audio.PlaySfx("level_start");
-            GameEvents.RaiseLog("gate entered -> boss arena");
-            LoadLevel(LevelId.BossArena);
+            GameEvents.RaiseLog("gate entered -> " + next);
+            LoadLevel(next);
         }
 
         // ---------------- Death / respawn ----------------

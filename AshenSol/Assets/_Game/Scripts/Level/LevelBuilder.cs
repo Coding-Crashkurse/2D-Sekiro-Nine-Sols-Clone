@@ -135,6 +135,132 @@ namespace AshenSol.Level
             return e;
         }
 
+        // ==================================================================
+        //  LEVEL II — THE ASCENDING WORKS
+        //  The traversal level: movers, qi vents and climbing chains carry you up through the forge,
+        //  and THE SEVENTH ARTISAN holds the top deck.
+        // ==================================================================
+        public static LevelInfo BuildWorks(Transform root)
+        {
+            var info = new LevelInfo
+            {
+                Id = LevelId.Works, Title = "THE ASCENDING WORKS", Subtitle = "Level II",
+                Bounds = new Rect(0f, -14f, 146f, 60f), PlayerSpawn = new Vector2(3f, 0.05f),
+                MusicTrack = "music_works", Ambience = "ambience_arena",
+                AmbientColor = new Color(1f, 0.85f, 0.72f), AmbientIntensity = 0.5f
+            };
+            var geo = new GameObject("Geometry").transform; geo.SetParent(root, false);
+            var deco = new GameObject("Decor").transform; deco.SetParent(root, false);
+            var bg = new GameObject("Background").transform; bg.SetParent(root, false);
+            var ens = new GameObject("Enemies").transform; ens.SetParent(root, false);
+
+            LevelDecor.ParallaxStack(bg, "bg_sky", "bg_far", "bg_mid", "bg_near", 0f,
+                new Color(0.75f, 0.52f, 0.45f), new Color(0.58f, 0.42f, 0.42f), new Color(0.5f, 0.4f, 0.44f));
+
+            GeometryBuilder.Wall(new Rect(-1f, -14f, 1f, 60f), geo);
+            GeometryBuilder.Wall(new Rect(146f, -14f, 1f, 60f), geo);
+            GeometryBuilder.KillZone(new Rect(0f, -18f, 146f, 4f), geo);
+
+            // ---------- floor 0 ----------
+            GeometryBuilder.Ground(new Rect(0f, -12f, 18f, 12f), geo);            // start, top 0
+            // a 12 unit chasm: no jump and no dash clears this, the mover is the only way over
+            GeometryBuilder.Ground(new Rect(30f, -12f, 14f, 12f), geo);            // top 0, holds the vent
+
+            // ---------- floor 8: casting ledges ----------
+            GeometryBuilder.Ground(new Rect(46f, -12f, 12f, 20f), geo);            // top 8
+            // the tower: its left face is the climb
+            GeometryBuilder.Ground(new Rect(58f, -12f, 6f, 32f), geo);             // top 20
+
+            // ---------- floor 20: the gallery ----------
+            GeometryBuilder.Ground(new Rect(64f, -12f, 16f, 32f), geo);            // top 20
+
+            // ---------- floor 28: the forge deck ----------
+            GeometryBuilder.Ground(new Rect(86f, -12f, 60f, 40f), geo);            // top 28
+
+            GeometryBuilder.Platform(33f, 4.5f, 3.5f, geo);
+            GeometryBuilder.Platform(50f, 12.5f, 3f, geo);
+            GeometryBuilder.Platform(70f, 24f, 3.5f, geo);
+            GeometryBuilder.Platform(104f, 32.5f, 4f, geo);
+            GeometryBuilder.Platform(122f, 32.5f, 4f, geo);
+
+            // ---------- traversal ----------
+            // 1. the long chasm: ride it or fall
+            MovingPlatform.Create(new Vector2(19.5f, 0.6f), new Vector2(28.5f, 0.6f), 3.2f, 3f, geo, 0.6f);
+            // 2. a vent column from floor 0 up to the casting ledge
+            QiVent.Create(new Vector2(42f, 0f), 2.6f, 13f, QiVent.Mode.Column, geo, 13f);
+            // 3. the chains up the tower wall — 12 units, far past any jump
+            ClimbSurface.Create(new Vector2(57.4f, 8f), 12.2f, geo, 1.1f);
+            // 4. a launch pad for the optional high platform
+            QiVent.Create(new Vector2(54f, 8f), 2.2f, 1.8f, QiVent.Mode.Pad, geo, 18f);
+            // 5. the lift to the deck: 8 units of height, nothing else reaches it
+            MovingPlatform.Create(new Vector2(82.5f, 21f), new Vector2(82.5f, 29f), 3.2f, 2.6f, geo, 1.2f);
+            // 6. deck mobility for the boss fight
+            QiVent.Create(new Vector2(95f, 28f), 2.6f, 8f, QiVent.Mode.Column, geo, 12f);
+
+            // ---------- checkpoints ----------
+            var w0 = Checkpoint.Create(new Vector2(1.6f, 0f), "W0", root);
+            var w1 = Checkpoint.Create(new Vector2(47f, 8f), "W1", root);
+            var w2 = Checkpoint.Create(new Vector2(65.5f, 20f), "W2", root);
+            var w3 = Checkpoint.Create(new Vector2(88f, 28f), "W3", root);
+            info.Checkpoints.Add(w0); info.Checkpoints.Add(w1); info.Checkpoints.Add(w2); info.Checkpoints.Add(w3);
+            w0.Activate(true);
+
+            TutorialSign.Create(new Vector2(8f, 0f), "The works still run.\nRide what moves.", root);
+            TutorialSign.Create(new Vector2(39f, 0f), "Qi vents lift you —\nand refill your air dash.", root);
+            TutorialSign.Create(new Vector2(52f, 8f), "W  climbs the chains\nSPACE  kicks off them", root);
+
+            // ---------- enemies ----------
+            var y1 = EncounterZone.Create("W-A", new Rect(4f, 0f, 14f, 8f), root);
+            y1.Add(Spawn(info, EnemyType.Grunt, new Vector2(13f, 0.1f), ens));
+            var y2 = EncounterZone.Create("W-B", new Rect(30f, 0f, 14f, 10f), root);
+            y2.Add(Spawn(info, EnemyType.Grunt, new Vector2(36f, 0.1f), ens));
+            y2.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(40f, 3.4f), ens));
+            var y3 = EncounterZone.Create("W-C", new Rect(46f, 8f, 12f, 10f), root);
+            y3.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(53f, 8.1f), ens));
+            var y4 = EncounterZone.Create("W-D", new Rect(64f, 20f, 16f, 10f), root);
+            y4.Add(Spawn(info, EnemyType.Grunt, new Vector2(70f, 20.1f), ens));
+            y4.Add(Spawn(info, EnemyType.WatcherDrone, new Vector2(75f, 23.3f), ens));
+            var y5 = EncounterZone.Create("W-E", new Rect(88f, 28f, 22f, 10f), root);
+            y5.Add(Spawn(info, EnemyType.SpearSentinel, new Vector2(99f, 28.1f), ens));
+            y5.Add(Spawn(info, EnemyType.Grunt, new Vector2(106f, 28.1f), ens));
+            info.Zones.Add(y1); info.Zones.Add(y2); info.Zones.Add(y3); info.Zones.Add(y4); info.Zones.Add(y5);
+
+            // ---------- the forge arena ----------
+            var entrance = Gate.Create(new Vector2(112f, 28f), root, true);
+            Vector2 artisanSpawn = new Vector2(128f, 34f);
+            info.Arena = BossArenaDirector.Create(new Rect(114f, 28f, 28f, 14f), artisanSpawn, entrance, root, BossKind.Artisan);
+            info.Enemies.Add(info.Arena.BossEnemy);
+
+            // the exit exists from the start so the flow can subscribe; the Artisan holds the key
+            var exit = Gate.Create(new Vector2(143f, 28f), root, false);
+            exit.SealedPrompt = "The forge still burns.";
+            info.ExitGate = exit;
+            info.Arena.Boss.Defeated += () =>
+            {
+                exit.Open();
+                Services.Ui.ShowPrompt("The forge falls silent. The way up is open.", 3f);
+                GameEvents.RaiseGateOpened();
+            };
+
+            // ---------- decor ----------
+            foreach (var v in new[] { new Vector2(5f, 0f), new Vector2(34f, 0f), new Vector2(48f, 8f),
+                                      new Vector2(66f, 20f), new Vector2(77f, 20f), new Vector2(92f, 28f), new Vector2(110f, 28f) })
+                LevelDecor.Lantern(v + new Vector2(0f, 2.6f), deco, Palette.Amber, 1.1f);
+            foreach (var v in new[] { new Vector2(2f, 0f), new Vector2(31f, 0f), new Vector2(47f, 8f),
+                                      new Vector2(66f, 20f), new Vector2(90f, 28f), new Vector2(118f, 28f), new Vector2(144f, 28f) })
+                LevelDecor.Pillar(v, false, deco);
+            foreach (var x in new[] { 22f, 26f, 45f, 62f, 84f, 100f, 116f, 134f })
+                LevelDecor.Chain(new Vector2(x, 48f), 14f, deco);
+            LevelDecor.WallPanel(new Rect(0f, 0f, 18f, 12f), deco, "prop_wall_panel", 0.7f);
+            LevelDecor.WallPanel(new Rect(64f, 20f, 16f, 14f), deco, "prop_wall_panel", 0.6f);
+            LevelDecor.WallPanel(new Rect(96f, 28f, 46f, 14f), deco, "prop_lattice", 0.5f);
+            LevelDecor.Statue(new Vector2(102f, 28f), deco);
+            VfxManager.CreateAmbientEmbers(new Rect(0f, -2f, 146f, 48f), Palette.Amber, 24f, deco);
+            VfxManager.CreateMist(new Rect(0f, -2f, 146f, 10f), new Color(1f, 0.8f, 0.68f), 24, deco);
+
+            return info;
+        }
+
         // ------------------------------------------------------------------
         public static LevelInfo BuildBossArena(Transform root)
         {
@@ -166,7 +292,7 @@ namespace AshenSol.Level
             var gate = Gate.Create(new Vector2(11.5f, 0f), root, true);
             Vector2 bossSpawn = new Vector2(37f, 0.05f);
             info.Arena = BossArenaDirector.Create(new Rect(12f, 0f, 35f, 12f), bossSpawn, gate, root);
-            info.Enemies.Add(info.Arena.Boss);
+            info.Enemies.Add(info.Arena.BossEnemy);
 
             // decor: sanctum
             foreach (var x in new[] { 3f, 8f, 14f, 22f, 30f, 38f, 45f }) LevelDecor.Lantern(new Vector2(x, 2.6f), deco, Palette.Red, 0.9f);

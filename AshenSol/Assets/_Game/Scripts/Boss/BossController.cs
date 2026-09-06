@@ -9,10 +9,20 @@ using AshenSol.Player;
 namespace AshenSol.Boss
 {
     /// <summary>THE FORSAKEN WARDEN — two-phase glaive boss. Attack coroutines are picked by weighted, distance-gated selection.</summary>
-    public class BossController : EnemyBase
+    public class BossController : EnemyBase, IBossFight
     {
-        public const string BossName = "THE FORSAKEN WARDEN";
-        public const string BossSubtitle = "Keeper of the Sealed Gate";
+        public const string WardenName = "THE FORSAKEN WARDEN";
+        public const string WardenSubtitle = "Keeper of the Sealed Gate";
+        public const string SecondFormName = "ASH UNBOUND";
+        public const string SecondFormSubtitle = "What the Ninth Sun Left Behind";
+
+        // kept for the UI and the intro, which refer to the first form by name
+        public const string BossName = WardenName;
+        public const string BossSubtitle = WardenSubtitle;
+
+        public string FightMusic { get { return "music_boss"; } }
+        string IBossFight.BossName { get { return WardenName; } }
+        string IBossFight.BossSubtitle { get { return WardenSubtitle; } }
 
         public static BossController Create(Vector2 pos, Transform parent)
         {
@@ -109,7 +119,15 @@ namespace AshenSol.Boss
             lastAttack = "";
             if (cape != null) { cape.Reset(); cape.SetVisible(true); }
             if (core != null) { core.enabled = true; coreLight.enabled = true; }
-            if (Rig != null) Rig.SetPose(true, 25f, 180f, -14f); // kneeling guardian before the fight
+            transform.localScale = Vector3.one;
+            if (Rig != null)
+            {
+                foreach (var r in Renderers) if (r != null) r.color = Color.white;
+                Rig.Cfg.LightColor = Palette.Red;
+                Rig.Cfg.LightIntensity = 0.9f;
+                if (cape != null) cape.Wind = 0.12f;
+                Rig.SetPose(true, 25f, 180f, -14f); // kneeling guardian before the fight
+            }
             GroundShockwave.ClearAll();
             GameEvents.RaiseBossHealthChanged(1f, 0f, false);
         }
@@ -347,6 +365,9 @@ namespace AshenSol.Boss
             Move(0f);
         }
 
+        /// <summary>The second form, played as a kill that does not take: the bar empties and hides, the
+        /// Warden goes down, and then the ash inside him takes the body back under a new name with a
+        /// fresh bar. Unscaled time throughout so the slow-motion does not stretch the beats.</summary>
         IEnumerator PhaseTransition()
         {
             phasePending = false;
@@ -356,22 +377,84 @@ namespace AshenSol.Boss
             CurrentAttack = "Phase";
             invulnerable = true;
             Move(0f);
-            Rig.SetPose(true, -95f, 180f, -12f);
+            Body.linearVelocity = Vector2.zero;
+            GroundShockwave.ClearAll();
+            AshenSol.Enemies.Projectile.ClearAll();
+
+            // --- 1. the killing blow that does not land
+            TimeController.Instance.SlowMo(0.25f, 1.6f);
+            Services.Cam.Shake(0.7f);
+            HitStop.Request(0.12f);
+            Services.Audio.PlaySfxAt("boss_stagger", Center, 1f);
+            Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.4f), 0.35f);
+            Services.Vfx.FlashLight(Center, Color.white, 4f, 9f, 0.5f);
+            Rig.SetPose(true, 35f, 180f, -24f);          // down on one knee
+            Rig.Flash(Color.white, 0.5f);
+            Services.Audio.SetMusicDuck(0.15f, 0.8f);
+            yield return new WaitForSecondsRealtime(1.1f);
+
+            // --- 2. the bar drains and the fight looks over
+            Services.Ui.UpdateBossBar(0f, 0f, false);
+            Services.Ui.HideBossBar();
+            Services.Audio.StopMusic(1.2f);
+            for (int i = 0; i < 3; i++)
+            {
+                Services.Vfx.Embers(Center, 10, Palette.Bone);
+                yield return new WaitForSecondsRealtime(0.4f);
+            }
+
+            // --- 3. the ash refuses
+            Services.Audio.PlaySfxAt("posture_break", Center, 1f);
+            Services.Vfx.ChromaticPulse(1f, 0.8f);
+            Services.Cam.Shake(0.5f);
+            Rig.Flash(Palette.Red, 0.8f);
+            if (core != null) core.color = Color.white;
+            yield return new WaitForSecondsRealtime(0.7f);
+
+            Rig.SetPose(false);
+            Rig.Punch(0.82f, 1.28f);
+            Services.Audio.PlaySfxAt("boss_roar", Center, 1f);
             Services.Audio.PlaySfxAt("boss_phase2", Center, 1f);
-            Services.Audio.PlaySfxAt("boss_roar", Center, 0.8f);
-            Rig.Flash(Palette.Red, 0.6f);
-            Services.Vfx.FlashLight(Center, Palette.Red, 4f, 9f, 0.8f);
-            Services.Vfx.Shockwave(transform.position, 6f, Palette.Red);
-            Services.Vfx.Embers(Center, 50, Palette.Red);
-            Services.Cam.Shake(0.8f);
-            Services.Vfx.ChromaticPulse(0.8f, 0.6f);
+            Services.Vfx.Shockwave(transform.position, 9f, Palette.Red);
+            Services.Vfx.ScreenFlash(Palette.Red.WithAlpha(0.5f), 0.5f);
+            Services.Vfx.FlashLight(Center, Palette.Red, 6f, 12f, 1f);
+            Services.Vfx.Embers(Center, 70, Palette.Red);
+            Services.Cam.Shake(1f);
+            Services.Cam.Kick(Vector2.up, 0.4f);
+            TimeController.Instance.SlowMo(0.3f, 1.2f);
+
+            // --- 4. second form: bigger, hotter, and renamed
+            ApplySecondForm();
+            Services.Ui.ShowNameCard(SecondFormName, SecondFormSubtitle, 2.6f);
+            yield return new WaitForSecondsRealtime(1.3f);
+            Services.Ui.ShowBossBar(SecondFormName, SecondFormSubtitle);
+            Services.Audio.PlayMusic("music_boss", 0.6f);
+            Services.Audio.SetMusicDuck(1f, 0.6f);
+            GameEvents.RaiseLog("warden second form: " + SecondFormName);
+            OnHealthChanged();
+
             float t = 0f;
-            while (t < 2f) { t += Time.deltaTime; if (Mathf.Repeat(t, 0.4f) < Time.deltaTime) Rig.Flash(Palette.Red, 0.3f); yield return null; }
+            while (t < 0.9f) { t += Time.unscaledDeltaTime; yield return null; }
+
             teleMul = BossTuning.Phase2TelegraphMul;
             invulnerable = false;
-            Rig.SetPose(false);
             GameEvents.RaiseBossPhaseChanged(2);
             CurrentAttack = "";
+        }
+
+        /// <summary>Ash-lit second form: hotter palette, brighter core, slightly larger silhouette.</summary>
+        void ApplySecondForm()
+        {
+            var hot = new Color(1f, 0.62f, 0.55f);
+            foreach (var r in Renderers) if (r != null) r.color = hot;
+            if (core != null) core.color = Palette.Red;
+            if (coreLight != null) { coreLight.intensity = 2.6f; coreLight.pointLightOuterRadius = 4.5f; }
+            if (Rig.Light != null) { Rig.Light.color = Palette.Red; Rig.Light.intensity = 2f; Rig.Light.pointLightOuterRadius = 5f; }
+            Rig.Cfg.LightColor = Palette.Red;
+            Rig.Cfg.LightIntensity = 1.8f;
+            transform.localScale = Vector3.one * 1.08f;
+            if (cape != null) cape.Wind = 0.3f;
+            Services.Vfx.Embers(Center, 30, Palette.Red);
         }
 
         IEnumerator TripleSlash()

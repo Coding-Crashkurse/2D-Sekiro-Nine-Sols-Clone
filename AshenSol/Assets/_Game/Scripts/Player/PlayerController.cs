@@ -58,6 +58,13 @@ namespace AshenSol.Player
         public bool IsStunned { get { return stunTimer > 0f; } }
         public bool ControlEnabled { get; private set; } = true;
         public bool HazardRecovering { get { return hazardRecovering; } }
+        /// <summary>Clinging to a climb surface (gravity off, W/S move vertically).</summary>
+        public bool IsClimbing { get; private set; }
+        /// <summary>Standing in a qi vent's updraft column this frame.</summary>
+        public bool InUpdraft { get { return updraftTimer > 0f; } }
+        public bool ClimbAvailable { get { return climbSurface != null; } }
+        /// <summary>Top of the climb surface the player is currently touching (-999 when none).</summary>
+        public float ClimbTop { get { return climbSurface != null ? climbSurface.Top : -999f; } }
         public Vector2 Position { get { return transform.position; } }
         public Vector2 Center { get { return (Vector2)transform.position + new Vector2(0f, 0.85f); } }
         public Vector2 Velocity { get { return Body != null ? Body.linearVelocity : Vector2.zero; } }
@@ -81,6 +88,8 @@ namespace AshenSol.Player
         bool airDashUsed, jumpCut, wasGrounded, groundIsSolid, hazardRecovering;
         float lastVy;
         int flickerFrame;
+        AshenSol.Level.ClimbSurface climbSurface;
+        float updraftTimer, updraftLift, updraftAccel, climbCooldown;
 
         void Awake()
         {
@@ -116,6 +125,7 @@ namespace AshenSol.Player
             coyote = jumpBuffer = stunTimer = dashTimer = dashCooldown = dropThroughTimer = 0f;
             invulnTimer = PlayerTuning.SpawnInvuln;
             airDashUsed = false; jumpCut = false; hazardRecovering = false;
+            IsClimbing = false; climbSurface = null; updraftTimer = 0f; climbCooldown = 0f;
             transform.position = pos;
             LastSafeGroundPosition = pos;
             if (Body != null) { Body.simulated = true; Body.linearVelocity = Vector2.zero; Body.gravityScale = 1f; }
@@ -177,6 +187,58 @@ namespace AshenSol.Player
             invulnTimer = Mathf.Max(invulnTimer, 1f);
             ControlEnabled = hadControl;
             hazardRecovering = false;
+        }
+
+        /// <summary>Sustained lift from a qi vent column. Called every frame the player is inside it.</summary>
+        public void ApplyUpdraft(float lift, float accel)
+        {
+            if (IsDead || IsDashing) return;
+            updraftTimer = 0.08f;
+            updraftLift = lift;
+            updraftAccel = accel;
+            airDashUsed = false;                 // vents refresh the air dash so they chain
+            if (IsClimbing) StopClimb();
+        }
+
+        /// <summary>One-shot launch from a boost pad.</summary>
+        public void Launch(float speed)
+        {
+            if (IsDead) return;
+            if (IsClimbing) StopClimb();
+            Body.linearVelocity = new Vector2(Body.linearVelocity.x, speed);
+            airDashUsed = false;
+            jumpCut = true;                      // a launch is not a jump: do not cut it short
+            LastJumpTime = -10f;
+            Rig.Stretch();
+            Services.Vfx.DustPuff(Position, 1.3f);
+        }
+
+        /// <summary>A climb surface reports that the player is inside it.</summary>
+        public void OfferClimb(AshenSol.Level.ClimbSurface surface) { climbSurface = surface; }
+
+        public void LeaveClimb(AshenSol.Level.ClimbSurface surface)
+        {
+            if (climbSurface == surface) climbSurface = null;
+            if (IsClimbing) StopClimb();
+        }
+
+        void StartClimb()
+        {
+            if (IsClimbing || climbSurface == null) return;
+            IsClimbing = true;
+            Combat.CancelAll();
+            Body.gravityScale = 0f;
+            Body.linearVelocity = Vector2.zero;
+            airDashUsed = false;
+            Services.Vfx.DustPuff(Position, 0.5f);
+        }
+
+        void StopClimb()
+        {
+            if (!IsClimbing) return;
+            IsClimbing = false;
+            Body.gravityScale = 1f;
+            climbCooldown = 0.15f;
         }
 
         public void Heal(int amount)
@@ -330,6 +392,8 @@ namespace AshenSol.Player
             if (dashCooldown > 0f) dashCooldown -= dt;
             if (coyote > 0f) coyote -= dt;
             if (jumpBuffer > 0f) jumpBuffer -= dt;
+            if (climbCooldown > 0f) climbCooldown -= dt;
+            if (updraftTimer > 0f) updraftTimer -= dt;
             if (dropThroughTimer > 0f)
             {
                 dropThroughTimer -= dt;
@@ -339,6 +403,12 @@ namespace AshenSol.Player
             var inp = Services.Input;
             bool paused = TimeController.Instance != null && TimeController.Instance.IsPaused;
             bool canAct = ControlEnabled && !IsStunned && !hazardRecovering && !paused && inp != null;
+
+            // grab a climb surface by pushing up (or down, when stepping off a ledge onto it)
+            if (canAct && climbSurface != null && !IsClimbing && !IsDashing && climbCooldown <= 0f
+                && Mathf.Abs(inp.Vertical) > 0.5f && !InUpdraft)
+                StartClimb();
+            if (IsClimbing && (climbSurface == null || IsDead || IsDashing)) StopClimb();
             HorizontalInput = canAct ? inp.Horizontal : 0f;
             if (Mathf.Abs(HorizontalInput) < 0.2f) HorizontalInput = 0f;
             if (Combat.LocksMovement && IsGrounded) HorizontalInput = 0f;
@@ -353,8 +423,36 @@ namespace AshenSol.Player
                 Combat.Tick(dt);
             }
 
+            // climbing: W/S move, jump kicks off the wall
+            if (IsClimbing)
+            {
+                if (canAct && inp.JumpPressed)
+                {
+                    StopClimb();
+                    float away = climbSurface != null && climbSurface.transform.position.x > Position.x ? -1f : 1f;
+                    Body.linearVelocity = new Vector2(away * PlayerTuning.ClimbJumpX, PlayerTuning.JumpVelocity * 0.85f);
+                    Facing = away > 0f ? 1 : -1;
+                    jumpBuffer = 0f;
+                    LastJumpTime = Time.time;
+                    Services.Audio.PlaySfx("jump", 0.8f);
+                    Rig.Stretch();
+                }
+                else if (canAct && climbSurface != null)
+                {
+                    float v = inp.Vertical;
+                    Body.linearVelocity = new Vector2(0f, v * PlayerTuning.ClimbSpeed);
+                    // let go at the top so the player steps onto the ledge
+                    if (v > 0.3f && Position.y >= climbSurface.Top - 0.4f)
+                    {
+                        StopClimb();
+                        Body.linearVelocity = new Vector2(Facing * 3f, PlayerTuning.JumpVelocity * 0.55f);
+                    }
+                    if (v < -0.3f && IsGrounded) StopClimb();
+                }
+            }
+
             // jump (buffered + coyote)
-            if (canAct && jumpBuffer > 0f && (IsGrounded || coyote > 0f) && !IsDashing && !Combat.BlocksJump)
+            if (canAct && !IsClimbing && jumpBuffer > 0f && (IsGrounded || coyote > 0f) && !IsDashing && !Combat.BlocksJump)
             {
                 if (inp.Vertical < -0.5f && IsGrounded && !groundIsSolid)
                 {
@@ -462,6 +560,14 @@ namespace AshenSol.Player
             if (IsGrounded && !grounded) coyote = PlayerTuning.CoyoteTime;
             IsGrounded = grounded;
 
+            if (IsClimbing)
+            {
+                Body.gravityScale = 0f;
+                lastVy = 0f;
+                wasGrounded = grounded;
+                return;                       // Update drives the climb velocity directly
+            }
+
             if (IsDashing)
             {
                 dashTimer -= dt;
@@ -485,6 +591,14 @@ namespace AshenSol.Player
                     }
                 }
                 if (v.y < -PlayerTuning.MaxFallSpeed) v.y = -PlayerTuning.MaxFallSpeed;
+
+                // qi vent column: accelerate up to the vent's rise speed while inside it
+                if (updraftTimer > 0f)
+                {
+                    Body.gravityScale = 0f;
+                    v.y = Mathf.MoveTowards(v.y, updraftLift, updraftAccel * dt);
+                    if (v.y > PlayerTuning.UpdraftMax) v.y = PlayerTuning.UpdraftMax;
+                }
             }
             Body.linearVelocity = v;
             lastVy = v.y;
