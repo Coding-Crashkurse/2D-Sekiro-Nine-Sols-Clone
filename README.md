@@ -24,9 +24,9 @@ Fertiger Build: **`Builds/Windows/AshenSol.exe`** — einfach doppelklicken.
 | Springen | Leertaste / W | **A** | Kreuz |
 | Angreifen | J / Linksklick | **R1** | R1 |
 | **Aufgeladene Attacke** | U | **R2** | R2 |
-| **Parieren** | K / Rechtsklick | **B** | Kreis |
+| **Parieren** | K / Rechtsklick | **LB** | L1 |
 | Dash | L / Shift | **X** | Quadrat |
-| Qi-Blast / **Hinrichtung** | I | **LB** | L1 |
+| Qi-Blast / **Hinrichtung** | I | **LT** | L2 |
 | Heilen | H | **D-Pad ↑** | D-Pad ↑ |
 | **Am Schrein rasten** / Zwischensequenz überspringen | E / F | **Y** | Dreieck |
 | Pause | Esc | Start | Options |
@@ -77,9 +77,9 @@ Das Spiel ist soulslike aufgebaut:
 
   | | Wirkung |
   |---|---|
-  | **VIGOR** | +20 maximale Leben (heilt sofort mit) |
-  | **EDGE** | +12 % Schwertschaden |
-  | **FOCUS** | +1 maximales Qi (höchstens +3) |
+  | **VIGOR** | +10 maximale Leben (heilt sofort mit) |
+  | **EDGE** | +6 % Schwertschaden |
+  | **FOCUS** | +1 maximales Qi (höchstens +2) |
 
 ### Der Endboss: die zweite Form
 

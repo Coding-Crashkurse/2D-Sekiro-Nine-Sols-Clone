@@ -86,6 +86,17 @@ namespace AshenSol.UI
         }
 
         /// <summary>Inserts thin spaces between characters for a letter-spaced heading look.</summary>
+        /// <summary>Size a background image so it covers the whole canvas, keeping its 16:9 aspect —
+        /// the fixed sizes left black bars down the sides of an ultrawide screen.</summary>
+        public static void Cover(Image img, RectTransform canvas)
+        {
+            if (img == null || canvas == null) return;
+            float w = canvas.rect.width, h = canvas.rect.height;
+            if (w < 1f || h < 1f) return;
+            float scale = Mathf.Max(w / 1920f, h / 1080f) * 1.02f;   // a hair over, so no seam shows
+            img.rectTransform.sizeDelta = new Vector2(1920f * scale, 1080f * scale);
+        }
+
         public static string Spaced(string s, int spaces = 1)
         {
             var sb = new System.Text.StringBuilder();

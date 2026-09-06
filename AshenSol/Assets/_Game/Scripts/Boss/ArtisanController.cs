@@ -193,7 +193,19 @@ namespace AshenSol.Boss
             bladesPosed = false;
             hammerL.color = hammerR.color = BladeRest;
             bladeTrailL.emitting = bladeTrailR.emitting = false;
-            if (clearTrails) { bladeTrailL.Clear(); bladeTrailR.Clear(); }
+            if (clearTrails)
+            {
+                bladeTrailL.Clear(); bladeTrailR.Clear();
+                bladeTrailL.enabled = bladeTrailR.enabled = false;
+            }
+        }
+
+        void StartBladeTrails(bool left, bool right)
+        {
+            if (left) { bladeTrailL.Clear(); bladeTrailL.enabled = true; }
+            if (right) { bladeTrailR.Clear(); bladeTrailR.enabled = true; }
+            bladeTrailL.emitting = left;
+            bladeTrailR.emitting = right;
         }
 
         protected override void OnReset()
@@ -459,8 +471,7 @@ namespace AshenSol.Boss
                 yield return WindUpBlades(windup, ArtisanTuning.StrikeTelegraph * teleMul * Settings.TelegraphMul, Color.white);
                 EndTelegraph();
                 bool swingRight = (i == 0) == (Facing > 0);
-                bladeTrailL.emitting = i == 2 || !swingRight;
-                bladeTrailR.emitting = i == 2 || swingRight;
+                StartBladeTrails(i == 2 || !swingRight, i == 2 || swingRight);
                 Rig.Punch(1.2f, 0.82f);
                 Services.Audio.PlaySfxAt("boss_swing", Center, 0.95f, 0.08f);
                 Services.Vfx.SlashArc(Center + new Vector2(Facing * 1.4f, -0.4f), i % 2 == 0 ? -25f : 30f, Facing < 0, Palette.Amber, 2f);
@@ -541,7 +552,7 @@ namespace AshenSol.Boss
 
             // drop
             float y = transform.position.y;
-            bladeTrailL.emitting = bladeTrailR.emitting = true;
+            StartBladeTrails(true, true);
             while (transform.position.y > arena.yMin + 1.1f)
             {
                 transform.position += Vector3.down * ArtisanTuning.DropSpeed * Time.deltaTime;

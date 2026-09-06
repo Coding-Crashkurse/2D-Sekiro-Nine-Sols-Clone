@@ -82,10 +82,10 @@ namespace AshenSol.Core
             JumpHeld = Held(k?.spaceKey) || Held(k?.wKey) || Held(k?.upArrowKey) || Held(g?.buttonSouth);
             AttackPressed = Down(k?.jKey) || Down(m?.leftButton) || Down(g?.rightShoulder);
             HeavyPressed = Down(k?.uKey) || Down(g?.rightTrigger);
-            ParryPressed = Down(k?.kKey) || Down(m?.rightButton) || Down(g?.buttonEast);
-            ParryHeld = Held(k?.kKey) || Held(m?.rightButton) || Held(g?.buttonEast);
+            ParryPressed = Down(k?.kKey) || Down(m?.rightButton) || Down(g?.leftShoulder);
+            ParryHeld = Held(k?.kKey) || Held(m?.rightButton) || Held(g?.leftShoulder);
             DashPressed = Down(k?.lKey) || Down(k?.leftShiftKey) || Down(g?.buttonWest);
-            QiBlastPressed = Down(k?.iKey) || Down(g?.leftShoulder);
+            QiBlastPressed = Down(k?.iKey) || Down(g?.leftTrigger);
             HealPressed = Down(k?.hKey) || Down(g?.dpad.up);
             InteractPressed = Down(k?.eKey) || Down(k?.fKey) || Down(g?.buttonNorth);
             PausePressed = Down(k?.escapeKey) || Down(g?.startButton);

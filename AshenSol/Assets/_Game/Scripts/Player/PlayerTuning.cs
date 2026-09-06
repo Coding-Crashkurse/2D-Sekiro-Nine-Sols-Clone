@@ -48,7 +48,7 @@ namespace AshenSol.Player
         public const float ExecuteRangeY = 2.2f;
         public const float ExecuteDuration = 0.55f;
 
-        public const float QiBlastDuration = 0.35f;
+        public const float QiBlastDuration = 0.52f;   // longer: the motes are drawn in before it goes
         public const float QiBlastRadius = 3.2f;
         public const int QiBlastDamage = 12;
         public const float QiBlastKnockback = 6f;

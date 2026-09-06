@@ -24,7 +24,7 @@ namespace AshenSol.UI
         Image fadeImg; Coroutine fadeCo;
         // screens
         CanvasGroup titleGroup, deathGroup, victoryGroup, pauseGroup;
-        Text titlePress, deathPress, victoryPress, victoryStats; Image titleLogo, titleGlow; TitleMenu titleMenu;
+        Text titlePress, deathPress, victoryPress, victoryStats; Image titleLogo, titleGlow, titleSky; TitleMenu titleMenu;
         Action titleCb, deathCb, victoryCb; bool titleShown, deathShown, victoryShown, pausedShown; float screenArmTime;
         Text victoryLines; Text pauseDifficulty;
         // cutscene furniture
@@ -158,7 +158,8 @@ namespace AshenSol.UI
             var rt = UiKit.Panel(rootRt, "Title", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             titleGroup = UiKit.Group(rt);
             var bg = UiKit.Fill(rt, "bg", Palette.Ink.WithAlpha(0.3f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
-            var skyImg = UiKit.Image(rt, "sky", Res.Sprite("bg_title"), Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2240f, 1260f), false);
+            titleSky = UiKit.Image(rt, "sky", Res.Sprite("bg_title"), Color.white, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2240f, 1260f), false);
+            var skyImg = titleSky;
             skyImg.transform.SetAsFirstSibling();
             skyImg.preserveAspect = false;
             bg.transform.SetSiblingIndex(1);
@@ -477,6 +478,7 @@ namespace AshenSol.UI
             titleCb = onStart; titleShown = true; screenArmTime = Time.unscaledTime + 0.8f;
             titleGroup.gameObject.SetActive(true);
             titleGroup.alpha = 0f;
+            UiKit.Cover(titleSky, rootRt);
             titleMenu.SetVisible(true);
             titleMenu.OnStart = () =>
             {

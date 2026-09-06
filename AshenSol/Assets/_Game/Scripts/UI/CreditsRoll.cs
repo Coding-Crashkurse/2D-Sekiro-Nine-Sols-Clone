@@ -30,12 +30,16 @@ namespace AshenSol.UI
             new Line(Style.Name, "Markus Lang"),
             new Line(Style.Role, "Lead Engineer"),
             new Line(Style.Name, "Claude Code"),
+            new Line(Style.Role, "Test Engineer"),
+            new Line(Style.Name, "Sibylle Piechaczek"),
             new Line(Style.Gap, "0.6"),
 
             new Line(Style.Role, "Design & Direction"),
             new Line(Style.Name, "Markus Lang"),
             new Line(Style.Role, "Programming, Art & Animation"),
             new Line(Style.Name, "Claude Code"),
+            new Line(Style.Role, "Testing & Quality"),
+            new Line(Style.Name, "Sibylle Piechaczek"),
             new Line(Style.Role, "Music, Voice & Sound Design"),
             new Line(Style.Name, "ElevenLabs"),
             new Line(Style.Role, "Voice of the Warden"),
@@ -66,9 +70,10 @@ namespace AshenSol.UI
         readonly RectTransform root, content;
         readonly CanvasGroup group;
         readonly Image glow;
+        Image valley;
         readonly Text skipHint;
 
-        float startY, endY, elapsed, armTime;
+        float startY, endY, elapsed, armTime, total, lastLineY;
         bool running, finishing;
         Action onDone;
 
@@ -78,10 +83,11 @@ namespace AshenSol.UI
         {
             root = UiKit.Panel(parent, "Credits", Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
             group = UiKit.Group(root);
-            UiKit.Fill(root, "black", Palette.Ink, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+            UiKit.Fill(root, "black", new Color(Palette.Ink.r, Palette.Ink.g, Palette.Ink.b, 1f),
+                Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
 
             // the valley you came through, sunk back into the night
-            var valley = UiKit.Image(root, "valley", Res.Sprite("bg_title"), new Color(0.34f, 0.32f, 0.36f, 1f),
+            valley = UiKit.Image(root, "valley", Res.Sprite("bg_title"), new Color(0.34f, 0.32f, 0.36f, 1f),
                 new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(2240f, 1260f), false);
             valley.preserveAspect = false;
             UiKit.Fill(root, "veil", Palette.Ink.WithAlpha(0.55f), Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
@@ -107,27 +113,24 @@ namespace AshenSol.UI
                             new Vector2(0.5f, 1f), new Vector2(0f, -cursor - 60f), new Vector2(420f, 1f), false);
                         cursor += 150f;
                         continue;
-                    case Style.Title: h = 150f; size = 92; color = Palette.Gold; break;
+                    case Style.Title: h = 150f; size = 80; color = Palette.Gold; break;
                     case Style.Tagline: h = 90f; size = 26; color = Palette.Bone.WithAlpha(0.55f); break;
                     case Style.Role: h = 54f; size = 24; color = Palette.Bone.WithAlpha(0.45f); break;
                     case Style.Name: h = 92f; size = 40; color = Palette.Bone; break;
                     case Style.Cast: h = 60f; size = 25; color = Palette.Bone.WithAlpha(0.72f); break;
-                    default: h = 170f; size = 66; color = Palette.Gold; break;
+                    default: h = 170f; size = 60; color = Palette.Gold; break;
                 }
-                if (entry.Style == Style.Title || entry.Style == Style.End) text = UiKit.Spaced(text, 8);
-                else if (entry.Style == Style.Role) text = UiKit.Spaced(text, 2);
+                if (entry.Style == Style.Title || entry.Style == Style.End) text = UiKit.Spaced(text, 2);
+                else if (entry.Style == Style.Role) text = UiKit.Spaced(text, 1);
                 lastLine = cursor + h * 0.5f;
                 UiKit.Text(content, "line", text, size, color, new Vector2(0.5f, 1f),
                     new Vector2(0f, -cursor), new Vector2(1500f, h));
                 cursor += h;
             }
 
-            float total = cursor;
+            total = cursor; lastLineY = lastLine;
             content.sizeDelta = new Vector2(1500f, total);
-
-            float screenH = parent.rect.height > 1f ? parent.rect.height : 1080f;
-            startY = -total;                                  // the whole roll parked below the screen
-            endY = screenH * 0.5f - total + lastLine;         // last line resting on the centre line
+            Measure();
             content.anchoredPosition = new Vector2(0f, startY);
 
             skipHint = UiKit.Text(root, "skip", UiKit.Spaced("PRESS ANY KEY TO SKIP"), 17,
@@ -138,8 +141,18 @@ namespace AshenSol.UI
             root.gameObject.SetActive(false);
         }
 
+        /// <summary>Recompute the travel against the live canvas — it is only laid out once shown.</summary>
+        void Measure()
+        {
+            float screenH = root.rect.height > 1f ? root.rect.height : 1080f;
+            startY = -total;                                  // the whole roll parked below the screen
+            endY = screenH * 0.5f - total + lastLineY;        // last line resting on the centre line
+        }
+
         public void Play(Action done)
         {
+            Measure();
+            UiKit.Cover(valley, root);
             if (running) return;
             running = true; finishing = false; elapsed = 0f;
             onDone = done;

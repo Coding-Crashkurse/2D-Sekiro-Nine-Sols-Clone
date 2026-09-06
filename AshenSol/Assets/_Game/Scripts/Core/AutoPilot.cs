@@ -26,6 +26,7 @@ namespace AshenSol.Core
 
         float attackCd, parryCd, dashCd, qiCd, healCd, confirmCd, interactCd;
         int swings;   // every fourth swing is the charged one, so the move stays covered by runs
+        BossController warden;   // cached when the fight starts, for the Solar Collapse rule
         float stuckTime; float lastX;
         // forward-progress watchdog: jumping at a wall keeps the bot ungrounded, so the grounded
         // stuck check never fires. Watch the furthest x instead and fall back to the nearest vent.
@@ -107,11 +108,17 @@ namespace AshenSol.Core
         void OnLevelBuilt(LevelId id)
         {
             Log("level built " + id);
-            bestX = -999f; noProgress = 0f; ventUntil = 0f;
+            bestX = -999f; noProgress = 0f; ventUntil = 0f; warden = null;
             if (id == LevelId.BossArena) reachedGate = true;
             ScheduleShot("level_" + id, 2.5f);
         }
-        void OnBossStarted(string n, string s) { bossStarted = true; Log("boss fight started: " + n); ScheduleShot("boss_intro", 1.6f); }
+        void OnBossStarted(string n, string s)
+        {
+            bossStarted = true;
+            warden = UnityEngine.Object.FindFirstObjectByType<BossController>();
+            Log("boss fight started: " + n);
+            ScheduleShot("boss_intro", 1.6f);
+        }
         void OnBossPhase(int p) { Log("boss phase " + p); ScheduleShot("boss_phase" + p, 0.8f); }
         void OnBossDefeated()
         {
@@ -280,6 +287,15 @@ namespace AshenSol.Core
             if (threat != null && parryCd <= 0f) { brainState = "parry-bolt"; input.Parry(); parryCd = 0.45f; return; }
 
             if (GroundShockwave.AnyApproaching(p.Center, 1.9f) && p.IsGrounded) { brainState = "jump-wave"; DoJump(); return; }
+
+            // SOLAR COLLAPSE: the telegraph ends before the front arrives, so the ordinary
+            // telegraph rule never fires. Keep tapping parry while the wave is out there.
+            if (warden != null && warden.IsAlive && warden.CurrentAttack == "Solar")
+            {
+                brainState = "parry-solar";
+                if (parryCd <= 0f) { input.Parry(); parryCd = 0.24f; }
+                return;
+            }
 
             // nearest enemy within engagement box
             EnemyBase target = null; float best = 999f;

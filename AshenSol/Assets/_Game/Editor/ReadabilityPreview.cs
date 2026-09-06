@@ -18,7 +18,7 @@ namespace AshenSol.EditorTools
     public static class ReadabilityPreview
     {
         const string Pending = "AshenSol.ReadabilityPreview";
-        const string Output = "C:/Users/User/Desktop/nine_sols/Builds/Readability";
+        static readonly string Output = Path.GetFullPath(Path.Combine(Application.dataPath, "../../Builds/Readability"));
         static double deadline;
 
         static ReadabilityPreview()
@@ -58,7 +58,7 @@ namespace AshenSol.EditorTools
         static void Finish(string error)
         {
             SessionState.SetBool(Pending, false);
-            if (error == null) Debug.Log("[ReadabilityPreview] PASS: five intro panels, two non-overlapping hints, Artisan swings in both directions, drop and reset");
+            if (error == null) Debug.Log("[ReadabilityPreview] PASS: " + (CmdArgs.Has("-artisanOnly") ? "" : "five intro panels, two non-overlapping hints, ") + "Artisan swings in both directions, drop and reset");
             else Debug.LogError("[ReadabilityPreview] FAILED: " + error);
             if (Application.isBatchMode) EditorApplication.Exit(error == null ? 0 : 1);
             else EditorApplication.ExitPlaymode();
@@ -70,6 +70,8 @@ namespace AshenSol.EditorTools
             InputRouter.Instance.SetProvider(new ScriptedInput());
             var flow = GameFlow.Instance;
             while (flow.State != GameState.Title || flow.Busy) yield return null;
+            if (!CmdArgs.Has("-artisanOnly"))
+            {
             flow.StartGame();
             for (int i = 0; i < 5; i++)
             {
@@ -95,6 +97,8 @@ namespace AshenSol.EditorTools
                 Capture("tutorial-" + (i + 1));
             }
             TimeController.Instance.SetPaused(false);
+            }
+            Services.Ui.HideTitle();
             flow.LoadLevel(LevelId.Works);
             while (flow.Busy || flow.State != GameState.Works) yield return null;
             while (AshenSol.UI.UiManager.Instance.NameCardVisible) yield return null;
@@ -119,8 +123,10 @@ namespace AshenSol.EditorTools
                 bool complete = false;
                 var attack = (IEnumerator)typeof(ArtisanController).GetMethod("DescendAndStrike", fields).Invoke(boss, null);
                 boss.StartCoroutine(Track(attack, () => complete = true));
+                typeof(ArtisanController).GetField("hoverTarget", fields).SetValue(boss, new Vector2(128f, 29.5f));
                 var trails = boss.GetComponentsInChildren<TrailRenderer>();
                 while (!boss.IsTelegraphing) yield return null;
+                if (boss.Facing != (side == 0 ? 1 : -1)) throw new InvalidOperationException("Preview boss facing wrong side");
                 yield return new WaitForSeconds(ArtisanTuning.StrikeTelegraph * Settings.TelegraphMul * 0.8f);
                 Vector2 windup = (Vector2)angles.GetValue(boss);
                 Capture("artisan-" + side + "-windup");
@@ -144,8 +150,8 @@ namespace AshenSol.EditorTools
             while (!dropComplete) yield return null;
             boss.ResetFight();
             boss.StopAllCoroutines();
-            // Unity can retain one head point after Clear; a single point draws no trail.
-            if ((bool)posed.GetValue(boss) || Array.Exists(boss.GetComponentsInChildren<TrailRenderer>(), trail => trail.emitting || trail.positionCount > 1))
+            yield return null;
+            if ((bool)posed.GetValue(boss) || Array.Exists(boss.GetComponentsInChildren<TrailRenderer>(), trail => trail.emitting || trail.enabled))
                 throw new InvalidOperationException("Artisan reset retained blade effects");
         }
 

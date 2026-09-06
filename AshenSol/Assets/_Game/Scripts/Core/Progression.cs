@@ -12,9 +12,9 @@ namespace AshenSol.Core
     /// </summary>
     public static class Progression
     {
-        public const int MaxFocus = 3;          // at most +3 Qi from upgrades
-        public const int VigorHp = 20;
-        public const float EdgeDamage = 0.12f;
+        public const int MaxFocus = 2;          // at most +2 Qi from upgrades
+        public const int VigorHp = 10;
+        public const float EdgeDamage = 0.06f;
         public const int PlayerBaseHp = 100;
         public const int PlayerBaseQi = 3;
 

@@ -397,17 +397,50 @@ namespace AshenSol.Player
         {
             IsQiBlasting = true;
             c.Rig.PlayQiBlast();
-            float t = 0f;
-            while (t < 0.12f) { t += Time.deltaTime; yield return null; }
+
+            // --- gather: loose Qi is dragged in out of the air before it lets go
+            const float Gather = 0.2f;
+            float t = 0f, mote = 0f;
+            c.Rig.PulseSwordLight(3.2f, Gather);
+            Services.Audio.PlaySfx("qi_gain", 0.5f, 0.1f);
+            while (t < Gather)
+            {
+                mote -= Time.deltaTime;
+                if (mote <= 0f)
+                {
+                    mote = 0.022f;
+                    float a = UnityEngine.Random.value * Mathf.PI * 2f;
+                    float r = Mathf.Lerp(5.5f, 1.1f, t / Gather) * UnityEngine.Random.Range(0.7f, 1.15f);
+                    Vector2 at = c.Center + new Vector2(Mathf.Cos(a) * r, Mathf.Sin(a) * r * 0.75f);
+                    Services.Vfx.HitSpark(at, (c.Center - at).normalized, Palette.Teal, 0.35f + 0.35f * (t / Gather));
+                }
+                t += Time.deltaTime;
+                yield return null;
+            }
 
             Vector2 center = c.Center + new Vector2(c.Facing * 1.2f, 0f);
-            Services.Vfx.Shockwave(c.Position, PlayerTuning.QiBlastRadius, Palette.Teal);
-            Services.Vfx.FlashLight(center, Palette.Teal, 3f, 5f, 0.25f);
-            Services.Vfx.Embers(center, 24, Palette.Teal);
-            Services.Cam.Shake(0.5f);
-            HitStop.Request(0.05f);
+
+            // --- release
+            Services.Vfx.ScreenFlash(Palette.Teal.WithAlpha(0.3f), 0.28f);
+            Services.Vfx.ChromaticPulse(0.8f, 0.7f);
+            Services.Vfx.Shockwave(c.Position, PlayerTuning.QiBlastRadius, Color.white);
+            Services.Vfx.Shockwave(c.Position, PlayerTuning.QiBlastRadius * 1.5f, Palette.Teal);
+            Services.Vfx.FlashLight(center, Palette.Teal, 7f, 13f, 0.45f);
+            Services.Vfx.Embers(center, 90, Palette.Teal);
+            Services.Vfx.InkSplatter(center, Vector2.up, Palette.Teal, 22);
+            Services.Vfx.Afterimage(c.Rig.Renderers, Palette.Teal.WithAlpha(0.55f), 0.35f);
+            Services.Vfx.DustPuff(c.Position, 2.2f);
+            for (int i = 0; i < 18; i++)                       // a fan of edges thrown outward
+            {
+                float a = i / 18f * Mathf.PI * 2f;
+                Vector2 dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a) * 0.8f);
+                Services.Vfx.HitSpark(c.Center + dir * 1.3f, dir, i % 3 == 0 ? Color.white : Palette.Teal, 0.85f);
+            }
+            Services.Cam.Shake(0.75f);
+            Services.Cam.Kick(Vector2.up, 0.25f);
+            HitStop.Request(0.09f);
             Services.Audio.PlaySfx("qi_blast");
-            c.Rig.PulseSwordLight(4f, 0.3f);
+            c.Rig.PulseSwordLight(5f, 0.35f);
 
             var cols = Physics2D.OverlapCircleAll(center, PlayerTuning.QiBlastRadius, Layers.EnemyMask);
             var seen = new HashSet<IDamageable>();
@@ -425,7 +458,18 @@ namespace AshenSol.Player
             }
             GameEvents.RaiseLog("qi blast hits=" + seen.Count);
 
-            while (t < PlayerTuning.QiBlastDuration) { t += Time.deltaTime; yield return null; }
+            bool echo = false;
+            while (t < PlayerTuning.QiBlastDuration)
+            {
+                if (!echo && t > 0.32f)
+                {
+                    echo = true;
+                    Services.Vfx.Shockwave(c.Position, PlayerTuning.QiBlastRadius * 2.1f, Palette.Teal.WithAlpha(0.7f));
+                    Services.Vfx.Embers(center, 26, Palette.Teal);
+                }
+                t += Time.deltaTime;
+                yield return null;
+            }
             c.Rig.EndQiBlast();
             IsQiBlasting = false;
             qiCo = null;

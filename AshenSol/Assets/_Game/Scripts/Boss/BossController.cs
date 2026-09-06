@@ -609,21 +609,23 @@ namespace AshenSol.Boss
             Services.Vfx.FlashLight(Center, Color.white, 4f, 9f, 0.5f);
             Rig.SetPose(true, 35f, 180f, -24f);          // down on one knee
             Rig.Flash(Color.white, 0.5f);
-            Services.Audio.SetMusicDuck(0.1f, 0.8f);
+            Services.Audio.PlayMusic("music_transform", 0.5f);   // the cue builds with the scene
+            Services.Audio.SetMusicDuck(1f, 0.4f);
             yield return Cine(1.3f);
 
             // --- 2. the bar drains and the fight looks over
             Services.Ui.UpdateBossBar(0f, 0f, false);
             Services.Ui.HideBossBar();
-            Services.Audio.StopMusic(1.0f);
             Services.Vfx.Embers(Center, 14, Palette.Bone);
             yield return Cine(1.1f);
 
             // --- 3. he recognises the forms, not the student
+            Services.Audio.SetMusicDuck(0.4f, 0.4f);
             float l1 = Services.Audio.PlayVoice("warden_1", 1f);
             Services.Ui.ShowSubtitle("\u201cYou still hold the blade\u2026 the way I taught you.\u201d");
             yield return Cine(Mathf.Max(l1, 3.5f) + 0.5f);
             Services.Ui.ShowSubtitle(null);
+            Services.Audio.SetMusicDuck(1f, 0.5f);
 
             // --- 4. the ash refuses to be finished
             Services.Audio.PlaySfxAt("posture_break", Center, 1f);
@@ -642,7 +644,9 @@ namespace AshenSol.Boss
                 if (Mathf.Repeat(g * 2.2f, 0.28f) < Time.unscaledDeltaTime)
                 {
                     Services.Vfx.HitSpark(Center + new Vector2(0f, 2.4f), Vector2.up, Palette.Red, 1.1f);
-                    Services.Cam.Shake(0.14f);
+                    Services.Cam.Shake(0.14f + 0.3f * g);
+                    Services.Vfx.Embers(Center + new Vector2(UnityEngine.Random.Range(-3f, 3f), 0f), 8, Palette.Red);
+                    Services.Vfx.ChromaticPulse(0.35f * g, 0.25f);
                     Services.Audio.PlaySfxAt("enemy_telegraph_red", Center, 0.5f, 0.2f);
                 }
                 yield return null;
@@ -656,19 +660,26 @@ namespace AshenSol.Boss
             Rig.SetPose(false);
             Rig.Punch(0.85f, 1.25f);
             ApplySecondForm();
+            Services.Audio.SetMusicDuck(0.45f, 0.3f);
             float l2 = Services.Audio.PlayVoice("warden_2", 1f);
             Services.Ui.ShowSubtitle("\u201cNow hold it\u2026 against what the sun left in me.\u201d");
             Services.Cam.SetZoom(5.4f, 1.5f);
             yield return Cine(Mathf.Max(l2, 3.5f) + 0.3f);
             Services.Ui.ShowSubtitle(null);
+            Services.Audio.SetMusicDuck(1f, 0.3f);
 
             // --- 7. the roar
             Services.Audio.PlaySfxAt("boss_roar", Center, 1f);
             Services.Audio.PlaySfxAt("boss_phase2", Center, 1f);
             Services.Vfx.Shockwave(transform.position, 10f, Palette.Red);
+            Services.Vfx.Shockwave(transform.position, 20f, Palette.Amber);
             Services.Vfx.ScreenFlash(Palette.Red.WithAlpha(0.55f), 0.6f);
-            Services.Vfx.FlashLight(Center, Palette.Red, 6f, 13f, 1f);
-            Services.Vfx.Embers(Center, 80, Palette.Red);
+            Services.Vfx.FlashLight(Center, Palette.Red, 8f, 20f, 1.2f);
+            Services.Vfx.Embers(Center, 140, Palette.Red);
+            Services.Vfx.InkSplatter(Center, Vector2.up, Palette.Red, 26);
+            Services.Vfx.ChromaticPulse(1f, 1.6f);
+            GroundShockwave.Spawn((Vector2)transform.position + new Vector2(2.5f, 0f), 1, 12f, 0, 1.6f, transform.parent);
+            GroundShockwave.Spawn((Vector2)transform.position + new Vector2(-2.5f, 0f), -1, 12f, 0, 1.6f, transform.parent);
             Services.Cam.Shake(1f);
             Services.Cam.Kick(Vector2.up, 0.4f);
             Services.Ui.ShowNameCard(SecondFormName, SecondFormSubtitle, 2.4f);
@@ -981,10 +992,9 @@ namespace AshenSol.Boss
                 Damage = dmg, Knockback = 15f, Kind = AttackKind.Parryable, PierceGuard = true,
                 Tag = "boss_solar", Origin = Center, HitPoint = pc != null ? pc.Center : Center
             };
-            StrikePlayer(info, Center, new Vector2(80f, 44f));
 
             Services.Audio.PlaySfxAt("solar_burst", Center, 1f, 0.02f);
-            Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.9f), 0.55f);
+            Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.6f), 0.4f);
             Services.Vfx.FlashLight(sunAt, Color.white, 12f, 34f, 0.9f);
             Services.Vfx.ChromaticPulse(1f, 1.4f);
             Services.Vfx.Embers(sunAt, 140, Palette.Gold);
@@ -992,25 +1002,59 @@ namespace AshenSol.Boss
             Services.Cam.Shake(1f);
             Services.Cam.Kick(Vector2.up, 0.5f);
             HitStop.Request(0.12f);
-            if (TimeController.Instance != null) TimeController.Instance.SlowMo(0.35f, 0.6f);
+            if (TimeController.Instance != null) TimeController.Instance.SlowMo(0.4f, 0.5f);
             GameEvents.RaiseLog("solar collapse (" + dmg + " dmg)");
 
-            // rings rolling out of the blast
-            for (int i = 0; i < 5; i++)
+            GroundShockwave.Spawn((Vector2)transform.position + new Vector2(2f, 0f), 1, 13f, BossTuning.ShockwaveDamage, 1.8f, transform.parent);
+            GroundShockwave.Spawn((Vector2)transform.position + new Vector2(-2f, 0f), -1, 13f, BossTuning.ShockwaveDamage, 1.8f, transform.parent);
+
+            // the front: it is drawn every frame and it takes real time to arrive, so it can be
+            // read and met. The hit lands the moment the ring touches you, not on the flash.
+            var waveGo = new GameObject("solar_wave");
+            waveGo.transform.SetParent(transform.parent, false);
+            waveGo.transform.position = sunAt;
+            var waveRing = Additive(waveGo.transform, "fx_shockwave", Color.white, SortOrder.Boss + 9, 0.4f);
+            var waveHalo = Additive(waveGo.transform, "fx_ring", Palette.Amber, SortOrder.Boss + 8, 0.4f);
+
+            bool struck = false;
+            float radius = 1.2f, edge = 0f;
+            while (radius < BossTuning.SolarWaveRadius)
             {
-                Services.Vfx.Shockwave(sunAt, 10f + i * 11f, i < 2 ? Color.white : Palette.Amber);
-                Services.Cam.Shake(0.38f - i * 0.06f);
-                yield return new WaitForSeconds(0.08f);
+                radius += BossTuning.SolarWaveSpeed * Time.deltaTime;
+                float k = Mathf.Clamp01(radius / BossTuning.SolarWaveRadius);
+                float bright = 1f - k * 0.6f;
+                waveRing.transform.localScale = Vector3.one * (radius * 0.85f);
+                waveHalo.transform.localScale = Vector3.one * (radius * 1.05f);
+                waveRing.color = Color.Lerp(Color.white, Palette.Gold, k).WithAlpha(0.95f * bright);
+                waveHalo.color = Palette.Amber.WithAlpha(0.55f * bright);
+
+                edge -= Time.deltaTime;
+                if (edge <= 0f)
+                {
+                    edge = 0.05f;
+                    float a = UnityEngine.Random.Range(0.15f, Mathf.PI - 0.15f);
+                    Vector2 dir = new Vector2(Mathf.Cos(a), Mathf.Sin(a));
+                    Services.Vfx.HitSpark(sunAt + dir * radius, dir, Palette.Gold, 0.7f * bright);
+                    Services.Vfx.FlashLight(sunAt, Palette.Amber, 3f * bright, radius * 1.2f, 0.1f);
+                }
+
+                if (!struck && pc != null && pc.IsAlive && Vector2.Distance(pc.Center, sunAt) <= radius)
+                {
+                    struck = true;
+                    info.HitPoint = pc.Center;
+                    StrikePlayer(info, pc.Center, new Vector2(2.4f, 2.8f));
+                    Services.Cam.Shake(0.55f);
+                    Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.25f), 0.15f);
+                }
+                yield return null;
             }
-            Services.Vfx.Shockwave(transform.position, 16f, Palette.Gold);
-            GroundShockwave.Spawn((Vector2)transform.position + new Vector2(2f, 0f), 1, 11f, BossTuning.ShockwaveDamage, 1.6f, transform.parent);
-            GroundShockwave.Spawn((Vector2)transform.position + new Vector2(-2f, 0f), -1, 11f, BossTuning.ShockwaveDamage, 1.6f, transform.parent);
+            Destroy(waveGo);
 
             // --- 4. it costs him: a long opening while the horns cool
             Rig.SetPose(true, 30f, 180f, -18f);
-            yield return Wait(BossTuning.SolarRecovery * 0.6f);
+            yield return Wait(BossTuning.SolarRecovery * 0.5f);
             Rig.SetPose(false);
-            yield return Wait(BossTuning.SolarRecovery * 0.4f);
+            yield return Wait(BossTuning.SolarRecovery * 0.3f);
         }
 
         /// <summary>Phase two only: he puts his head down and runs the arena with the new horns.</summary>
