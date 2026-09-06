@@ -1,0 +1,12 @@
+AshenSol/Library/
+AshenSol/Temp/
+AshenSol/Obj/
+AshenSol/Build/
+AshenSol/Builds/
+AshenSol/Logs/
+AshenSol/UserSettings/
+AshenSol/MemoryCaptures/
+AshenSol/*.csproj
+AshenSol/*.sln
+Builds/
+Tools/*.log
