@@ -110,7 +110,7 @@ namespace AshenSol.Core
         }
 
         // ---- ICameraService ----
-        public void Shake(float t) { trauma = Mathf.Clamp01(trauma + t); }
+        public void Shake(float t) { trauma = Mathf.Clamp01(trauma + t * Settings.ShakeMul); }
         public void Kick(Vector2 dir, float amount) { kick += dir.normalized * amount; }
         public void SetTarget(Transform t)
         {
@@ -144,7 +144,7 @@ namespace AshenSol.Core
         Vector2 Desired()
         {
             Vector2 tp = target != null ? (Vector2)target.position : pos;
-            Vector2 d = tp + new Vector2(lookAhead, 1.25f);
+            Vector2 d = tp + new Vector2(lookAhead, 2.0f);   // frame the play space, not the floor slab
             if (focusBlend > 0f) d = Vector2.Lerp(d, focusPos, Ease.InOutSine(focusBlend));
             return Clamp(d);
         }

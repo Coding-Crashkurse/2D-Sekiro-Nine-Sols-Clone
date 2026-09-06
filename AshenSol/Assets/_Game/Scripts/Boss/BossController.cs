@@ -38,6 +38,8 @@ namespace AshenSol.Boss
         public override string DisplayName { get { return BossName; } }
 
         float teleMul = 1f;
+        /// <summary>Phase-2 speed-up combined with the difficulty setting.</summary>
+        float Tele { get { return teleMul * Settings.TelegraphMul; } }
         bool invulnerable, phasePending, dying;
         int comboParryCount;
         float lastInternalStagger = -99f;
@@ -376,8 +378,8 @@ namespace AshenSol.Boss
             {
                 FacePlayer();
                 Move(0f);
-                BeginTelegraph(AttackKind.Parryable, BossTuning.SlashTelegraph * teleMul);
-                yield return Wait(BossTuning.SlashTelegraph * teleMul);
+                BeginTelegraph(AttackKind.Parryable, BossTuning.SlashTelegraph * Tele);
+                yield return Wait(BossTuning.SlashTelegraph * Tele);
                 EndTelegraph();
                 bool up = i == 1;
                 Rig.Strike(0.14f, up ? 85f : -125f, up ? -70f : 85f);
@@ -396,9 +398,9 @@ namespace AshenSol.Boss
             CurrentAttack = "DashSlash";
             FacePlayer();
             Move(0f);
-            BeginTelegraph(AttackKind.Parryable, BossTuning.DashTelegraph * teleMul);
+            BeginTelegraph(AttackKind.Parryable, BossTuning.DashTelegraph * Tele);
             Rig.SetPose(true, -45f, 180f, 18f);
-            yield return Wait(BossTuning.DashTelegraph * teleMul);
+            yield return Wait(BossTuning.DashTelegraph * Tele);
             EndTelegraph();
             Rig.SetPose(false);
             Services.Audio.PlaySfxAt("boss_dash", Center, 1f);
@@ -426,7 +428,7 @@ namespace AshenSol.Boss
             CurrentAttack = "Slam";
             FacePlayer();
             Move(0f);
-            float tele = BossTuning.SlamTelegraph * teleMul;
+            float tele = BossTuning.SlamTelegraph * Tele;
             BeginTelegraph(AttackKind.Unblockable, tele);
             Rig.SetPose(true, -150f, 180f, -8f);
             Body.gravityScale = 0f;
@@ -479,9 +481,9 @@ namespace AshenSol.Boss
             CurrentAttack = "Bolts";
             FacePlayer();
             Move(0f);
-            BeginTelegraph(AttackKind.Parryable, BossTuning.BoltsTelegraph * teleMul);
+            BeginTelegraph(AttackKind.Parryable, BossTuning.BoltsTelegraph * Tele);
             Rig.SetPose(true, -100f, 180f, 5f);
-            yield return Wait(BossTuning.BoltsTelegraph * teleMul);
+            yield return Wait(BossTuning.BoltsTelegraph * Tele);
             EndTelegraph();
             Rig.SetPose(false);
             Rig.Strike(0.12f, -100f, 60f);
@@ -502,8 +504,8 @@ namespace AshenSol.Boss
             CurrentAttack = "Whirl";
             FacePlayer();
             Move(0f);
-            BeginTelegraph(AttackKind.Parryable, BossTuning.WhirlTelegraph * teleMul);
-            yield return Wait(BossTuning.WhirlTelegraph * teleMul);
+            BeginTelegraph(AttackKind.Parryable, BossTuning.WhirlTelegraph * Tele);
+            yield return Wait(BossTuning.WhirlTelegraph * Tele);
             EndTelegraph();
             Services.Audio.PlaySfxAt("boss_whirl", Center, 1f);
             for (int h = 0; h < BossTuning.WhirlHits; h++)
@@ -538,9 +540,9 @@ namespace AshenSol.Boss
             CurrentAttack = "RedThrust";
             FacePlayer();
             Move(0f);
-            BeginTelegraph(AttackKind.Unblockable, BossTuning.ThrustTelegraph * teleMul);
+            BeginTelegraph(AttackKind.Unblockable, BossTuning.ThrustTelegraph * Tele);
             Rig.SetPose(true, -35f, 180f, 14f);
-            yield return Wait(BossTuning.ThrustTelegraph * teleMul);
+            yield return Wait(BossTuning.ThrustTelegraph * Tele);
             EndTelegraph();
             FacePlayer();
             Rig.SetPose(false);

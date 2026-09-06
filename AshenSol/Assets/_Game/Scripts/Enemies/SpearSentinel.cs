@@ -102,7 +102,7 @@ namespace AshenSol.Enemies
         IEnumerator Thrust()
         {
             BeginTelegraph(AttackKind.Parryable, EnemyTuning.SpearTelegraph);
-            yield return Wait(EnemyTuning.SpearTelegraph);
+            yield return Wait(EnemyTuning.SpearTelegraph * Settings.TelegraphMul);
             EndTelegraph();
             Rig.Thrust(0.12f);
             Services.Audio.PlaySfxAt("spear_thrust", Center, 0.9f);
@@ -128,7 +128,7 @@ namespace AshenSol.Enemies
         IEnumerator RedLunge()
         {
             BeginTelegraph(AttackKind.Unblockable, EnemyTuning.LungeTelegraph);
-            yield return Wait(EnemyTuning.LungeTelegraph);
+            yield return Wait(EnemyTuning.LungeTelegraph * Settings.TelegraphMul);
             EndTelegraph();
             FacePlayer();
             Rig.Thrust(0.1f);

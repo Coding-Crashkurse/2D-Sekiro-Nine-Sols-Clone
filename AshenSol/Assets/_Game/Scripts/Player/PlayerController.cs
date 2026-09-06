@@ -273,6 +273,7 @@ namespace AshenSol.Player
 
         void ApplyDamage(int damage, Vector2 away, float knockback, string tag)
         {
+            damage = Mathf.Max(1, Mathf.RoundToInt(damage * Settings.DamageTakenMul));
             Hp -= damage;
             GameEvents.RaisePlayerHealthChanged(Hp, MaxHp);
             Combat.OnHurt();

@@ -54,6 +54,8 @@ namespace AshenSol.Core
             GameEvents.BossDefeated += OnBossDefeated;
             GameEvents.StateChanged += OnState;
             Log("AutoPilot start dir=" + dir + " quitAfter=" + quitAfter);
+            ScheduleShot("title", 3.0f);
+            confirmCd = 3.6f;   // linger on the title menu so it is actually visible in the capture
         }
 
         void OnDestroy()

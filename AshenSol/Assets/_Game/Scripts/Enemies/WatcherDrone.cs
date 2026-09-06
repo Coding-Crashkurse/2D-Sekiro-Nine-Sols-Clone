@@ -77,7 +77,7 @@ namespace AshenSol.Enemies
         IEnumerator Shoot()
         {
             BeginTelegraph(AttackKind.Parryable, EnemyTuning.DroneTelegraph);
-            yield return Wait(EnemyTuning.DroneTelegraph);
+            yield return Wait(EnemyTuning.DroneTelegraph * Settings.TelegraphMul);
             EndTelegraph();
             if (!PlayerAlive) yield break;
             Vector2 dir = (Player.Center - Center).normalized;

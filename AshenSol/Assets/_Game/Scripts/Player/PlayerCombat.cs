@@ -178,7 +178,8 @@ namespace AshenSol.Player
             Services.Audio.PlaySfx("parry_ready", 0.45f, 0.1f);
 
             float t = 0f;
-            while (t < PlayerTuning.ParryPerfectWindow && !parrySuccess) { t += Time.deltaTime; yield return null; }
+            float perfectWindow = Settings.ParryPerfectWindow;
+            while (t < perfectWindow && !parrySuccess) { t += Time.deltaTime; yield return null; }
             PerfectWindow = false;
             if (!parrySuccess)
             {
@@ -292,7 +293,7 @@ namespace AshenSol.Player
             if (!healInterrupted)
             {
                 c.SpendQi(1);
-                c.Heal(PlayerTuning.HealAmount);
+                c.Heal(Settings.HealAmount);
                 Services.Vfx.Embers(c.Center, 30, Palette.Teal);
                 Services.Vfx.FlashLight(c.Center, Palette.Teal, 3f, 4f, 0.3f);
                 c.Rig.Flash(Palette.Teal.WithAlpha(0.6f), 0.2f);

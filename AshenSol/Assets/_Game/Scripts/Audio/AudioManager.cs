@@ -10,8 +10,8 @@ namespace AshenSol.Audio
         public static AudioManager Instance { get; private set; }
 
         const int SfxVoices = 12;
-        const float SfxMaster = 0.9f;
-        const float MusicMaster = 0.55f;
+        static float SfxMaster { get { return Settings.SfxVolume; } }
+        static float MusicMaster { get { return 0.62f * Settings.MusicVolume; } }
         const float LoopCrossfade = 2.5f;
 
         AudioSource[] sfx;
@@ -29,6 +29,7 @@ namespace AshenSol.Audio
         {
             Instance = this;
             Services.Audio = this;
+            Settings.Load();
             sfx = new AudioSource[SfxVoices];
             for (int i = 0; i < SfxVoices; i++) sfx[i] = MakeSource("Sfx" + i, false);
             mA = new MusicVoice { Src = MakeSource("MusicA", false) };

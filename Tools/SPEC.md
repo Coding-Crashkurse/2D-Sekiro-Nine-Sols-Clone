@@ -450,3 +450,28 @@ Runs when `-autopilot` is present. Provides a `ScriptedInput : IInputProvider` (
 2. `Tools/unity_build.ps1` → `Builds/Windows/AshenSol.exe` exists.
 3. `Tools/run_autopilot.ps1` → log shows `reachedGate=True bossStarted=True`, ideally `bossDefeated=True`, `exceptions=0`; screenshots look like the intended art direction (dark Taopunk, lights, bloom, parallax), HUD visible, no magenta/pink materials, no white placeholder squares.
 4. Human playthrough is the final judge: the game must be *fun to parry*.
+
+---
+
+## 14. Title menu & difficulty (added after the first playable build)
+
+`AshenSol.Core.Settings` (static, PlayerPrefs-backed) holds the player-facing options and derives the
+difficulty multipliers:
+
+| | DISCIPLE | SOL SLAYER |
+|---|---|---|
+| `ParryPerfectWindow` | 0.22 s | 0.14 s |
+| `DamageTakenMul` | 0.8 | 1.3 |
+| `TelegraphMul` | 1.12 | 0.9 |
+| `HealAmount` | 40 | 30 |
+
+`Settings.MusicVolume` / `SfxVolume` feed `AudioManager`'s masters, `ScreenShake` gates
+`CameraController.Shake`. Everything is saved on change.
+
+`AshenSol.UI.TitleMenu` builds the rows (START GAME / DIFFICULTY / MUSIC / SOUND / SCREEN SHAKE /
+QUIT) under the title panel and is ticked by `UiManager` while the title is visible. Navigation:
+W/S or stick to select, A/D to change a value, Enter/South to activate; the mouse takes over only
+after it actually moves (otherwise a resting cursor silently steals the selection).
+
+`GameFlow` now boots into the title unless `-skipTitle` is passed, so `-autopilot` runs exercise the
+menu too.

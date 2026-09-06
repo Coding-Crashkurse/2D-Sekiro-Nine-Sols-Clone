@@ -127,6 +127,7 @@ namespace AshenSol.Enemies
         // ---------------- telegraph / attacks ----------------
         protected void BeginTelegraph(AttackKind kind, float seconds)
         {
+            seconds *= Settings.TelegraphMul;   // difficulty: longer telegraphs are easier to read
             IsTelegraphing = true; TelegraphKind = kind;
             telegraphTimer = seconds; TimeUntilStrike = seconds;
             if (Rig != null) Rig.Telegraph(kind, seconds);

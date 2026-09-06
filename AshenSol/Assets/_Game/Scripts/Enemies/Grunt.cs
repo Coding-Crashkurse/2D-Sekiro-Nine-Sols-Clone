@@ -92,7 +92,7 @@ namespace AshenSol.Enemies
         IEnumerator Slash(float telegraph)
         {
             BeginTelegraph(AttackKind.Parryable, telegraph);
-            yield return Wait(telegraph);
+            yield return Wait(telegraph * Settings.TelegraphMul);
             EndTelegraph();
             Rig.Strike(0.12f);
             Services.Audio.PlaySfxAt("grunt_swing", Center, 0.9f);

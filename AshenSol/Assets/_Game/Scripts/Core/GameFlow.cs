@@ -32,6 +32,7 @@ namespace AshenSol.Core
         void Awake()
         {
             Instance = this;
+            Settings.Load();
             GameEvents.PlayerParried += OnParried;
             GameEvents.PlayerAttacked += OnPlayerAttacked;
             GameEvents.EnemyDamaged += OnEnemyDamaged;
@@ -55,7 +56,7 @@ namespace AshenSol.Core
         IEnumerator Boot()
         {
             yield return null;
-            if (CmdArgs.Has("-skipTitle") || CmdArgs.Has("-autopilot"))
+            if (CmdArgs.Has("-skipTitle"))
             {
                 string lvl = (CmdArgs.Get("-startLevel", "level1") ?? "level1").ToLowerInvariant();
                 Stats = new GameStats();

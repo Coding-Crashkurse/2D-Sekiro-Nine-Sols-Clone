@@ -23,9 +23,9 @@ namespace AshenSol.UI
         Image fadeImg; Coroutine fadeCo;
         // screens
         CanvasGroup titleGroup, deathGroup, victoryGroup, pauseGroup;
-        Text titlePress, deathPress, victoryPress, victoryStats; Image titleLogo, titleGlow;
+        Text titlePress, deathPress, victoryPress, victoryStats; Image titleLogo, titleGlow; TitleMenu titleMenu;
         Action titleCb, deathCb, victoryCb; bool titleShown, deathShown, victoryShown, pausedShown; float screenArmTime;
-        Text victoryLines;
+        Text victoryLines; Text pauseDifficulty;
 
         void Awake()
         {
@@ -144,15 +144,16 @@ namespace AshenSol.UI
             skyImg.preserveAspect = false;
             bg.transform.SetSiblingIndex(1);
             var c = new Vector2(0.5f, 0.5f);
-            titleGlow = UiKit.Image(rt, "glow", Res.Sprite("fx_glow"), Palette.Teal.WithAlpha(0.35f), c, new Vector2(0f, 120f), new Vector2(1300f, 700f));
+            titleGlow = UiKit.Image(rt, "glow", Res.Sprite("fx_glow"), Palette.Teal.WithAlpha(0.35f), c, new Vector2(0f, 265f), new Vector2(1300f, 640f));
             titleGlow.material = MaterialLibrary.Additive;
-            titleLogo = UiKit.Image(rt, "logo", Res.Sprite("ui_title"), Color.white, c, new Vector2(0f, 120f), new Vector2(900f, 260f));
-            titlePress = UiKit.Text(rt, "press", UiKit.Spaced("PRESS ENTER"), 26, Palette.Bone, c, new Vector2(0f, -80f), new Vector2(800f, 40f));
+            titleLogo = UiKit.Image(rt, "logo", Res.Sprite("ui_title"), Color.white, c, new Vector2(0f, 268f), new Vector2(820f, 236f));
+            titleMenu = new TitleMenu(rt, new Vector2(0f, -10f));
+            titlePress = UiKit.Text(rt, "hint", UiKit.Spaced("W / S  select      A / D  change      ENTER  confirm"), 16,
+                Palette.Bone.WithAlpha(0.42f), c, new Vector2(0f, -330f), new Vector2(1200f, 30f));
             UiKit.Text(rt, "controls",
-                "A / D  move          SPACE  jump          J  attack          K  parry\n" +
-                "L / SHIFT  dash          I  Qi Blast          H  heal          ESC  pause\n\n" +
-                "<color=#ffffff>WHITE</color> flash: parry it.        <color=#ff3a3a>RED</color> flash: dash away.        Parries fill your Qi.",
-                19, Palette.Bone.WithAlpha(0.7f), c, new Vector2(0f, -240f), new Vector2(1400f, 120f));
+                "A / D  move     SPACE  jump     J  attack     K  parry     L  dash     I  Qi Blast     H  heal\n" +
+                "<color=#ffffff>WHITE</color> flash: parry it.     <color=#ff3a3a>RED</color> flash: dash away.     Parries fill your Qi.",
+                18, Palette.Bone.WithAlpha(0.62f), c, new Vector2(0f, -392f), new Vector2(1500f, 70f));
             UiKit.Text(rt, "credit", "Ashen Sol  —  a Nine Sols-inspired prototype", 15, Palette.Bone.WithAlpha(0.35f), new Vector2(1f, 0f), new Vector2(-24f, 18f), new Vector2(700f, 24f), TextAnchor.MiddleRight);
             titleGroup.alpha = 0f;
             rt.gameObject.SetActive(false);
@@ -198,7 +199,8 @@ namespace AshenSol.UI
                 "L / SHIFT  dash          I  Qi Blast          H  heal\n\n" +
                 "Gamepad:  A jump   X attack   B parry   RB dash   Y Qi Blast   LB heal",
                 20, Palette.Bone.WithAlpha(0.75f), c, new Vector2(0f, -20f), new Vector2(1400f, 140f));
-            UiKit.Text(rt, "resume", UiKit.Spaced("ESC / START  —  RESUME"), 20, Palette.Teal, c, new Vector2(0f, -160f), new Vector2(900f, 40f));
+            pauseDifficulty = UiKit.Text(rt, "diff", "", 18, Palette.Gold.WithAlpha(0.85f), c, new Vector2(0f, -120f), new Vector2(900f, 30f));
+            UiKit.Text(rt, "resume", UiKit.Spaced("ESC / START  —  RESUME"), 20, Palette.Teal, c, new Vector2(0f, -172f), new Vector2(900f, 40f));
             pauseGroup.alpha = 0f;
             rt.gameObject.SetActive(false);
         }
@@ -271,13 +273,7 @@ namespace AshenSol.UI
                 float br = 1f + 0.02f * Mathf.Sin(Time.unscaledTime * 1.2f);
                 titleLogo.rectTransform.localScale = Vector3.one * br;
                 titleGlow.color = Palette.Teal.WithAlpha(0.28f + 0.1f * Mathf.Sin(Time.unscaledTime * 0.9f));
-                titlePress.color = Palette.Bone.WithAlpha(0.55f + 0.45f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * 2f)));
-                if (Time.unscaledTime > screenArmTime && Services.Input != null && (Services.Input.ConfirmPressed || Services.Input.AnyPressed))
-                {
-                    titleShown = false;
-                    var cb = titleCb; titleCb = null;
-                    if (cb != null) cb();
-                }
+                if (Time.unscaledTime > screenArmTime) titleMenu.Tick();
             }
             else if (titleGroup.gameObject.activeSelf)
             {
@@ -404,15 +400,23 @@ namespace AshenSol.UI
             victoryGroup.gameObject.SetActive(true);
             victoryGroup.alpha = 0f;
             int m = Mathf.FloorToInt(s.PlayTime / 60f), sec = Mathf.FloorToInt(s.PlayTime % 60f);
-            victoryStats.text = string.Format("Time  {0:D2}:{1:D2}\nParries  {2}   (perfect {3})\nDeaths  {4}\nDamage taken  {5}\nGuardians slain  {6}",
-                m, sec, s.Parries, s.PerfectParries, s.Deaths, s.DamageTaken, s.Kills);
+            victoryStats.text = string.Format("Difficulty  {7}\nTime  {0:D2}:{1:D2}\nParries  {2}   (perfect {3})\nDeaths  {4}\nDamage taken  {5}\nGuardians slain  {6}",
+                m, sec, s.Parries, s.PerfectParries, s.Deaths, s.DamageTaken, s.Kills, Settings.DifficultyName);
         }
 
         public void ShowTitle(Action onStart)
         {
-            titleCb = onStart; titleShown = true; screenArmTime = Time.unscaledTime + 1.2f;
+            titleCb = onStart; titleShown = true; screenArmTime = Time.unscaledTime + 0.8f;
             titleGroup.gameObject.SetActive(true);
             titleGroup.alpha = 0f;
+            titleMenu.SetVisible(true);
+            titleMenu.OnStart = () =>
+            {
+                if (!titleShown) return;
+                titleShown = false;
+                var cb = titleCb; titleCb = null;
+                if (cb != null) cb();
+            };
         }
 
         public void HideTitle() { titleShown = false; }
@@ -420,7 +424,11 @@ namespace AshenSol.UI
         public void SetPaused(bool paused)
         {
             pausedShown = paused;
-            if (paused) pauseGroup.gameObject.SetActive(true);
+            if (paused)
+            {
+                pauseGroup.gameObject.SetActive(true);
+                if (pauseDifficulty != null) pauseDifficulty.text = UiKit.Spaced("DIFFICULTY:  " + Settings.DifficultyName);
+            }
         }
 
         public void SetHudVisible(bool visible) { hudGroup.alpha = visible ? 1f : 0f; }
