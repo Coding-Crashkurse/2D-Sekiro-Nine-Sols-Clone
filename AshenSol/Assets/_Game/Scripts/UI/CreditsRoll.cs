@@ -6,8 +6,9 @@ using AshenSol.Core;
 namespace AshenSol.UI
 {
     /// <summary>
-    /// The end credits: a slow roll over the night valley with the credits theme under it, ending on a
-    /// card that holds for a few seconds. Any key skips. Everything runs on unscaled time.
+    /// The ending, in two stages. First the narrator closes the story over the night valley, one line
+    /// at a time; then the names roll and it holds on a card. A key press during the epilogue skips
+    /// ahead to the roll, a second one ends it. Everything runs on unscaled time.
     /// </summary>
     public class CreditsRoll
     {
@@ -64,7 +65,16 @@ namespace AshenSol.UI
             new Line(Style.Gap, "1.2"),
         };
 
-        const float RollSeconds = 56f;   // first line rising to the last line resting on the centre
+        /// <summary>Narration clips (Resources/Audio/Voice) with the caption shown under each.</summary>
+        static readonly string[] OutroClips = { "outro_1", "outro_2", "outro_3" };
+        static readonly string[] OutroText =
+        {
+            "Nine suns burned over this valley.\nWe built them ourselves — that is the part we leave out of the histories.",
+            "A gate is only a promise that someone agreed to stand in front of.\nHe kept his for a hundred years, and no one ever came to relieve him.",
+            "In the end, the student gave him the only answer he had ever asked for.\nThe ash is still falling. It will fall long after all of us.",
+        };
+
+        const float RollSeconds = 44f;   // first line rising to the last line resting on the centre
         const float HoldSeconds = 5f;    // how long THE END sits there before the fade
 
         readonly RectTransform root, content;
@@ -76,6 +86,12 @@ namespace AshenSol.UI
         float startY, endY, elapsed, armTime, total, lastLineY;
         bool running, finishing;
         Action onDone;
+
+        enum Stage { Epilogue, Roll }
+        Stage stage;
+        Text outroLabel;
+        int outroIndex;
+        float outroTimer, outroFade;
 
         public bool IsRunning { get { return running; } }
 
@@ -133,6 +149,10 @@ namespace AshenSol.UI
             Measure();
             content.anchoredPosition = new Vector2(0f, startY);
 
+            outroLabel = UiKit.Text(root, "outro", "", 30, Palette.Bone, new Vector2(0.5f, 0.5f),
+                Vector2.zero, new Vector2(1500f, 220f));
+            outroLabel.lineSpacing = 1.35f;
+
             skipHint = UiKit.Text(root, "skip", UiKit.Spaced("PRESS ANY KEY TO SKIP"), 17,
                 Palette.Bone.WithAlpha(0.3f), new Vector2(1f, 0f), new Vector2(-60f, 48f), new Vector2(460f, 30f),
                 TextAnchor.MiddleRight);
@@ -155,6 +175,9 @@ namespace AshenSol.UI
             UiKit.Cover(valley, root);
             if (running) return;
             running = true; finishing = false; elapsed = 0f;
+            stage = Stage.Epilogue;
+            outroIndex = -1; outroTimer = 1.6f; outroFade = 0f;
+            outroLabel.text = "";
             onDone = done;
             armTime = Time.unscaledTime + 1.5f;   // a key still held from the victory screen must not skip it
             content.anchoredPosition = new Vector2(0f, startY);
@@ -162,7 +185,35 @@ namespace AshenSol.UI
             root.SetAsLastSibling();
             group.alpha = 0f;
             Services.Audio.PlayMusic("music_credits", 2f);
+            Services.Audio.SetMusicDuck(0.45f, 1.5f);   // the narrator sits on top of the theme
             GameEvents.RaiseLog("credits roll");
+        }
+
+        /// <summary>One narration line at a time, each held for as long as it takes to say.</summary>
+        void TickEpilogue(float dt)
+        {
+            outroTimer -= dt;
+            float target = outroIndex >= 0 && outroTimer > 0.9f ? 1f : 0f;
+            outroFade = Mathf.MoveTowards(outroFade, target, dt * 1.6f);
+            if (outroTimer > 0f) return;
+
+            outroIndex++;
+            if (outroIndex >= OutroClips.Length) { BeginRoll(); return; }
+            float len = Services.Audio.PlayVoice(OutroClips[outroIndex], 1f);
+            GameEvents.RaiseLog("epilogue line " + (outroIndex + 1) + " (" + len.ToString("F1") + "s)");
+            outroLabel.text = OutroText[outroIndex];
+            outroTimer = Mathf.Max(len, 3f) + 1.4f;
+        }
+
+        void BeginRoll()
+        {
+            stage = Stage.Roll;
+            elapsed = 0f;
+            outroFade = 0f;
+            outroLabel.text = "";
+            Services.Audio.StopVoice();
+            Services.Audio.SetMusicDuck(1f, 1.2f);
+            content.anchoredPosition = new Vector2(0f, startY);
         }
 
         public void Tick()
@@ -175,8 +226,13 @@ namespace AshenSol.UI
                 ? Mathf.MoveTowards(group.alpha, 0f, dt * 0.8f)
                 : Mathf.MoveTowards(group.alpha, 1f, dt * 0.7f);
 
-            float k = Mathf.Clamp01(elapsed / RollSeconds);
-            content.anchoredPosition = new Vector2(0f, Mathf.Lerp(startY, endY, k));
+            if (stage == Stage.Epilogue) TickEpilogue(dt);
+            else
+            {
+                float k = Mathf.Clamp01(elapsed / RollSeconds);
+                content.anchoredPosition = new Vector2(0f, Mathf.Lerp(startY, endY, k));
+            }
+            outroLabel.color = Palette.Bone.WithAlpha(outroFade);
             glow.color = Palette.Amber.WithAlpha(0.07f + 0.05f * Mathf.Sin(Time.unscaledTime * 0.6f));
             if (skipHint != null)
                 skipHint.color = Palette.Bone.WithAlpha(finishing ? 0f : 0.3f * Mathf.Clamp01((Time.unscaledTime - armTime) * 2f));
@@ -184,13 +240,20 @@ namespace AshenSol.UI
             var inp = Services.Input;
             bool skip = !finishing && Time.unscaledTime > armTime && inp != null
                         && (inp.AnyPressed || inp.ConfirmPressed || inp.PausePressed || inp.InteractPressed);
-            if (skip)
+            if (skip && stage == Stage.Epilogue)
+            {
+                // the first press only cuts the spoken close short; the names still get their roll
+                BeginRoll();
+                armTime = Time.unscaledTime + 0.6f;
+                GameEvents.RaiseLog("epilogue skipped");
+            }
+            else if (skip)
             {
                 finishing = true;
                 Services.Audio.StopMusic(1f);
                 GameEvents.RaiseLog("credits skipped");
             }
-            else if (!finishing && elapsed >= RollSeconds + HoldSeconds)
+            else if (!finishing && stage == Stage.Roll && elapsed >= RollSeconds + HoldSeconds)
             {
                 finishing = true;
                 Services.Audio.StopMusic(2.5f);

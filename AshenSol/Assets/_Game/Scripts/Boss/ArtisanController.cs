@@ -358,7 +358,7 @@ namespace AshenSol.Boss
             CurrentAttack = "";
             if (behaviour != null) { StopCoroutine(behaviour); behaviour = null; }
             StopAllCoroutines();
-            EndTelegraph();
+            EndTelegraph(false);
             staggerTimer = 0f;
             Collider.enabled = false;
             ClearSpawned();

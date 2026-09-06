@@ -57,7 +57,8 @@ namespace AshenSol.Boss
         SashChain cape;
         SpriteRenderer core; Light2D coreLight;
         SpriteRenderer hornL, hornR; Light2D hornLight;
-        Transform sun; SpriteRenderer sunGlow, sunBody, sunRing, sunRing2; Light2D sunLight;
+        Transform sun; SpriteRenderer sunCore, sunCorona, sunBody, sunRing, sunRing2; Light2D sunLight;
+        bool solarCam;
         Transform aura; SpriteRenderer auraGlow, auraRing, auraRing2; Light2D auraLight;
         float auraAmount, auraEmber, auraTrail;
         bool solarPending; float solarCd;
@@ -128,15 +129,17 @@ namespace AshenSol.Boss
             hornLight.intensity = 0f;
             hornLight.pointLightOuterRadius = 5f;
 
-            // the sun he drags out of the horns in phase two; dormant until then
+            // the sun he drags out of the horns in phase two; dormant until then. A hard disc for the body,
+            // a soft corona, two rings and a flare, all HDR so the bloom carries them across the arena.
             var sgo = new GameObject("sun");
             sgo.transform.SetParent(transform, false);
-            sgo.transform.localPosition = new Vector3(0f, 5.8f, 0f);
+            sgo.transform.localPosition = new Vector3(0f, 5.0f, 0f);
             sun = sgo.transform;
-            sunGlow = Additive(sun, "fx_glow", Palette.Amber, SortOrder.Boss + 3, 17f);
-            sunRing2 = Additive(sun, "fx_ring", Palette.Red, SortOrder.Boss + 4, 13f);
-            sunRing = Additive(sun, "fx_ring", Palette.Gold, SortOrder.Boss + 5, 9f);
-            sunBody = Additive(sun, "fx_flare", Color.white, SortOrder.Boss + 6, 6f);
+            sunCorona = AdditiveSprite(sun, Res.Sprite("fx_glow"), Palette.Amber.Glow(1.6f), SortOrder.Boss + 2, 6.5f);
+            sunRing2 = Additive(sun, "fx_ring", Palette.Red.Glow(1.4f), SortOrder.Boss + 4, 2.4f);
+            sunRing = Additive(sun, "fx_ring", Palette.Gold.Glow(1.8f), SortOrder.Boss + 5, 1.85f);
+            sunCore = AdditiveSprite(sun, DiscSprite(), Color.white, SortOrder.Boss + 6, 0.56f);
+            sunBody = Additive(sun, "fx_flare", Color.white.Glow(1.5f), SortOrder.Boss + 7, 1.1f);
             var sl = new GameObject("sunLight");
             sl.transform.SetParent(sun, false);
             sunLight = sl.AddComponent<Light2D>();
@@ -178,16 +181,99 @@ namespace AshenSol.Boss
             return sr;
         }
 
-        /// <summary>0 = gone, 1 = a small sun burning over his head.</summary>
-        void SetSun(float grow)
+        /// <summary>0 = gone, 1 = a small sun burning over his head. heat whitens the core for the last
+        /// stretch of the charge; beat scales the body for the heartbeat.</summary>
+        void SetSun(float grow, float heat = 0f, float beat = 1f)
         {
             float g = Mathf.Clamp01(grow);
-            if (sun != null) sun.localScale = Vector3.one * (0.2f + 1.5f * g);
-            if (sunGlow != null) sunGlow.color = Palette.Amber.WithAlpha(0.8f * g);
-            if (sunRing2 != null) sunRing2.color = Palette.Red.WithAlpha(0.5f * g);
-            if (sunRing != null) sunRing.color = Palette.Gold.WithAlpha(0.65f * g);
-            if (sunBody != null) sunBody.color = Color.Lerp(Palette.Gold, Color.white, g).WithAlpha(0.95f * g);
-            if (sunLight != null) sunLight.intensity = 9f * g;
+            if (sun != null) sun.localScale = Vector3.one * ((0.2f + 1.5f * g) * beat);
+            if (sunRing != null) sunRing.transform.localScale = Vector3.one * 1.85f;
+            if (sunRing2 != null) sunRing2.transform.localScale = Vector3.one * 2.4f;
+            Color core = Color.Lerp(Color.Lerp(Palette.Gold, Color.white, 0.45f), Color.white, heat).Glow(2.2f + 1.5f * heat);
+            if (sunCore != null) sunCore.color = core.WithAlpha(g);
+            if (sunCorona != null) sunCorona.color = Palette.Amber.Glow(1.6f).WithAlpha(0.55f * g);
+            if (sunRing2 != null) sunRing2.color = Palette.Red.Glow(1.4f).WithAlpha(0.6f * g);
+            if (sunRing != null) sunRing.color = Palette.Gold.Glow(1.8f).WithAlpha(0.75f * g);
+            if (sunBody != null) sunBody.color = Color.white.Glow(1.5f).WithAlpha(0.9f * g);
+            if (sunLight != null) sunLight.intensity = 12f * g * (1f + 0.5f * heat);
+        }
+
+        /// <summary>The beat before the burst: everything collapses into a white-hot point. Nothing dims.</summary>
+        void SetSunFold(float p)
+        {
+            p = Mathf.Clamp01(p);
+            if (sun != null) sun.localScale = Vector3.one * Mathf.Lerp(1.7f, 0.45f, Ease.InCubic(p));
+            float ringIn = 1f - 0.75f * p;
+            if (sunRing != null) sunRing.transform.localScale = Vector3.one * (1.85f * ringIn);
+            if (sunRing2 != null) sunRing2.transform.localScale = Vector3.one * (2.4f * ringIn);
+            if (sunCore != null) sunCore.color = Color.white.Glow(2.5f + 3f * p);
+            if (sunCorona != null) sunCorona.color = Color.Lerp(Palette.Amber, Color.white, p).Glow(1.6f).WithAlpha(0.55f + 0.35f * p);
+            if (sunBody != null) sunBody.color = Color.white.Glow(2f);
+            if (sunLight != null) sunLight.intensity = 12f + 10f * p;
+        }
+
+        /// <summary>The camera pulls back and keeps the sun and the player in one frame; the arena dims so
+        /// the sun is the light. Call every frame of the charge.</summary>
+        void SolarCameraFrame(Vector2 sunAt)
+        {
+            var pc = PlayerController.Instance;
+            Vector2 focus = pc != null ? Vector2.Lerp(pc.Center, sunAt, 0.5f) : sunAt;
+            if (!solarCam)
+            {
+                solarCam = true;
+                Services.Cam.SetZoom(7.8f, 1.2f);
+                var info = GameFlow.Instance != null ? GameFlow.Instance.CurrentLevelInfo : null;
+                if (info != null) CameraController.SetAmbient(info.AmbientColor, info.AmbientIntensity * 0.45f);
+            }
+            Services.Cam.Focus(focus, 0.7f);
+        }
+
+        /// <summary>Hands the camera and the light back. Safe to call when nothing was taken.</summary>
+        void ReleaseSolarCamera()
+        {
+            if (!solarCam) return;
+            solarCam = false;
+            Services.Cam.ReleaseFocus(0.8f);
+            Services.Cam.SetZoom(6.8f, 1f);
+            var info = GameFlow.Instance != null ? GameFlow.Instance.CurrentLevelInfo : null;
+            if (info != null) CameraController.SetAmbient(info.AmbientColor, info.AmbientIntensity);
+        }
+
+        static Sprite discSprite;
+
+        /// <summary>A hard-edged disc with a feathered rim, made once at runtime. The soft radial glow sprite
+        /// has no edge, and an exploding sun needs one.</summary>
+        static Sprite DiscSprite()
+        {
+            if (discSprite != null) return discSprite;
+            const int N = 256;
+            var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
+            var px = new Color[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float dx = (x + 0.5f) / N * 2f - 1f, dy = (y + 0.5f) / N * 2f - 1f;
+                    float r = Mathf.Sqrt(dx * dx + dy * dy);
+                    px[y * N + x] = new Color(1f, 1f, 1f, 1f - Mathf.SmoothStep(0.84f, 1f, r));
+                }
+            tex.SetPixels(px); tex.Apply();
+            tex.filterMode = FilterMode.Bilinear; tex.wrapMode = TextureWrapMode.Clamp;
+            discSprite = Sprite.Create(tex, new Rect(0, 0, N, N), new Vector2(0.5f, 0.5f), 100f);
+            discSprite.name = "disc";
+            return discSprite;
+        }
+
+        static SpriteRenderer AdditiveSprite(Transform parent, Sprite sprite, Color color, int sort, float scale)
+        {
+            var go = new GameObject(sprite != null ? sprite.name : "sprite");
+            go.transform.SetParent(parent, false);
+            go.transform.localScale = Vector3.one * scale;
+            var sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            sr.material = MaterialLibrary.Additive;
+            sr.color = color.WithAlpha(0f);
+            sr.sortingOrder = sort;
+            return sr;
         }
 
         /// <summary>0 = a man in armour, 1 = a man standing inside a small fire.</summary>
@@ -244,6 +330,7 @@ namespace AshenSol.Boss
             SetSun(0f);
             SetAura(0f);
             solarPending = false; solarCd = 0f;
+            ReleaseSolarCamera();
             if (hornL != null) hornL.enabled = true;
             if (hornR != null) hornR.enabled = true;
             if (hornLight != null) hornLight.enabled = true;
@@ -411,7 +498,8 @@ namespace AshenSol.Boss
         {
             if (!IsAlive) return;
             if (behaviour != null) { StopCoroutine(behaviour); behaviour = null; }
-            EndTelegraph();
+            EndTelegraph(false);
+            ReleaseSolarCamera();
             staggerTimer = Mathf.Max(staggerTimer, seconds);
             Rig.Stagger(seconds);
             Rig.SetPose(false);
@@ -427,7 +515,8 @@ namespace AshenSol.Boss
             CurrentAttack = "";
             if (behaviour != null) { StopCoroutine(behaviour); behaviour = null; }
             StopAllCoroutines();
-            EndTelegraph();
+            EndTelegraph(false);
+            ReleaseSolarCamera();
             staggerTimer = 0f;
             Collider.enabled = false;
             Body.linearVelocity = Vector2.zero;
@@ -939,30 +1028,35 @@ namespace AshenSol.Boss
             Move(0f);
             Body.linearVelocity = new Vector2(0f, Body.linearVelocity.y);
 
-            // --- 1. he plants and reaches up; the white telegraph says this one can be met
+            // --- 1. he plants and reaches up; the white telegraph says this one can be met. The camera pulls
+            // back so the sun and the player share the frame, and the arena dims: the sun is the light now.
             float tel = BossTuning.SolarTelegraph * Tele;
             BeginTelegraph(AttackKind.Parryable, tel);
             float charge = tel * Settings.TelegraphMul;
             Rig.SetPose(true, -105f, 180f, -105f, 12f, -12f);   // both arms up, blade overhead, feet planted
             Services.Audio.PlaySfxAt("solar_charge", Center, 1f, 0.02f);
             Services.Ui.ShowPrompt("SOLAR COLLAPSE", 1.6f);
+            GameEvents.RaiseLog("solar charge");
 
             Vector2 sunAt = sun != null ? (Vector2)sun.position : Center + new Vector2(0f, 5.2f);
             float t = 0f, ember = 0f, shake = 0f;
             while (t < charge)
             {
                 float k = Mathf.Clamp01(t / Mathf.Max(0.01f, charge));
-                SetSun(Ease.InCubic(k) * 0.9f + 0.1f * k);
+                float heat = Mathf.Clamp01((k - 0.7f) / 0.3f);                  // the last stretch goes white
+                float beat = 1f + 0.06f * Mathf.Sin(t * (5f + 22f * k * k));     // a heartbeat that races
+                SetSun(Ease.InCubic(k) * 0.9f + 0.1f * k, heat, beat);
                 sunAt = sun != null ? (Vector2)sun.position : Center + new Vector2(0f, 5.2f);
+                SolarCameraFrame(sunAt);
                 Services.Vfx.FlashLight(sunAt, Palette.Amber, 2f * k, 9f + 16f * k, 0.12f);
 
                 ember -= Time.deltaTime;
                 if (ember <= 0f)
                 {
-                    ember = 0.07f;
+                    ember = 0.06f;
                     float a = UnityEngine.Random.value * Mathf.PI * 2f, r = 9f - 6f * k;
                     Services.Vfx.HitSpark(sunAt + new Vector2(Mathf.Cos(a) * r, Mathf.Sin(a) * r * 0.6f),
-                                          -new Vector2(Mathf.Cos(a), Mathf.Sin(a)), Palette.Gold, 0.6f + 0.6f * k);
+                                          -new Vector2(Mathf.Cos(a), Mathf.Sin(a)), Palette.Gold, 0.7f + 0.7f * k);
                 }
                 shake -= Time.deltaTime;
                 if (shake <= 0f) { shake = 0.12f; Services.Cam.Shake(0.05f + 0.18f * k); }
@@ -973,19 +1067,20 @@ namespace AshenSol.Boss
             }
             EndTelegraph();
 
-            // --- 2. the sun folds inward: the one beat you parry on
-            Services.Vfx.ScreenFlash(Palette.Gold.WithAlpha(0.35f), 0.18f);
+            // --- 2. the sun folds into a white point. Nothing fades: it concentrates, and the world darkens
+            // for a breath around it. That is the beat.
+            Services.Vfx.ScreenFlash(Palette.Ink.WithAlpha(0.5f), 0.16f);
             float c = 0f;
-            while (c < 0.14f)
+            while (c < 0.16f)
             {
-                SetSun(1f - c / 0.14f * 0.75f);
+                SetSunFold(c / 0.16f);
                 c += Time.deltaTime;
                 yield return null;
             }
             SetSun(0f);
 
-            // --- 3. it goes off, and the whole arena is inside it
-            var pc = AshenSol.Player.PlayerController.Instance;
+            // --- 3. it goes off: a sphere of light grows out of the point and fills the arena
+            var pc = PlayerController.Instance;
             int dmg = pc != null
                 ? Mathf.Max(1, Mathf.RoundToInt(pc.MaxHp * BossTuning.SolarDamageFraction))
                 : 75;
@@ -996,8 +1091,8 @@ namespace AshenSol.Boss
             };
 
             Services.Audio.PlaySfxAt("solar_burst", Center, 1f, 0.02f);
-            Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.6f), 0.4f);
-            Services.Vfx.FlashLight(sunAt, Color.white, 12f, 34f, 0.9f);
+            Services.Vfx.ScreenFlash(Color.white.WithAlpha(0.45f), 0.18f);
+            Services.Vfx.FlashLight(sunAt, Color.white, 14f, 36f, 0.9f);
             Services.Vfx.ChromaticPulse(1f, 1.4f);
             Services.Vfx.Embers(sunAt, 140, Palette.Gold);
             Services.Vfx.InkSplatter(sunAt, Vector2.up, Palette.Amber, 30);
@@ -1010,13 +1105,20 @@ namespace AshenSol.Boss
             GroundShockwave.Spawn((Vector2)transform.position + new Vector2(2f, 0f), 1, 13f, BossTuning.ShockwaveDamage, 1.8f, transform.parent);
             GroundShockwave.Spawn((Vector2)transform.position + new Vector2(-2f, 0f), -1, 13f, BossTuning.ShockwaveDamage, 1.8f, transform.parent);
 
-            // the front: it is drawn every frame and it takes real time to arrive, so it can be
-            // read and met. The hit lands the moment the ring touches you, not on the flash.
+            // The front is a filled sphere with a hot rim, drawn behind the fighters so they stay readable as
+            // silhouettes inside it, and it takes real time to arrive. The hit lands when the rim touches you,
+            // not on the flash.
             var waveGo = new GameObject("solar_wave");
             waveGo.transform.SetParent(transform.parent, false);
             waveGo.transform.position = sunAt;
-            var waveRing = Additive(waveGo.transform, "fx_shockwave", Color.white, SortOrder.Boss + 9, 0.4f);
-            var waveHalo = Additive(waveGo.transform, "fx_ring", Palette.Amber, SortOrder.Boss + 8, 0.4f);
+            var waveHalo = AdditiveSprite(waveGo.transform, Res.Sprite("fx_glow"), Palette.Amber, SortOrder.EnemyBack - 5, 1f);
+            var waveDisc = AdditiveSprite(waveGo.transform, DiscSprite(), Color.white, SortOrder.EnemyBack - 4, 1f);
+            var waveRimIn = Additive(waveGo.transform, "fx_ring", Color.white, SortOrder.Fx + 8, 1f);
+            var waveRim = Additive(waveGo.transform, "fx_ring", Palette.Gold, SortOrder.Fx + 9, 1f);
+            var groundGo = new GameObject("solar_ground");
+            groundGo.transform.SetParent(transform.parent, false);
+            groundGo.transform.position = new Vector3(sunAt.x, transform.position.y + 0.12f, 0f);
+            var groundRing = Additive(groundGo.transform, "fx_shockwave", Palette.Amber, SortOrder.GroundDecor + 3, 1f);
 
             bool struck = false;
             float radius = 1.2f, edge = 0f;
@@ -1025,10 +1127,17 @@ namespace AshenSol.Boss
                 radius += BossTuning.SolarWaveSpeed * Time.deltaTime;
                 float k = Mathf.Clamp01(radius / BossTuning.SolarWaveRadius);
                 float bright = 1f - k * 0.6f;
-                waveRing.transform.localScale = Vector3.one * (radius * 0.85f);
-                waveHalo.transform.localScale = Vector3.one * (radius * 1.05f);
-                waveRing.color = Color.Lerp(Color.white, Palette.Gold, k).WithAlpha(0.95f * bright);
-                waveHalo.color = Palette.Amber.WithAlpha(0.55f * bright);
+                // sprite sizes at scale 1: disc 2.56 u, ring 1.28 u, glow 0.64 u, ground ring 2.56 u wide
+                waveDisc.transform.localScale = Vector3.one * (radius / 1.28f);
+                waveHalo.transform.localScale = Vector3.one * (radius / 0.64f * 1.25f);
+                waveRim.transform.localScale = Vector3.one * (radius / 0.64f);
+                waveRimIn.transform.localScale = Vector3.one * (radius / 0.64f * 0.93f);
+                groundRing.transform.localScale = new Vector3(radius / 1.28f, radius / 1.28f * 0.55f, 1f);
+                waveDisc.color = Color.Lerp(Color.white.Glow(1.8f), Palette.Amber.Glow(1.2f), k).WithAlpha(Mathf.Lerp(0.7f, 0.12f, k));
+                waveHalo.color = Palette.Amber.Glow(1.4f).WithAlpha(0.35f * bright);
+                waveRim.color = Color.Lerp(Palette.Gold, Color.white, 0.3f).Glow(2.4f).WithAlpha(0.95f * bright);
+                waveRimIn.color = Color.white.Glow(1.6f).WithAlpha(0.7f * bright);
+                groundRing.color = Palette.Amber.Glow(1.5f).WithAlpha(0.8f * bright);
 
                 edge -= Time.deltaTime;
                 if (edge <= 0f)
@@ -1051,10 +1160,12 @@ namespace AshenSol.Boss
                 yield return null;
             }
             Destroy(waveGo);
+            Destroy(groundGo);
 
             // --- 4. it costs him: a long opening while the horns cool
             Rig.SetPose(true, 30f, 180f, -18f, 46f, -62f);   // on one knee while the horns cool
             yield return Wait(BossTuning.SolarRecovery * 0.5f);
+            ReleaseSolarCamera();
             Rig.SetPose(false);
             yield return Wait(BossTuning.SolarRecovery * 0.3f);
         }

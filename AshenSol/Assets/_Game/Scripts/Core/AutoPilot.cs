@@ -96,6 +96,8 @@ namespace AshenSol.Core
         {
             Log(s);
             if (s.StartsWith("guard broken")) ScheduleShot("guard_break", 0.25f);
+            else if (s.StartsWith("solar charge")) ScheduleShot("solar_charge", 1.5f);       // the sun fully grown
+            else if (s.StartsWith("solar collapse")) ScheduleShot("solar_burst", 0.9f);      // the sphere mid-arena
             else if (s.StartsWith("brute ")) ScheduleShot(s.Replace(' ', '_'), s.EndsWith("quake") ? 1.15f : 0.75f);   // windup, then the hit
             else if (s.Contains("parry vs hammer_")) ScheduleShot("hammer_parry", 0.03f);
             else if (s.StartsWith("intro panel")) ScheduleShot("intro" + s.Substring(12).Trim(), 2.2f);
@@ -210,7 +212,7 @@ namespace AshenSol.Core
             {
                 brainState = "credits";
                 creditsTime += dt;
-                if (creditsTime > 22f && confirmCd <= 0f) { input.Confirm(); confirmCd = 1.5f; }
+                if (creditsTime > CmdArgs.GetFloat("-creditsSeconds", 22f) && confirmCd <= 0f) { input.Confirm(); confirmCd = 1.5f; }
                 return;
             }
             // shrines no longer open by themselves: ask for the rest whenever a level is affordable

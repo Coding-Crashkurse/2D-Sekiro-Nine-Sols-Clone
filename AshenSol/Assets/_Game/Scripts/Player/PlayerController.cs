@@ -124,11 +124,12 @@ namespace AshenSol.Player
             }
         }
 
-        public void Respawn(Vector2 pos)
+        /// <summary>Put the player back on their feet. After a death the sash comes back fully charged.</summary>
+        public void Respawn(Vector2 pos, bool fullQi = false)
         {
             StopAllCoroutines();
             IsDead = false;
-            Hp = MaxHp; Qi = 0;
+            Hp = MaxHp; Qi = fullQi ? MaxQi : 0;
             Facing = 1;
             coyote = jumpBuffer = stunTimer = dashTimer = dashCooldown = dropThroughTimer = 0f;
             invulnTimer = PlayerTuning.SpawnInvuln;

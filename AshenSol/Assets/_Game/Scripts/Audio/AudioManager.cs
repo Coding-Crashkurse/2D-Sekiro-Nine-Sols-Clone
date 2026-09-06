@@ -90,6 +90,7 @@ namespace AshenSol.Audio
             if (name == currentMusic && current != null && current.Src.isPlaying) return;
             currentMusic = name;
             var clip = string.IsNullOrEmpty(name) ? null : Res.Clip(Res.MusicPath + name);
+            GameEvents.RaiseLog("music -> " + (string.IsNullOrEmpty(name) ? "(none)" : name) + (clip == null && !string.IsNullOrEmpty(name) ? "  MISSING" : ""));
             float speed = 1f / Mathf.Max(0.05f, fadeSeconds);
             if (current != null) { current.Target = 0f; current.Speed = speed; }
             if (clip == null) { current = null; return; }

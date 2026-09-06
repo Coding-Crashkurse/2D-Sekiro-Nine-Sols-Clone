@@ -314,7 +314,7 @@ namespace AshenSol.Core
             Projectile.ClearAll();
             HitStop.Remaining = 0f;
             if (CurrentLevelInfo != null) CurrentLevelInfo.ResetEnemies();
-            player.Respawn(RespawnPoint);
+            player.Respawn(RespawnPoint, true);   // you come back with the sash fully charged
             player.SetControlEnabled(true);
             Services.Cam.SetZoom(6f, 0.3f);
             Services.Cam.SnapToTarget();
