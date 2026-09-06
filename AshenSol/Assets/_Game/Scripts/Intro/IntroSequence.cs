@@ -401,15 +401,19 @@ namespace AshenSol.Intro
 
         IEnumerator WalkBeat(EnemyRig hero, SpriteRenderer glow, float duration)
         {
+            // Move the figure that OWNS the rig: EnemyRig.Apply() rewrites Root.localPosition every
+            // frame for the walk bob, so writing to Root here is overwritten instantly and the hero
+            // ends up walking on the spot.
+            var body = hero.Root.parent;
             float t = 0f;
-            var start = hero.Root.position;
+            var start = body.position;
             var glowStart = glow.transform.position;
             float step = 0f;
             while (t < duration)
             {
                 float dt = Time.unscaledDeltaTime;
                 t += dt;
-                hero.Root.position = start + new Vector3(t * 1.15f, 0f, 0f);
+                body.position = start + new Vector3(t * 1.15f, 0f, 0f);
                 glow.transform.position = glowStart + new Vector3(t * 1.15f, 0f, 0f);
                 hero.Animate(2.6f, dt);                       // drives the walk cycle
                 step -= dt;
@@ -417,7 +421,7 @@ namespace AshenSol.Intro
                 {
                     step = 0.42f;
                     Services.Audio.PlaySfx("footstep", 0.3f, 0.2f);
-                    Services.Vfx.DustPuff((Vector2)hero.Root.position, 0.45f);
+                    Services.Vfx.DustPuff((Vector2)body.position, 0.45f);
                 }
                 yield return null;
             }
